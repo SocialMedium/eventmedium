@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Private Canister — Event Medium</title>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+:root {
+  --p: #0066ff;--pL: #e8f0fe;--pD: #0052cc;--s: #6c63ff;--ok: #00d084;
+  --okL: #e6faf2;--warn: #f59e0b;--warnL: #fffbeb;--bg: #f8f9fd;--card: #ffffff;
+  --txt: #1a1d29;--txtL: #6b7280;--txtXL: #9ca3af;--bdr: #e5e7eb;
+  --shadow: 0 1px 3px rgba(0,0,0,0.06);--shadowL: 0 10px 25px rgba(0,0,0,0.08);
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--font);color:var(--txt);background:var(--bg);-webkit-font-smoothing:antialiased}
+
+.nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,0.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--bdr);padding:0 24px}
+.nav-inner{max-width:1140px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:64px}
+.nav-brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--txt)}
+.nav-logo{width:36px;height:36px;background:var(--p);border-radius:10px;display:flex;align-items:center;justify-content:center;color:white}
+.nav-name{font-weight:800;font-size:1.15rem;letter-spacing:-0.3px}
+.nav-links{display:flex;align-items:center;gap:8px}
+.nav-link{padding:8px 16px;color:var(--txtL);text-decoration:none;font-size:14px;font-weight:500;border-radius:8px;transition:all 0.2s}
+.nav-link:hover{color:var(--txt);background:var(--card)}
+.nav-link.active{color:var(--p);font-weight:600}
+.nav-badge{background:var(--ok);color:white;font-size:10px;font-weight:700;padding:2px 6px;border-radius:10px;margin-left:4px}
+.nav-logout{padding:8px 16px;color:var(--txtL);font-size:14px;font-weight:500;border-radius:8px;border:none;background:none;cursor:pointer;font-family:var(--font)}
+.nav-logout:hover{color:#ef4444;background:#fef2f2}
+
+.page{max-width:900px;margin:0 auto;padding:88px 24px 60px}
+
+/* Quick actions */
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:24px}
+.action-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:var(--card);border:1px solid var(--bdr);border-radius:10px;font-size:14px;font-weight:600;color:var(--txt);text-decoration:none;transition:all 0.2s;cursor:pointer}
+.action-btn:hover{border-color:var(--p);color:var(--p);transform:translateY(-1px);box-shadow:var(--shadow)}
+.action-btn.primary{background:var(--p);color:white;border-color:var(--p)}
+.action-btn.primary:hover{background:var(--pD)}
+.action-btn i{width:16px;height:16px}
+
+/* Cards */
+.card{background:var(--card);border:1px solid var(--bdr);border-radius:16px;padding:28px;margin-bottom:20px}
+.card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.card-header h2{font-size:17px;font-weight:700}
+.card-edit{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;background:var(--pL);color:var(--p);border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font);transition:all 0.2s;text-decoration:none}
+.card-edit:hover{background:var(--p);color:white}
+.card-edit i{width:12px;height:12px}
+
+/* Two column layout */
+.layout{display:grid;grid-template-columns:1fr 340px;gap:20px;align-items:start}
+
+/* Profile header */
+.profile-top{display:flex;gap:20px;align-items:center;margin-bottom:20px}
+.profile-avatar{width:72px;height:72px;border-radius:18px;background:linear-gradient(135deg,var(--p),var(--s));display:flex;align-items:center;justify-content:center;color:white;flex-shrink:0;font-size:28px;font-weight:700}
+.profile-info h2{font-size:22px;font-weight:700;margin-bottom:2px}
+.profile-info p{font-size:14px;color:var(--txtL)}
+.type-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:8px;font-size:12px;font-weight:600;margin-top:6px}
+.type-badge.investor{background:var(--pL);color:var(--p)}
+.type-badge.founder{background:var(--okL);color:#059669}
+.type-badge.researcher{background:#ede9fe;color:var(--s)}
+.type-badge.corporate{background:#fef2f2;color:#dc2626}
+.type-badge.advisor{background:#fef3c7;color:#d97706}
+.type-badge.operator{background:#f0fdf4;color:#16a34a}
+
+/* Section rows */
+.section-row{margin-bottom:16px}
+.section-label{font-size:12px;font-weight:600;color:var(--txtXL);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+.section-text{font-size:14px;color:var(--txtL);line-height:1.6}
+
+/* Tags */
+.tags{display:flex;gap:6px;flex-wrap:wrap}
+.tag{padding:4px 12px;background:var(--pL);color:var(--p);font-size:12px;font-weight:600;border-radius:8px}
+.tag.intent{background:var(--okL);color:#059669}
+.tag.offering{background:#ede9fe;color:var(--s)}
+
+/* Deal details */
+.deal-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.deal-item{padding:12px 16px;background:var(--bg);border-radius:10px}
+.deal-item-label{font-size:11px;font-weight:600;color:var(--txtXL);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px}
+.deal-item-val{font-size:14px;font-weight:600;color:var(--txt)}
+
+/* Stats */
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.stat-card{text-align:center;padding:16px;background:var(--bg);border-radius:12px}
+.stat-num{font-size:24px;font-weight:700;color:var(--p)}
+.stat-label{font-size:12px;color:var(--txtL);margin-top:2px}
+
+/* Theme radar (simplified bar chart) */
+.theme-chart{margin-top:8px}
+.theme-bar{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.theme-bar-label{font-size:12px;font-weight:600;color:var(--txt);width:100px;text-align:right;flex-shrink:0}
+.theme-bar-track{flex:1;height:8px;background:var(--bg);border-radius:4px;overflow:hidden}
+.theme-bar-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--p),var(--s));transition:width 0.6s ease}
+
+/* Events list */
+.event-item{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--bdr)}
+.event-item:last-child{border-bottom:none}
+.event-item-left{display:flex;align-items:center;gap:10px}
+.event-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.event-dot.upcoming{background:var(--ok)}
+.event-dot.past{background:var(--txtXL)}
+.event-item-name{font-size:14px;font-weight:600}
+.event-item-date{font-size:12px;color:var(--txtL)}
+.event-item a{color:var(--p);font-size:13px;font-weight:600;text-decoration:none}
+.event-item a:hover{text-decoration:underline}
+
+/* Activity timeline */
+.timeline{position:relative;padding-left:24px}
+.timeline::before{content:'';position:absolute;left:6px;top:4px;bottom:4px;width:2px;background:var(--bdr)}
+.timeline-item{position:relative;padding-bottom:16px}
+.timeline-item:last-child{padding-bottom:0}
+.timeline-dot{position:absolute;left:-24px;top:4px;width:14px;height:14px;border-radius:50%;border:2px solid var(--card);background:var(--p)}
+.timeline-dot.match{background:var(--ok)}
+.timeline-dot.event{background:var(--warn)}
+.timeline-dot.profile{background:var(--s)}
+.timeline-time{font-size:11px;color:var(--txtXL);margin-bottom:2px}
+.timeline-text{font-size:13px;color:var(--txtL);line-height:1.5}
+
+.empty-state{text-align:center;padding:32px;color:var(--txtL);font-size:14px}
+.empty-state a{color:var(--p);font-weight:600;text-decoration:none}
+.loading{text-align:center;padding:80px;color:var(--txtL)}
+
+/* Incomplete profile banner */
+.incomplete-banner{background:linear-gradient(135deg,var(--warnL),#fef9ee);border:1px solid #fde68a;border-radius:16px;padding:24px 28px;margin-bottom:20px;display:flex;align-items:center;gap:16px}
+.incomplete-banner-icon{width:48px;height:48px;border-radius:14px;background:var(--warn);color:white;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.incomplete-banner h3{font-size:15px;font-weight:700;color:#92400e;margin-bottom:4px}
+.incomplete-banner p{font-size:13px;color:#a16207}
+.incomplete-banner a{display:inline-flex;align-items:center;gap:6px;margin-top:10px;padding:8px 18px;background:var(--warn);color:white;font-size:13px;font-weight:600;border-radius:8px;text-decoration:none;transition:all 0.2s}
+.incomplete-banner a:hover{background:#d97706}
+
+/* Toast */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--txt);color:white;padding:12px 24px;border-radius:10px;font-size:14px;font-weight:500;z-index:300;transition:transform 0.3s;box-shadow:var(--shadowL)}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast.success{background:#059669}
+
+@media(max-width:900px){
+  .layout{grid-template-columns:1fr}
+}
+@media(max-width:640px){
+  .nav-links .nav-link:not(.active){display:none}
+  .page{padding:80px 16px 40px}
+  .profile-top{flex-direction:column;text-align:center}
+  .stats-grid{grid-template-columns:1fr 1fr}
+  .deal-grid{grid-template-columns:1fr}
+  .actions{flex-direction:column}
+  .incomplete-banner{flex-direction:column;text-align:center}
+}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-brand">
+      <div class="nav-logo"><i data-lucide="radio" style="width:20px;height:20px;color:var(--p)"></i></div>
+      <span class="nav-name">Event <span style="color:var(--p)">Medium</span></span>
+    </a>
+    <div class="nav-links">
+      <a href="/events.html" class="nav-link">Events</a>
+      <a href="/matches.html" class="nav-link" id="navMatches">Matches</a>
+      <a href="/canister.html" class="nav-link active">My Canister</a>
+      <button class="nav-logout" onclick="logout()">Log out</button>
+    </div>
+  </div>
+</nav>
+
+<div class="page" id="page"><div class="loading">Loading your canister...</div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+var token = localStorage.getItem('auth_token');
+if (!token) window.location.href = '/auth.html';
+
+async function loadCanister() {
+  try {
+    var [userResp, profileResp, regResp, matchResp, notiResp] = await Promise.all([
+      fetch('/api/auth/me', { headers: { 'Authorization': 'Bearer ' + token } }),
+      fetch('/api/stakeholder/profile', { headers: { 'Authorization': 'Bearer ' + token } }),
+      fetch('/api/events/user/registrations', { headers: { 'Authorization': 'Bearer ' + token } }),
+      fetch('/api/matches/mine', { headers: { 'Authorization': 'Bearer ' + token } }),
+      fetch('/api/notifications/unread-count', { headers: { 'Authorization': 'Bearer ' + token } })
+    ]);
+
+    if (!userResp.ok) { localStorage.removeItem('auth_token'); window.location.href = '/auth.html'; return; }
+
+    var userData = await userResp.json();
+    var profileData = await profileResp.json();
+    var regData = await regResp.json();
+    var matchData = await matchResp.json();
+    var notiData = await notiResp.json();
+
+    var user = userData.user;
+    var profile = profileData.profile || {};
+    var registrations = regData.registrations || [];
+    var matches = matchData.matches || [];
+    var unread = notiData.count || 0;
+
+    var themes = parseArr(profile.themes);
+    var intent = parseArr(profile.intent);
+    var offering = parseArr(profile.offering);
+    var dealDetails = profile.deal_details || {};
+    if (typeof dealDetails === 'string') try { dealDetails = JSON.parse(dealDetails); } catch(e) { dealDetails = {}; }
+    var type = profile.stakeholder_type || '';
+    var initials = getInitials(user.name);
+
+    // Match stats
+    var pendingMatches = matches.filter(function(m) { return m.status === 'pending' && !m.my_decision; });
+    var revealedMatches = matches.filter(function(m) { return m.status === 'revealed'; });
+
+    // Unread badge
+    if (unread > 0) document.getElementById('navMatches').innerHTML = 'Matches <span class="nav-badge">' + unread + '</span>';
+
+    var html = '';
+
+    // Incomplete profile banner
+    if (!type) {
+      html += '<div class="incomplete-banner">' +
+        '<div class="incomplete-banner-icon"><i data-lucide="alert-circle" style="width:24px;height:24px"></i></div>' +
+        '<div><h3>Build your Private Canister</h3>' +
+        '<p>Chat with Nev to build your private canister. Nothing is shared publicly — matching is anonymous and double-blind at events.</p>' +
+        '<a href="/onboard.html"><i data-lucide="bot" style="width:14px;height:14px"></i> Talk to Nev</a></div>' +
+      '</div>';
+    }
+
+    // Quick actions
+    html += '<div class="actions">' +
+      '<a href="/events.html" class="action-btn primary"><i data-lucide="calendar"></i> Browse Events</a>' +
+      '<a href="/matches.html" class="action-btn"><i data-lucide="heart-handshake"></i> My Matches' + (pendingMatches.length ? ' (' + pendingMatches.length + ')' : '') + '</a>' +
+      '<a href="/onboard.html" class="action-btn"><i data-lucide="bot"></i> Talk to Nev</a>' +
+    '</div>';
+
+    html += '<div class="layout"><div class="main-col">';
+
+    // Profile card
+    html += '<div class="card">' +
+      '<div class="card-header"><h2>Private Canister</h2><a href="/onboard.html" class="card-edit"><i data-lucide="pencil"></i> Update with Nev</a></div>' +
+      '<div style="font-size:12px;color:var(--txtXL);margin-bottom:16px;padding:10px 14px;background:var(--bg);border-radius:10px;line-height:1.5"><i data-lucide="shield-check" style="width:13px;height:13px;display:inline;vertical-align:-2px;color:var(--p)"></i> Your canister is private. There is no public directory. All matching is anonymous and double-blind — identities are only revealed with mutual consent.</div>' +
+      '<div class="profile-top">' +
+        '<div class="profile-avatar">' + initials + '</div>' +
+        '<div class="profile-info">' +
+          '<h2>' + esc(user.name) + '</h2>' +
+          '<p>' + esc(user.email) + (user.company ? ' &middot; ' + esc(user.company) : '') + '</p>' +
+          (type ? '<span class="type-badge ' + type + '">' + capitalize(type) + '</span>' : '<span class="type-badge" style="background:var(--warnL);color:var(--warn)">Not yet built</span>') +
+        '</div>' +
+      '</div>' +
+      (profile.focus_text ? '<div class="section-row"><div class="section-label">Focus</div><p class="section-text">' + esc(profile.focus_text) + '</p></div>' : '') +
+      (profile.geography ? '<div class="section-row"><div class="section-label">Geography</div><p class="section-text">' + esc(profile.geography) + '</p></div>' : '') +
+      (themes.length ? '<div class="section-row"><div class="section-label">Themes</div><div class="tags">' + themes.map(function(t){return '<span class="tag">' + esc(t) + '</span>'}).join('') + '</div></div>' : '') +
+      (intent.length ? '<div class="section-row"><div class="section-label">Looking for</div><div class="tags">' + intent.map(function(t){return '<span class="tag intent">' + esc(t) + '</span>'}).join('') + '</div></div>' : '') +
+      (offering.length ? '<div class="section-row"><div class="section-label">Offering</div><div class="tags">' + offering.map(function(t){return '<span class="tag offering">' + esc(t) + '</span>'}).join('') + '</div></div>' : '') +
+    '</div>';
+
+    // Deal details (if investor or founder)
+    if (Object.keys(dealDetails).length && (type === 'investor' || type === 'founder')) {
+      html += '<div class="card"><div class="card-header"><h2>Deal Details</h2></div><div class="deal-grid">';
+      var ddFields = [
+        { key: 'stage', label: 'Stage' },
+        { key: 'check_size', label: 'Check Size' },
+        { key: 'raising', label: 'Raising' },
+        { key: 'revenue', label: 'Revenue' },
+        { key: 'sector', label: 'Sector' },
+        { key: 'geography', label: 'Target Geography' },
+        { key: 'thesis', label: 'Thesis' },
+        { key: 'fund_size', label: 'Fund Size' }
+      ];
+      ddFields.forEach(function(f) {
+        if (dealDetails[f.key]) {
+          html += '<div class="deal-item"><div class="deal-item-label">' + f.label + '</div><div class="deal-item-val">' + esc(String(dealDetails[f.key])) + '</div></div>';
+        }
+      });
+      html += '</div></div>';
+    }
+
+    // Events card
+    html += '<div class="card"><div class="card-header"><h2>My Events</h2><a href="/events.html" class="card-edit"><i data-lucide="plus"></i> Browse</a></div>';
+    if (registrations.length) {
+      html += registrations.map(function(r) {
+        var d = r.event_date ? new Date(r.event_date) : null;
+        var dStr = d ? d.toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'}) : 'TBD';
+        var isPast = d && d < new Date();
+        return '<div class="event-item">' +
+          '<div class="event-item-left"><span class="event-dot ' + (isPast ? 'past' : 'upcoming') + '"></span><div>' +
+          '<div class="event-item-name">' + esc(r.name || 'Event #' + r.id) + '</div>' +
+          '<div class="event-item-date">' + dStr + (isPast ? ' &middot; Past' : '') + '</div></div></div>' +
+          '<a href="/event.html?id=' + r.id + '">View</a></div>';
+      }).join('');
+    } else {
+      html += '<div class="empty-state">No events yet. <a href="/events.html">Browse events</a> to get matched.</div>';
+    }
+    html += '</div>';
+
+    html += '</div><div class="side-col">';
+
+    // Stats card
+    html += '<div class="card"><div class="card-header"><h2>Stats</h2></div>' +
+      '<div class="stats-grid">' +
+        '<div class="stat-card"><div class="stat-num">' + registrations.length + '</div><div class="stat-label">Events</div></div>' +
+        '<div class="stat-card"><div class="stat-num">' + matches.length + '</div><div class="stat-label">Matches</div></div>' +
+        '<div class="stat-card"><div class="stat-num">' + revealedMatches.length + '</div><div class="stat-label">Revealed</div></div>' +
+      '</div>' +
+    '</div>';
+
+    // Theme chart
+    if (themes.length) {
+      html += '<div class="card"><div class="card-header"><h2>Theme Focus</h2></div><div class="theme-chart">';
+      var maxThemes = Math.min(themes.length, 8);
+      for (var i = 0; i < maxThemes; i++) {
+        var pct = Math.round(100 - (i * (80 / maxThemes)));
+        html += '<div class="theme-bar">' +
+          '<span class="theme-bar-label">' + esc(themes[i]) + '</span>' +
+          '<div class="theme-bar-track"><div class="theme-bar-fill" style="width:' + pct + '%"></div></div>' +
+        '</div>';
+      }
+      html += '</div></div>';
+    }
+
+    // Activity timeline
+    html += '<div class="card"><div class="card-header"><h2>Activity</h2></div>';
+    var activities = [];
+    if (profile.updated_at) activities.push({ time: profile.updated_at, text: 'Canister updated', type: 'profile' });
+    registrations.forEach(function(r) {
+      activities.push({ time: r.registered_at || r.created_at, text: 'Registered for ' + esc(r.name || 'an event'), type: 'event' });
+    });
+    matches.filter(function(m) { return m.status === 'revealed'; }).forEach(function(m) {
+      activities.push({ time: m.updated_at || m.created_at, text: 'Match revealed' + (m.other_user ? ' with ' + esc(m.other_user.name) : ''), type: 'match' });
+    });
+    activities.sort(function(a, b) { return new Date(b.time) - new Date(a.time); });
+
+    if (activities.length) {
+      html += '<div class="timeline">';
+      activities.slice(0, 8).forEach(function(a) {
+        var timeStr = a.time ? new Date(a.time).toLocaleDateString('en-GB', {day:'numeric',month:'short'}) : '';
+        html += '<div class="timeline-item"><div class="timeline-dot ' + a.type + '"></div>' +
+          '<div class="timeline-time">' + timeStr + '</div>' +
+          '<div class="timeline-text">' + a.text + '</div></div>';
+      });
+      html += '</div>';
+    } else {
+      html += '<div class="empty-state">No activity yet. Register for an event to get started.</div>';
+    }
+    html += '</div>';
+
+    html += '</div></div>'; // close side-col + layout
+
+    document.getElementById('page').innerHTML = html;
+    lucide.createIcons();
+  } catch(err) {
+    console.error(err);
+    document.getElementById('page').innerHTML = '<div class="loading">Something went wrong. <a href="/auth.html" style="color:var(--p)">Try signing in again</a></div>';
+  }
+}
+
+function parseArr(val) { if (!val) return []; if (Array.isArray(val)) return val; try { return JSON.parse(val); } catch(e) { return []; } }
+function esc(s) { if (!s) return ''; var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function capitalize(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
+function getInitials(name) { return (name || 'U').split(' ').map(function(w) { return w[0]; }).join('').toUpperCase().slice(0, 2); }
+function showToast(msg, type) { var el = document.getElementById('toast'); el.textContent = msg; el.className = 'toast show' + (type ? ' ' + type : ''); setTimeout(function() { el.className = 'toast'; }, 3000); }
+function logout() {
+  fetch('/api/auth/logout', { method: 'POST', headers: { 'Authorization': 'Bearer ' + token } });
+  localStorage.removeItem('auth_token');
+  window.location.href = '/';
+}
+
+lucide.createIcons();
+loadCanister();
+</script>
+</body>
+</html>

@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Talk to Nev — Event Medium</title>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+:root {
+  --p: #0066ff;--pL: #e8f0fe;--pD: #0052cc;--s: #6c63ff;--ok: #00d084;
+  --okL: #e6faf2;--warn: #f59e0b;--warnL: #fffbeb;--bg: #f8f9fd;--card: #ffffff;
+  --txt: #1a1d29;--txtL: #6b7280;--txtXL: #9ca3af;--bdr: #e5e7eb;
+  --shadow: 0 1px 3px rgba(0,0,0,0.06);--shadowL: 0 10px 25px rgba(0,0,0,0.08);
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--font);color:var(--txt);background:var(--bg);-webkit-font-smoothing:antialiased;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+
+/* Nav */
+.nav{background:rgba(255,255,255,0.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--bdr);padding:0 24px;flex-shrink:0;z-index:10}
+.nav-inner{max-width:1280px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:56px}
+.nav-brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--txt)}
+.nav-logo{width:32px;height:32px;background:var(--p);border-radius:8px;display:flex;align-items:center;justify-content:center;color:white}
+.nav-name{font-weight:800;font-size:1rem;letter-spacing:-0.3px}
+.nav-right{display:flex;align-items:center;gap:8px}
+.nav-link{padding:7px 14px;color:var(--txtL);text-decoration:none;font-size:13px;font-weight:500;border-radius:8px;transition:all 0.2s}
+.nav-link:hover{color:var(--txt);background:var(--card)}
+
+/* Split pane */
+.split{flex:1;display:flex;overflow:hidden;max-width:1280px;width:100%;margin:0 auto}
+
+/* ── LEFT: Chat ── */
+.chat-pane{flex:1;display:flex;flex-direction:column;min-width:0;border-right:1px solid var(--bdr)}
+
+.nev-header{padding:20px 24px 16px;flex-shrink:0;display:flex;align-items:center;gap:14px}
+.nev-avatar{width:44px;height:44px;border-radius:14px;background:linear-gradient(135deg,var(--p),var(--s));display:flex;align-items:center;justify-content:center;color:white;flex-shrink:0}
+.nev-info h2{font-size:16px;font-weight:700}
+.nev-info p{font-size:12px;color:var(--txtL)}
+
+.messages{flex:1;overflow-y:auto;padding:0 24px 16px;display:flex;flex-direction:column;gap:10px}
+.msg{max-width:85%;padding:12px 16px;border-radius:16px;font-size:14px;line-height:1.6;animation:msgIn 0.3s ease-out}
+@keyframes msgIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.msg.nev{align-self:flex-start;background:var(--card);border:1px solid var(--bdr);border-bottom-left-radius:4px}
+.msg.user{align-self:flex-end;background:var(--p);color:white;border-bottom-right-radius:4px}
+.msg.typing{align-self:flex-start;background:var(--card);border:1px solid var(--bdr);border-bottom-left-radius:4px;color:var(--txtL);padding:10px 16px}
+.typing-dots{display:inline-flex;gap:3px}
+.typing-dots span{width:6px;height:6px;border-radius:50%;background:var(--txtXL);animation:dot 1.4s ease-in-out infinite}
+.typing-dots span:nth-child(2){animation-delay:0.2s}
+.typing-dots span:nth-child(3){animation-delay:0.4s}
+@keyframes dot{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-4px)}}
+
+/* Input bar */
+.input-wrap{padding:12px 24px 20px;flex-shrink:0;display:flex;gap:8px;align-items:flex-end}
+.chat-input{flex:1;padding:10px 14px;border:1px solid var(--bdr);border-radius:12px;font-size:14px;font-family:var(--font);background:var(--card);color:var(--txt);transition:all 0.2s;resize:none;min-height:42px;max-height:120px;line-height:1.4}
+.chat-input:focus{outline:none;border-color:var(--p);box-shadow:0 0 0 3px var(--pL)}
+.chat-input::placeholder{color:var(--txtXL)}
+.send-btn,.mic-btn{width:42px;height:42px;border-radius:12px;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s;flex-shrink:0}
+.send-btn{background:var(--p);color:white}
+.send-btn:hover{background:var(--pD)}
+.send-btn:disabled{opacity:0.3;cursor:not-allowed}
+.send-btn i,.mic-btn i{width:16px;height:16px}
+.mic-btn{background:var(--card);border:1px solid var(--bdr);color:var(--txtL)}
+.mic-btn:hover{border-color:var(--p);color:var(--p);background:var(--pL)}
+.mic-btn.recording{background:#ef4444;color:white;border-color:#ef4444;animation:pulse-mic 1.5s ease-in-out infinite}
+@keyframes pulse-mic{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,0.4)}50%{box-shadow:0 0 0 8px rgba(239,68,68,0)}}
+.mic-btn.processing{background:var(--warn);color:white;border-color:var(--warn)}
+
+/* Voice status */
+.voice-status{font-size:11px;color:var(--txtXL);text-align:center;padding:0 24px 8px;min-height:20px;flex-shrink:0}
+.voice-status.recording{color:#ef4444;font-weight:600}
+.voice-status.processing{color:var(--warn)}
+
+/* Done bar */
+.done-bar{padding:0 24px;flex-shrink:0;animation:msgIn 0.3s ease-out}
+.done-bar-inner{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--okL);border:1px solid #a7f3d0;border-radius:12px;font-size:13px;font-weight:600;color:#065f46}
+.done-bar-actions{display:flex;gap:8px}
+.done-btn{padding:7px 16px;border-radius:8px;font-size:12px;font-weight:600;text-decoration:none;transition:all 0.2s}
+.done-btn.primary{background:#059669;color:white}
+.done-btn.primary:hover{background:#047857}
+.done-btn.secondary{background:white;color:#059669;border:1px solid #a7f3d0}
+.done-btn.secondary:hover{background:#ecfdf5}
+
+/* ── RIGHT: Live canister ── */
+.canister-pane{width:320px;flex-shrink:0;overflow-y:auto;padding:20px;background:var(--bg)}
+
+.canister-preview{background:var(--card);border:1px solid var(--bdr);border-radius:16px;padding:24px;position:sticky;top:0}
+.canister-title{display:flex;align-items:center;gap:8px;margin-bottom:16px;font-size:14px;font-weight:700;color:var(--txt)}
+.canister-title i{width:16px;height:16px;color:var(--p)}
+.canister-live-dot{width:8px;height:8px;border-radius:50%;background:var(--ok);margin-left:auto;animation:livePulse 2s ease-in-out infinite}
+@keyframes livePulse{0%,100%{opacity:1}50%{opacity:0.3}}
+
+.cp-section{margin-bottom:16px}
+.cp-label{font-size:10px;font-weight:600;color:var(--txtXL);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+.cp-value{font-size:13px;color:var(--txt);line-height:1.5}
+.cp-empty{font-size:12px;color:var(--bdr);font-style:italic}
+
+/* Canister tags */
+.cp-tags{display:flex;gap:5px;flex-wrap:wrap}
+.cp-tag{padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;animation:tagIn 0.3s ease-out}
+@keyframes tagIn{from{opacity:0;transform:scale(0.8)}to{opacity:1;transform:scale(1)}}
+.cp-tag.theme{background:var(--pL);color:var(--p)}
+.cp-tag.intent{background:var(--okL);color:#059669}
+.cp-tag.offering{background:#ede9fe;color:var(--s)}
+
+/* Type badge */
+.cp-type-badge{display:inline-flex;align-items:center;gap:6px;padding:5px 14px;border-radius:8px;font-size:12px;font-weight:600}
+.cp-type-badge.investor{background:var(--pL);color:var(--p)}
+.cp-type-badge.founder{background:var(--okL);color:#059669}
+.cp-type-badge.researcher{background:#ede9fe;color:var(--s)}
+.cp-type-badge.corporate{background:#fef2f2;color:#dc2626}
+.cp-type-badge.advisor{background:#fef3c7;color:#d97706}
+.cp-type-badge.operator{background:#f0fdf4;color:#16a34a}
+
+/* Deal details */
+.cp-deal-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.cp-deal-item{padding:8px 10px;background:var(--bg);border-radius:8px}
+.cp-deal-label{font-size:9px;font-weight:600;color:var(--txtXL);text-transform:uppercase;letter-spacing:0.5px}
+.cp-deal-val{font-size:12px;font-weight:600;color:var(--txt);margin-top:2px}
+
+/* Completeness meter */
+.completeness{margin-bottom:20px}
+.completeness-bar{height:6px;background:var(--bdr);border-radius:3px;overflow:hidden;margin-top:6px}
+.completeness-fill{height:100%;border-radius:3px;transition:width 0.6s ease,background 0.6s ease}
+.completeness-label{display:flex;justify-content:space-between;font-size:11px;color:var(--txtXL)}
+.completeness-pct{font-weight:700}
+
+/* Canister saved state */
+.canister-saved{background:var(--okL);border:1px solid #a7f3d0;border-radius:12px;padding:16px;margin-top:16px;text-align:center;display:none;animation:msgIn 0.3s ease-out}
+.canister-saved h4{font-size:14px;font-weight:700;color:#065f46;margin-bottom:4px}
+.canister-saved p{font-size:12px;color:#047857;margin-bottom:12px}
+.canister-saved .saved-primary{display:inline-flex;align-items:center;gap:6px;padding:8px 18px;background:#059669;color:white;font-size:13px;font-weight:600;border-radius:8px;text-decoration:none;transition:all 0.2s;margin-right:8px}
+.canister-saved .saved-primary:hover{background:#047857}
+.canister-saved .saved-secondary{display:inline-flex;align-items:center;gap:6px;padding:8px 18px;background:white;color:#059669;border:1px solid #a7f3d0;font-size:13px;font-weight:600;border-radius:8px;text-decoration:none;transition:all 0.2s}
+.canister-saved .saved-secondary:hover{background:#ecfdf5}
+.canister-saved a i{width:14px;height:14px}
+
+/* Mobile: stacked */
+@media(max-width:768px){
+  .split{flex-direction:column}
+  .chat-pane{border-right:none;flex:1;min-height:0}
+  .canister-pane{width:100%;max-height:40vh;border-top:1px solid var(--bdr);padding:16px}
+  .canister-preview{position:static}
+}
+@media(max-width:640px){
+  .nev-header{padding:14px 16px 10px}
+  .messages{padding:0 16px 12px}
+  .input-wrap{padding:8px 16px 14px}
+  .msg{max-width:90%;padding:10px 12px;font-size:13px}
+  .canister-pane{padding:12px}
+  .canister-preview{padding:16px}
+}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-brand">
+      <div class="nav-logo"><i data-lucide="radio" style="width:16px;height:16px;color:var(--p)"></i></div>
+      <span class="nav-name">Event <span style="color:var(--p)">Medium</span></span>
+    </a>
+    <div class="nav-right">
+      <a href="/canister.html" class="nav-link">My Canister</a>
+      <a href="/events.html" class="nav-link">Events</a>
+    </div>
+  </div>
+</nav>
+
+<div class="split">
+  <!-- LEFT: Chat -->
+  <div class="chat-pane">
+    <div class="nev-header">
+      <div class="nev-avatar"><i data-lucide="bot" style="width:22px;height:22px"></i></div>
+      <div class="nev-info">
+        <h2>Nev</h2>
+        <p>Your AI concierge — building your private canister</p>
+      </div>
+    </div>
+
+    <div class="done-bar" id="doneBar" style="display:none">
+      <div class="done-bar-inner">
+        <span><i data-lucide="check-circle" style="width:16px;height:16px;color:var(--ok);vertical-align:-3px"></i> Private Canister saved</span>
+        <div class="done-bar-actions">
+          <a href="/canister.html" class="done-btn primary">View canister</a>
+          <a href="/events.html" class="done-btn secondary">Browse events</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="messages" id="messages"></div>
+
+    <div class="voice-status" id="voiceStatus"></div>
+
+    <div class="input-wrap" id="inputWrap">
+      <button class="mic-btn" id="micBtn" title="Hold to speak">
+        <i data-lucide="mic" id="micIcon"></i>
+      </button>
+      <textarea class="chat-input" id="chatInput" placeholder="Type or hold mic to speak..." rows="1"></textarea>
+      <button class="send-btn" id="sendBtn" disabled>
+        <i data-lucide="send"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- RIGHT: Live canister preview -->
+  <div class="canister-pane">
+    <div class="canister-preview">
+      <div class="canister-title">
+        <i data-lucide="shield-check"></i> Private Canister
+        <div class="canister-live-dot" id="liveDot" style="display:none"></div>
+      </div>
+      <div style="font-size:11px;color:var(--txtXL);margin-bottom:14px;line-height:1.5"><i data-lucide="lock" style="width:11px;height:11px;display:inline;vertical-align:-1px"></i> Your data is never publicly visible. Matching is anonymous and double-blind — identities only revealed with mutual consent.</div>
+
+      <div class="completeness" id="completeness">
+        <div class="completeness-label">
+          <span>Profile completeness</span>
+          <span class="completeness-pct" id="completePct">0%</span>
+        </div>
+        <div class="completeness-bar">
+          <div class="completeness-fill" id="completeFill" style="width:0%;background:var(--txtXL)"></div>
+        </div>
+      </div>
+
+      <div class="cp-section" id="cpType">
+        <div class="cp-label">Stakeholder Type</div>
+        <div class="cp-empty" id="cpTypeVal">Waiting for Nev...</div>
+      </div>
+
+      <div class="cp-section" id="cpThemes">
+        <div class="cp-label">Themes</div>
+        <div class="cp-tags" id="cpThemesVal"></div>
+        <div class="cp-empty" id="cpThemesEmpty">Not yet identified</div>
+      </div>
+
+      <div class="cp-section" id="cpIntent">
+        <div class="cp-label">Looking For</div>
+        <div class="cp-tags" id="cpIntentVal"></div>
+        <div class="cp-empty" id="cpIntentEmpty">Not yet identified</div>
+      </div>
+
+      <div class="cp-section" id="cpOffering">
+        <div class="cp-label">Offering</div>
+        <div class="cp-tags" id="cpOfferingVal"></div>
+        <div class="cp-empty" id="cpOfferingEmpty">Not yet identified</div>
+      </div>
+
+      <div class="cp-section" id="cpContext">
+        <div class="cp-label">Context</div>
+        <div class="cp-value cp-empty" id="cpContextVal">Not yet captured</div>
+      </div>
+
+      <div class="cp-section" id="cpGeo">
+        <div class="cp-label">Geography</div>
+        <div class="cp-value cp-empty" id="cpGeoVal">Not specified</div>
+      </div>
+
+      <div class="cp-section" id="cpDeal" style="display:none">
+        <div class="cp-label">Deal Details</div>
+        <div class="cp-deal-grid" id="cpDealVal"></div>
+      </div>
+
+      <div class="canister-saved" id="canisterSaved">
+        <h4>Private Canister saved!</h4>
+        <p>Your data is never publicly visible. All matching is anonymous until both parties consent.</p>
+        <a href="/canister.html" class="saved-primary"><i data-lucide="fingerprint"></i> View my canister</a>
+        <a href="/events.html" class="saved-secondary"><i data-lucide="calendar"></i> Browse events</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+var token = localStorage.getItem('auth_token');
+if (!token) window.location.href = '/auth.html';
+
+var conversation = [];
+var canisterSaved = false;
+var liveCanister = {
+  stakeholder_type: '',
+  themes: [],
+  intent: [],
+  offering: [],
+  context: '',
+  geography: '',
+  deal_details: {}
+};
+
+// ── Voice recognition ──
+var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+var recognition = null;
+var isRecording = false;
+var micBtn = document.getElementById('micBtn');
+var voiceStatus = document.getElementById('voiceStatus');
+
+if (SpeechRecognition) {
+  recognition = new SpeechRecognition();
+  recognition.continuous = true;
+  recognition.interimResults = true;
+  recognition.lang = 'en-GB';
+
+  var finalTranscript = '';
+  var interimTranscript = '';
+
+  recognition.onstart = function() {
+    isRecording = true;
+    micBtn.className = 'mic-btn recording';
+    voiceStatus.textContent = 'Listening...';
+    voiceStatus.className = 'voice-status recording';
+    finalTranscript = '';
+    interimTranscript = '';
+  };
+
+  recognition.onresult = function(e) {
+    interimTranscript = '';
+    for (var i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) {
+        finalTranscript += e.results[i][0].transcript + ' ';
+      } else {
+        interimTranscript += e.results[i][0].transcript;
+      }
+    }
+    // Show live transcript in input
+    chatInput.value = finalTranscript + interimTranscript;
+    chatInput.style.height = 'auto';
+    chatInput.style.height = Math.min(chatInput.scrollHeight, 120) + 'px';
+    sendBtn.disabled = !chatInput.value.trim();
+    voiceStatus.textContent = 'Listening... (tap mic to stop)';
+  };
+
+  recognition.onerror = function(e) {
+    console.error('Speech error:', e.error);
+    stopRecording();
+    if (e.error === 'not-allowed') {
+      voiceStatus.textContent = 'Mic access denied. Check browser permissions.';
+    } else {
+      voiceStatus.textContent = 'Voice error: ' + e.error;
+    }
+    setTimeout(function() { voiceStatus.textContent = ''; }, 3000);
+  };
+
+  recognition.onend = function() {
+    if (isRecording) {
+      // Auto-stopped — finalize
+      stopRecording();
+      if (chatInput.value.trim()) {
+        voiceStatus.textContent = 'Captured. Press send or keep editing.';
+        voiceStatus.className = 'voice-status';
+        setTimeout(function() { voiceStatus.textContent = ''; }, 2000);
+      }
+    }
+  };
+
+  // Toggle mic
+  micBtn.addEventListener('click', function() {
+    if (isRecording) {
+      recognition.stop();
+      stopRecording();
+    } else {
+      recognition.start();
+    }
+  });
+} else {
+  // No speech API — hide mic
+  micBtn.style.display = 'none';
+}
+
+function stopRecording() {
+  isRecording = false;
+  micBtn.className = 'mic-btn';
+  if (!chatInput.value.trim()) {
+    voiceStatus.textContent = '';
+    voiceStatus.className = 'voice-status';
+  }
+}
+
+// ── Chat input ──
+var chatInput = document.getElementById('chatInput');
+var sendBtn = document.getElementById('sendBtn');
+
+chatInput.addEventListener('input', function() {
+  this.style.height = 'auto';
+  this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+  sendBtn.disabled = !this.value.trim();
+});
+
+chatInput.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    if (this.value.trim()) sendMessage();
+  }
+});
+
+sendBtn.addEventListener('click', function() {
+  if (chatInput.value.trim()) sendMessage();
+});
+
+// ── Messages ──
+function addMessage(text, type) {
+  var el = document.getElementById('messages');
+  var div = document.createElement('div');
+  div.className = 'msg ' + type;
+  div.textContent = text;
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
+}
+
+function showTyping() {
+  var el = document.getElementById('messages');
+  var div = document.createElement('div');
+  div.className = 'msg typing';
+  div.id = 'typingIndicator';
+  div.innerHTML = '<div class="typing-dots"><span></span><span></span><span></span></div>';
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
+}
+
+function hideTyping() {
+  var el = document.getElementById('typingIndicator');
+  if (el) el.remove();
+}
+
+// ── Send message ──
+async function sendMessage() {
+  var text = chatInput.value.trim();
+  if (!text || canisterSaved) return;
+
+  // Stop recording if active
+  if (isRecording && recognition) { recognition.stop(); stopRecording(); }
+
+  addMessage(text, 'user');
+  conversation.push({ role: 'user', content: text });
+  chatInput.value = '';
+  chatInput.style.height = 'auto';
+  sendBtn.disabled = true;
+  voiceStatus.textContent = '';
+  showTyping();
+
+  // Pulse live dot
+  document.getElementById('liveDot').style.display = 'block';
+
+  try {
+    var resp = await fetch('/api/nev/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ message: text, conversation: conversation })
+    });
+
+    hideTyping();
+
+    if (!resp.ok) {
+      addMessage('Sorry, I hit a snag. Can you try that again?', 'nev');
+      return;
+    }
+
+    var data = await resp.json();
+    addMessage(data.reply, 'nev');
+    conversation.push({ role: 'assistant', content: data.reply });
+
+    // Update live canister with any extracted data
+    if (data.canister_data) {
+      updateLiveCanister(data.canister_data);
+    }
+
+    // If canister is complete, save it
+    if (data.canister_data && data.canister_data.stakeholder_type && (data.canister_data.themes || []).length >= 1) {
+      saveCanister(data.canister_data);
+    }
+  } catch (err) {
+    hideTyping();
+    addMessage('Connection issue. Please try again.', 'nev');
+  }
+
+  document.getElementById('liveDot').style.display = 'none';
+}
+
+// ── Live canister update ──
+function updateLiveCanister(data) {
+  if (data.stakeholder_type) {
+    liveCanister.stakeholder_type = data.stakeholder_type;
+    var typeEl = document.getElementById('cpTypeVal');
+    typeEl.className = 'cp-type-badge ' + data.stakeholder_type;
+    typeEl.textContent = capitalize(data.stakeholder_type);
+  }
+
+  if (data.themes && data.themes.length) {
+    liveCanister.themes = data.themes;
+    document.getElementById('cpThemesVal').innerHTML = data.themes.map(function(t) {
+      return '<span class="cp-tag theme">' + esc(t) + '</span>';
+    }).join('');
+    document.getElementById('cpThemesEmpty').style.display = 'none';
+  }
+
+  if (data.intent && data.intent.length) {
+    liveCanister.intent = data.intent;
+    document.getElementById('cpIntentVal').innerHTML = data.intent.map(function(t) {
+      return '<span class="cp-tag intent">' + esc(t) + '</span>';
+    }).join('');
+    document.getElementById('cpIntentEmpty').style.display = 'none';
+  }
+
+  if (data.offering && data.offering.length) {
+    liveCanister.offering = data.offering;
+    document.getElementById('cpOfferingVal').innerHTML = data.offering.map(function(t) {
+      return '<span class="cp-tag offering">' + esc(t) + '</span>';
+    }).join('');
+    document.getElementById('cpOfferingEmpty').style.display = 'none';
+  }
+
+  if (data.context) {
+    liveCanister.context = data.context;
+    var ctxEl = document.getElementById('cpContextVal');
+    ctxEl.textContent = data.context;
+    ctxEl.className = 'cp-value';
+  }
+
+  if (data.geography) {
+    liveCanister.geography = data.geography;
+    var geoEl = document.getElementById('cpGeoVal');
+    geoEl.textContent = data.geography;
+    geoEl.className = 'cp-value';
+  }
+
+  if (data.deal_details && Object.keys(data.deal_details).length) {
+    liveCanister.deal_details = data.deal_details;
+    var ddEl = document.getElementById('cpDealVal');
+    var fields = [
+      { key: 'stage', label: 'Stage' },
+      { key: 'check_size', label: 'Check Size' },
+      { key: 'raising', label: 'Raising' },
+      { key: 'revenue', label: 'Revenue' },
+      { key: 'sector', label: 'Sector' },
+      { key: 'thesis', label: 'Thesis' },
+      { key: 'fund_size', label: 'Fund Size' }
+    ];
+    var ddHtml = '';
+    fields.forEach(function(f) {
+      if (data.deal_details[f.key]) {
+        ddHtml += '<div class="cp-deal-item"><div class="cp-deal-label">' + f.label + '</div><div class="cp-deal-val">' + esc(String(data.deal_details[f.key])) + '</div></div>';
+      }
+    });
+    if (ddHtml) {
+      ddEl.innerHTML = ddHtml;
+      document.getElementById('cpDeal').style.display = 'block';
+    }
+  }
+
+  // Update completeness
+  updateCompleteness();
+}
+
+function updateCompleteness() {
+  var fields = [
+    liveCanister.stakeholder_type,
+    liveCanister.themes.length > 0,
+    liveCanister.intent.length > 0,
+    liveCanister.offering.length > 0,
+    liveCanister.context,
+    liveCanister.geography
+  ];
+  var filled = fields.filter(Boolean).length;
+  var pct = Math.round((filled / fields.length) * 100);
+  document.getElementById('completePct').textContent = pct + '%';
+  var fill = document.getElementById('completeFill');
+  fill.style.width = pct + '%';
+  fill.style.background = pct >= 80 ? 'var(--ok)' : pct >= 50 ? 'var(--p)' : pct >= 25 ? 'var(--warn)' : 'var(--txtXL)';
+}
+
+// ── Save canister ──
+async function saveCanister(data) {
+  try {
+    var resp = await fetch('/api/stakeholder/profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({
+        stakeholder_type: data.stakeholder_type,
+        themes: data.themes || [],
+        focus_text: data.context || '',
+        intent: data.intent || [],
+        offering: data.offering || [],
+        context: data.context || '',
+        deal_details: data.deal_details || {},
+        geography: data.geography || '',
+        onboarding_method: 'chat'
+      })
+    });
+
+    if (resp.ok) {
+      canisterSaved = true;
+      document.getElementById('canisterSaved').style.display = 'block';
+      document.getElementById('doneBar').style.display = 'block';
+      lucide.createIcons();
+      // Don't hide input — let them keep chatting to refine
+    }
+  } catch (err) {
+    console.error('Canister save error:', err);
+  }
+}
+
+// ── Load existing profile into canister preview ──
+async function loadExisting() {
+  try {
+    var resp = await fetch('/api/stakeholder/profile', {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    if (resp.ok) {
+      var data = await resp.json();
+      if (data.profile && data.profile.stakeholder_type) {
+        var p = data.profile;
+        updateLiveCanister({
+          stakeholder_type: p.stakeholder_type,
+          themes: parseArr(p.themes),
+          intent: parseArr(p.intent),
+          offering: parseArr(p.offering),
+          context: p.focus_text || p.context || '',
+          geography: p.geography || '',
+          deal_details: typeof p.deal_details === 'string' ? JSON.parse(p.deal_details || '{}') : (p.deal_details || {})
+        });
+      }
+    }
+  } catch(e) {}
+}
+
+// ── Get Nev's opening ──
+async function loadOpening() {
+  showTyping();
+  try {
+    var resp = await fetch('/api/nev/opening', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }
+    });
+    hideTyping();
+    if (resp.ok) {
+      var data = await resp.json();
+      addMessage(data.reply, 'nev');
+      conversation.push({ role: 'assistant', content: data.reply });
+    } else {
+      addMessage("Hey! I'm Nev, your networking concierge. Tell me about yourself — what do you do and what are you working on right now?", 'nev');
+    }
+  } catch (err) {
+    hideTyping();
+    addMessage("Hey! I'm Nev, your networking concierge. Tell me about yourself — what do you do and what are you working on?", 'nev');
+  }
+}
+
+function parseArr(v) { if (!v) return []; if (Array.isArray(v)) return v; try { return JSON.parse(v); } catch(e) { return []; } }
+function esc(s) { if (!s) return ''; var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function capitalize(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
+
+// Init
+lucide.createIcons();
+loadExisting();
+loadOpening();
+chatInput.focus();
+</script>
+</body>
+</html>

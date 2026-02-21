@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Matches — Event Medium</title>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+:root {
+  --p: #0066ff;--pL: #e8f0fe;--pD: #0052cc;--s: #6c63ff;--ok: #00d084;
+  --okL: #e6faf2;--warn: #f59e0b;--bg: #f8f9fd;--card: #ffffff;
+  --txt: #1a1d29;--txtL: #6b7280;--txtXL: #9ca3af;--bdr: #e5e7eb;
+  --shadow: 0 1px 3px rgba(0,0,0,0.06);--shadowL: 0 10px 25px rgba(0,0,0,0.08);
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--font);color:var(--txt);background:var(--bg);-webkit-font-smoothing:antialiased}
+.nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,0.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--bdr);padding:0 24px}
+.nav-inner{max-width:1140px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:64px}
+.nav-brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--txt)}
+.nav-logo{width:36px;height:36px;background:var(--p);border-radius:10px;display:flex;align-items:center;justify-content:center;color:white}
+.nav-name{font-weight:800;font-size:1.15rem;letter-spacing:-0.3px}
+.nav-links{display:flex;align-items:center;gap:8px}
+.nav-link{padding:8px 16px;color:var(--txtL);text-decoration:none;font-size:14px;font-weight:500;border-radius:8px;transition:all 0.2s}
+.nav-link:hover{color:var(--txt);background:var(--card)}
+.nav-link.active{color:var(--p);font-weight:600}
+
+.page{max-width:800px;margin:0 auto;padding:88px 24px 60px}
+.page-header{margin-bottom:24px}
+.page-header h1{font-size:24px;font-weight:700;margin-bottom:4px}
+.page-header p{font-size:14px;color:var(--txtL)}
+
+/* Tabs */
+.tabs{display:flex;gap:4px;margin-bottom:20px;background:var(--card);border:1px solid var(--bdr);border-radius:12px;padding:4px}
+.tab{flex:1;padding:10px;text-align:center;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.2s;color:var(--txtL)}
+.tab.active{background:var(--p);color:white}
+.tab-count{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;border-radius:10px;font-size:11px;margin-left:6px;padding:0 6px}
+.tab.active .tab-count{background:rgba(255,255,255,0.3)}
+.tab:not(.active) .tab-count{background:var(--bg)}
+
+/* Filter row */
+.filter-row{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap}
+.filter-row select{padding:8px 12px;border:1px solid var(--bdr);border-radius:8px;font-size:13px;font-family:var(--font);background:var(--card);color:var(--txtL);cursor:pointer}
+.filter-row select:focus{outline:none;border-color:var(--p)}
+
+/* Match cards */
+.match-card{background:var(--card);border:1px solid var(--bdr);border-radius:16px;padding:24px;margin-bottom:16px;transition:all 0.3s}
+.match-card:hover{box-shadow:var(--shadowL)}
+.match-event{font-size:12px;color:var(--txtXL);margin-bottom:6px;display:flex;align-items:center;gap:4px}
+.match-event i{width:12px;height:12px}
+.match-card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px}
+.match-card-left{display:flex;gap:14px;align-items:flex-start}
+.match-avatar{width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-size:14px}
+.match-avatar.anon{background:var(--bg);color:var(--txtXL)}
+.match-avatar.revealed{background:var(--pL);color:var(--p)}
+.match-type{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;margin-top:4px}
+.match-type.investor{background:var(--pL);color:var(--p)}
+.match-type.founder{background:var(--okL);color:#059669}
+.match-type.researcher{background:#ede9fe;color:var(--s)}
+.match-type.corporate{background:#fef2f2;color:#dc2626}
+.match-type.advisor{background:#fef3c7;color:#d97706}
+.match-type.operator{background:#f0fdf4;color:#16a34a}
+.match-type.anon{background:var(--bg);color:var(--txtXL)}
+.match-focus{font-size:13px;color:var(--txtL);margin-top:4px;line-height:1.4}
+.match-geo{font-size:12px;color:var(--txtXL);display:flex;align-items:center;gap:4px;margin-top:2px}
+.match-geo i{width:11px;height:11px}
+
+/* Score */
+.match-score-wrap{text-align:center;flex-shrink:0}
+.match-score-big{font-size:32px;font-weight:700;line-height:1}
+.match-score-label{font-size:11px;color:var(--txtXL);margin-top:2px}
+
+/* Score breakdown */
+.score-breakdown{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;padding:14px;background:var(--bg);border-radius:12px}
+.score-item{text-align:center}
+.score-item-bar{height:4px;background:var(--bdr);border-radius:2px;margin:6px auto 4px;width:80%;overflow:hidden}
+.score-item-fill{height:100%;border-radius:2px;background:var(--p);transition:width 0.4s ease}
+.score-item-label{font-size:10px;color:var(--txtXL);text-transform:uppercase;letter-spacing:0.5px}
+.score-item-val{font-size:13px;font-weight:700;color:var(--txt)}
+
+/* Match reasons */
+.match-reasons{margin-bottom:14px}
+.match-reason{font-size:13px;color:var(--txtL);padding:3px 0;display:flex;align-items:flex-start;gap:8px;line-height:1.5}
+.match-reason i{width:14px;height:14px;color:var(--ok);flex-shrink:0;margin-top:3px}
+
+/* Signal context */
+.signal-context{padding:12px 16px;background:linear-gradient(135deg,#f0f4ff,#f5f0ff);border-radius:10px;margin-bottom:14px;border-left:3px solid var(--s)}
+.signal-context-label{font-size:11px;font-weight:600;color:var(--s);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px}
+.signal-context-item{font-size:12px;color:var(--txtL);padding:2px 0;line-height:1.5}
+
+/* Match themes */
+.match-themes{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:14px}
+.match-theme{padding:3px 9px;background:var(--pL);color:var(--p);font-size:11px;font-weight:600;border-radius:6px}
+
+/* Actions */
+.match-actions{display:flex;gap:10px}
+.match-btn{flex:1;padding:11px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s;border:none;font-family:var(--font);display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none}
+.match-btn i{width:16px;height:16px}
+.match-btn.accept{background:var(--ok);color:white}
+.match-btn.accept:hover{background:#00b872;transform:translateY(-1px)}
+.match-btn.decline{background:var(--bg);color:var(--txtL);border:1px solid var(--bdr)}
+.match-btn.decline:hover{background:#fef2f2;color:#ef4444;border-color:#fecaca}
+.match-btn.chat{background:var(--p);color:white}
+.match-btn.chat:hover{background:var(--pD);transform:translateY(-1px)}
+
+/* Revealed identity */
+.revealed-identity{display:flex;gap:16px;align-items:center;padding:16px;background:var(--bg);border-radius:12px;margin-bottom:14px}
+.revealed-avatar{width:48px;height:48px;border-radius:12px;background:var(--pL);display:flex;align-items:center;justify-content:center;color:var(--p);font-weight:700;flex-shrink:0}
+.revealed-name{font-size:15px;font-weight:700}
+.revealed-company{font-size:13px;color:var(--txtL)}
+
+/* Decision badge */
+.decision-row{display:flex;gap:8px;align-items:center}
+.decision-badge{display:inline-flex;align-items:center;gap:4px;padding:5px 12px;border-radius:8px;font-size:12px;font-weight:600}
+.decision-badge i{width:12px;height:12px}
+.decision-badge.accepted{background:var(--okL);color:#059669}
+.decision-badge.declined{background:#fef2f2;color:#ef4444}
+.decision-badge.pending{background:var(--bg);color:var(--txtXL)}
+
+/* Empty */
+.empty{text-align:center;padding:60px 24px}
+.empty-icon{width:64px;height:64px;border-radius:16px;background:var(--bg);display:flex;align-items:center;justify-content:center;margin:0 auto 16px}
+.empty-icon i{width:32px;height:32px;color:var(--txtXL)}
+.empty h3{font-size:18px;color:var(--txt);margin-bottom:8px}
+.empty p{font-size:14px;color:var(--txtL);max-width:400px;margin:0 auto}
+.empty a{color:var(--p);font-weight:600;text-decoration:none}
+
+.loading{text-align:center;padding:60px;color:var(--txtL)}
+
+@media(max-width:640px){
+  .nav-links .nav-link:not(.active){display:none}
+  .page{padding:80px 16px 40px}
+  .tabs{overflow-x:auto;flex-wrap:nowrap}
+  .tab{white-space:nowrap;min-width:0}
+  .match-actions{flex-direction:column}
+  .score-breakdown{grid-template-columns:repeat(2,1fr)}
+  .match-card-top{flex-direction:column;gap:12px}
+  .match-score-wrap{align-self:flex-end}
+}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-brand">
+      <div class="nav-logo"><i data-lucide="radio" style="width:20px;height:20px;color:var(--p)"></i></div>
+      <span class="nav-name">Event <span style="color:var(--p)">Medium</span></span>
+    </a>
+    <div class="nav-links">
+      <a href="/events.html" class="nav-link">Events</a>
+      <a href="/matches.html" class="nav-link active">Matches</a>
+      <a href="/canister.html" class="nav-link">My Canister</a>
+    </div>
+  </div>
+</nav>
+
+<div class="page">
+  <div class="page-header">
+    <h1>My Matches</h1>
+    <p>Double-blind matching — all profiles are anonymous. Identities revealed only with mutual consent.</p>
+  </div>
+
+  <div class="tabs" id="tabs">
+    <div class="tab active" data-tab="pending" onclick="switchTab('pending')">Pending <span class="tab-count" id="pendingCount">0</span></div>
+    <div class="tab" data-tab="revealed" onclick="switchTab('revealed')">Revealed <span class="tab-count" id="revealedCount">0</span></div>
+    <div class="tab" data-tab="decided" onclick="switchTab('decided')">History <span class="tab-count" id="decidedCount">0</span></div>
+  </div>
+
+  <div class="filter-row" id="filterRow">
+    <select id="eventFilter"><option value="">All events</option></select>
+    <select id="sortFilter">
+      <option value="score">Best match first</option>
+      <option value="recent">Most recent</option>
+    </select>
+  </div>
+
+  <div id="matchesContainer"><div class="loading">Loading matches...</div></div>
+</div>
+
+<script>
+var token = localStorage.getItem('auth_token');
+if (!token) window.location.href = '/auth.html';
+
+var allMatches = [];
+var currentTab = 'pending';
+
+async function loadMatches() {
+  try {
+    var resp = await fetch('/api/matches/mine', { headers: { 'Authorization': 'Bearer ' + token } });
+    if (!resp.ok) { if (resp.status === 401) { localStorage.removeItem('auth_token'); window.location.href = '/auth.html'; } return; }
+    var data = await resp.json();
+    allMatches = data.matches || [];
+    populateEventFilter();
+    updateCounts();
+    renderTab();
+  } catch(err) {
+    document.getElementById('matchesContainer').innerHTML = '<div class="loading">Failed to load matches.</div>';
+  }
+}
+
+function populateEventFilter() {
+  var events = {};
+  allMatches.forEach(function(m) { if (m.event_name) events[m.event_id] = m.event_name; });
+  var sel = document.getElementById('eventFilter');
+  sel.innerHTML = '<option value="">All events</option>' +
+    Object.keys(events).map(function(id) { return '<option value="' + id + '">' + esc(events[id]) + '</option>'; }).join('');
+}
+
+function updateCounts() {
+  var pending = allMatches.filter(function(m) { return m.status === 'pending' && !m.my_decision; });
+  var revealed = allMatches.filter(function(m) { return m.status === 'revealed'; });
+  var decided = allMatches.filter(function(m) { return m.my_decision || m.status === 'declined'; });
+  document.getElementById('pendingCount').textContent = pending.length;
+  document.getElementById('revealedCount').textContent = revealed.length;
+  document.getElementById('decidedCount').textContent = decided.length;
+}
+
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach(function(t) { t.classList.toggle('active', t.dataset.tab === tab); });
+  renderTab();
+}
+
+function getFiltered() {
+  var eventFilter = document.getElementById('eventFilter').value;
+  var sortFilter = document.getElementById('sortFilter').value;
+  var matches;
+
+  if (currentTab === 'pending') matches = allMatches.filter(function(m) { return m.status === 'pending' && !m.my_decision; });
+  else if (currentTab === 'revealed') matches = allMatches.filter(function(m) { return m.status === 'revealed'; });
+  else matches = allMatches.filter(function(m) { return m.my_decision || m.status === 'declined'; });
+
+  if (eventFilter) matches = matches.filter(function(m) { return String(m.event_id) === eventFilter; });
+
+  matches.sort(function(a, b) {
+    if (sortFilter === 'recent') return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+    return (b.score_total || 0) - (a.score_total || 0);
+  });
+
+  return matches;
+}
+
+function renderTab() {
+  var matches = getFiltered();
+  var container = document.getElementById('matchesContainer');
+
+  if (!matches.length) {
+    var msgs = {
+      pending: 'No pending matches yet. <a href="/events.html">Register for events</a> to get matched.',
+      revealed: 'No revealed matches yet. Accept pending matches to reveal identities.',
+      decided: 'No match history yet.'
+    };
+    container.innerHTML = '<div class="empty"><div class="empty-icon"><i data-lucide="heart-handshake"></i></div><h3>Nothing here yet</h3><p>' + msgs[currentTab] + '</p></div>';
+    lucide.createIcons();
+    return;
+  }
+
+  container.innerHTML = matches.map(function(m) { return renderCard(m); }).join('');
+  lucide.createIcons();
+}
+
+function renderCard(m) {
+  var reasons = parseArr(m.match_reasons);
+  var signals = parseArr(m.signal_context);
+  var scorePercent = Math.round((m.score_total || 0) * 100);
+
+  function scoreColor(v) { return v >= 0.7 ? 'var(--ok)' : v >= 0.4 ? 'var(--p)' : 'var(--txtXL)'; }
+
+  var html = '<div class="match-card">';
+
+  // Event label
+  if (m.event_name) html += '<div class="match-event"><i data-lucide="calendar"></i> ' + esc(m.event_name) + '</div>';
+
+  // Revealed identity
+  if (m.status === 'revealed' && m.other_user) {
+    var ou = m.other_user;
+    var initials = getInitials(ou.name);
+    html += '<div class="revealed-identity">' +
+      '<div class="revealed-avatar">' + initials + '</div>' +
+      '<div><div class="revealed-name">' + esc(ou.name) + '</div>' +
+      '<div class="revealed-company">' + esc(ou.company || '') + (ou.stakeholder_type ? ' &middot; ' + capitalize(ou.stakeholder_type) : '') + '</div>' +
+      (ou.geography ? '<div style="font-size:12px;color:var(--txtXL);margin-top:2px">' + esc(ou.geography) + '</div>' : '') +
+      '</div></div>';
+  }
+
+  // Top row: avatar/type + score
+  html += '<div class="match-card-top"><div class="match-card-left">';
+
+  if (m.status !== 'revealed') {
+    html += '<div class="match-avatar anon"><i data-lucide="eye-off" style="width:20px;height:20px"></i></div><div>' +
+      '<span class="match-type anon"><i data-lucide="shield" style="width:10px;height:10px"></i> Anonymous</span>';
+    // Show focus text hint and geography if available (from match reasons)
+    var focusHint = reasons.find(function(r) { return r.indexOf('Shared themes') !== -1; });
+    if (focusHint) html += '<div class="match-focus">' + esc(focusHint) + '</div>';
+    html += '</div>';
+  }
+
+  html += '</div>';
+
+  // Score
+  html += '<div class="match-score-wrap"><div class="match-score-big" style="color:' + scoreColor(m.score_total) + '">' + scorePercent + '%</div><div class="match-score-label">match</div></div>';
+  html += '</div>';
+
+  // Score breakdown bars (6 components)
+  var components = [
+    { label: 'Semantic', val: m.score_semantic },
+    { label: 'Theme', val: m.score_theme },
+    { label: 'Intent', val: m.score_intent },
+    { label: 'Archetype', val: m.score_stakeholder },
+    { label: 'Capital', val: m.score_capital },
+    { label: 'Signals', val: m.score_signal_convergence }
+  ].filter(function(c) { return c.val !== null && c.val !== undefined; });
+
+  if (components.length >= 3) {
+    html += '<div class="score-breakdown">' + components.map(function(c) {
+      var pct = Math.round((c.val || 0) * 100);
+      return '<div class="score-item">' +
+        '<div class="score-item-val">' + pct + '%</div>' +
+        '<div class="score-item-bar"><div class="score-item-fill" style="width:' + pct + '%;background:' + scoreColor(c.val) + '"></div></div>' +
+        '<div class="score-item-label">' + c.label + '</div>' +
+      '</div>';
+    }).join('') + '</div>';
+  }
+
+  // Reasons
+  if (reasons.length) {
+    html += '<div class="match-reasons">' + reasons.slice(0, 5).map(function(r) {
+      return '<div class="match-reason"><i data-lucide="check-circle"></i> ' + esc(r) + '</div>';
+    }).join('') + '</div>';
+  }
+
+  // Signal context
+  if (signals.length && signals[0]) {
+    html += '<div class="signal-context"><div class="signal-context-label">Signal intelligence</div>' +
+      signals.slice(0, 3).map(function(s) { return '<div class="signal-context-item">' + esc(s) + '</div>'; }).join('') +
+    '</div>';
+  }
+
+  // Actions
+  if (currentTab === 'pending') {
+    html += '<div class="match-actions">' +
+      '<button class="match-btn decline" onclick="decide(' + m.id + ',\'declined\')"><i data-lucide="x"></i> Pass</button>' +
+      '<button class="match-btn accept" onclick="decide(' + m.id + ',\'accepted\')"><i data-lucide="check"></i> Interested</button>' +
+    '</div>';
+  } else if (currentTab === 'revealed') {
+    html += '<div class="match-actions">' +
+      '<a href="/chat.html?match=' + m.id + '" class="match-btn chat"><i data-lucide="message-circle"></i> Send Message</a>' +
+    '</div>';
+  } else {
+    var myBadge = m.my_decision || 'pending';
+    var theirBadge = m.their_decision || 'pending';
+    html += '<div class="decision-row">' +
+      '<span class="decision-badge ' + myBadge + '"><i data-lucide="' + (myBadge === 'accepted' ? 'check' : myBadge === 'declined' ? 'x' : 'clock') + '"></i> You: ' + capitalize(myBadge) + '</span>' +
+      '<span class="decision-badge ' + theirBadge + '"><i data-lucide="' + (theirBadge === 'accepted' ? 'check' : theirBadge === 'declined' ? 'x' : 'clock') + '"></i> Them: ' + capitalize(theirBadge) + '</span>' +
+    '</div>';
+  }
+
+  html += '</div>';
+  return html;
+}
+
+async function decide(matchId, decision) {
+  try {
+    var resp = await fetch('/api/matches/' + matchId + '/decide', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ decision: decision })
+    });
+    if (resp.ok) loadMatches();
+  } catch(e) {}
+}
+
+// Filters
+document.getElementById('eventFilter').addEventListener('change', renderTab);
+document.getElementById('sortFilter').addEventListener('change', renderTab);
+
+function parseArr(v) { if (!v) return []; if (Array.isArray(v)) return v; try { return JSON.parse(v); } catch(e) { return []; } }
+function esc(s) { if (!s) return ''; var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function capitalize(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
+function getInitials(name) { return (name || 'U').split(' ').map(function(w) { return w[0]; }).join('').toUpperCase().slice(0, 2); }
+
+lucide.createIcons();
+loadMatches();
+</script>
+</body>
+</html>

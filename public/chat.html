@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chat — Event Medium</title>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="/socket.io/socket.io.js"></script>
+<style>
+:root {
+  --p: #0066ff;--pL: #e8f0fe;--pD: #0052cc;--s: #6c63ff;--ok: #00d084;
+  --okL: #e6faf2;--warn: #f59e0b;--bg: #f8f9fd;--card: #ffffff;
+  --txt: #1a1d29;--txtL: #6b7280;--txtXL: #9ca3af;--bdr: #e5e7eb;
+  --shadow: 0 1px 3px rgba(0,0,0,0.06);--shadowL: 0 10px 25px rgba(0,0,0,0.08);
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--font);color:var(--txt);background:var(--bg);-webkit-font-smoothing:antialiased;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+
+/* Nav */
+.nav{background:rgba(255,255,255,0.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--bdr);padding:0 24px;flex-shrink:0}
+.nav-inner{max-width:800px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:56px}
+.nav-brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--txt)}
+.nav-logo{width:32px;height:32px;background:var(--p);border-radius:8px;display:flex;align-items:center;justify-content:center;color:white}
+.nav-name{font-weight:800;font-size:1rem;letter-spacing:-0.3px}
+.nav-back{display:flex;align-items:center;gap:6px;color:var(--txtL);text-decoration:none;font-size:13px;font-weight:500;padding:6px 14px;border-radius:8px;transition:all 0.2s}
+.nav-back:hover{color:var(--txt);background:var(--card)}
+.nav-back i{width:14px;height:14px}
+
+/* Chat header */
+.chat-header{background:var(--card);border-bottom:1px solid var(--bdr);padding:12px 24px;flex-shrink:0}
+.chat-header-inner{max-width:800px;margin:0 auto;display:flex;align-items:center;gap:14px}
+.chat-avatar{width:40px;height:40px;border-radius:12px;background:var(--pL);display:flex;align-items:center;justify-content:center;color:var(--p);font-weight:700;flex-shrink:0;font-size:14px}
+.chat-name{font-size:15px;font-weight:700}
+.chat-sub{font-size:12px;color:var(--txtL)}
+.chat-status{font-size:11px;color:var(--ok);display:flex;align-items:center;gap:4px}
+.chat-status-dot{width:6px;height:6px;border-radius:50%;background:var(--ok)}
+.chat-actions-top{margin-left:auto;display:flex;gap:8px}
+.schedule-btn{display:flex;align-items:center;gap:6px;padding:7px 14px;background:var(--pL);color:var(--p);border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);transition:all 0.2s}
+.schedule-btn:hover{background:var(--p);color:white}
+.schedule-btn i{width:14px;height:14px}
+
+/* Match context pill */
+.match-context{max-width:800px;margin:12px auto 0;padding:10px 16px;background:var(--okL);border-radius:10px;font-size:12px;color:#065f46;display:none}
+.match-context strong{font-weight:600}
+
+/* Messages area */
+.messages-wrap{flex:1;overflow-y:auto;padding:16px 24px}
+.messages-inner{max-width:800px;margin:0 auto;display:flex;flex-direction:column;gap:6px}
+
+/* Date divider */
+.date-divider{text-align:center;padding:12px 0;font-size:11px;color:var(--txtXL);font-weight:500}
+
+/* Message bubbles */
+.msg{max-width:70%;padding:10px 14px;border-radius:16px;font-size:14px;line-height:1.5;position:relative}
+.msg.mine{align-self:flex-end;background:var(--p);color:white;border-bottom-right-radius:4px}
+.msg.theirs{align-self:flex-start;background:var(--card);border:1px solid var(--bdr);border-bottom-left-radius:4px}
+.msg-footer{display:flex;align-items:center;gap:6px;margin-top:4px}
+.msg-time{font-size:10px;opacity:0.6}
+.msg-read{width:14px;height:14px;opacity:0.6}
+
+/* Calendar message */
+.msg.calendar{align-self:center;background:var(--card);border:1px solid var(--bdr);border-radius:12px;max-width:85%;padding:16px 20px}
+.cal-header{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-weight:700;color:var(--p);font-size:14px}
+.cal-header i{width:18px;height:18px}
+.cal-details{font-size:13px;color:var(--txtL);line-height:1.6}
+.cal-detail-row{display:flex;align-items:center;gap:6px;padding:2px 0}
+.cal-detail-row i{width:13px;height:13px;color:var(--txtXL)}
+.cal-actions{display:flex;gap:8px;margin-top:12px}
+.cal-btn{padding:7px 16px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:none;font-family:var(--font);transition:all 0.2s}
+.cal-btn.accept{background:var(--ok);color:white}
+.cal-btn.accept:hover{background:#00b872}
+.cal-btn.decline{background:var(--bg);color:var(--txtL);border:1px solid var(--bdr)}
+.cal-btn.add-cal{background:var(--pL);color:var(--p)}
+.cal-btn.add-cal:hover{background:var(--p);color:white}
+
+/* Typing indicator */
+.typing-indicator{align-self:flex-start;padding:10px 14px;background:var(--card);border:1px solid var(--bdr);border-radius:16px;border-bottom-left-radius:4px;display:none}
+.typing-dots{display:inline-flex;gap:3px}
+.typing-dots span{width:6px;height:6px;border-radius:50%;background:var(--txtXL);animation:dot 1.4s ease-in-out infinite}
+.typing-dots span:nth-child(2){animation-delay:0.2s}
+.typing-dots span:nth-child(3){animation-delay:0.4s}
+@keyframes dot{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-4px)}}
+
+/* No messages */
+.no-messages{text-align:center;padding:60px 24px;color:var(--txtL);align-self:center;margin:auto 0}
+.no-messages-icon{width:56px;height:56px;border-radius:16px;background:var(--pL);display:flex;align-items:center;justify-content:center;margin:0 auto 16px}
+.no-messages-icon i{width:28px;height:28px;color:var(--p)}
+.no-messages h3{font-size:16px;color:var(--txt);margin-bottom:4px}
+.no-messages p{font-size:13px;max-width:320px;margin:0 auto}
+
+/* Input */
+.input-wrap{padding:12px 24px 16px;background:var(--card);border-top:1px solid var(--bdr);flex-shrink:0}
+.input-inner{max-width:800px;margin:0 auto;display:flex;gap:8px;align-items:flex-end}
+.chat-input{flex:1;padding:10px 14px;border:1px solid var(--bdr);border-radius:12px;font-size:14px;font-family:var(--font);background:var(--bg);color:var(--txt);transition:all 0.2s;resize:none;min-height:42px;max-height:120px;line-height:1.4}
+.chat-input:focus{outline:none;border-color:var(--p);background:var(--card)}
+.send-btn{width:42px;height:42px;border-radius:12px;background:var(--p);color:white;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s;flex-shrink:0}
+.send-btn:hover{background:var(--pD)}
+.send-btn:disabled{opacity:0.3;cursor:not-allowed}
+.send-btn i{width:16px;height:16px}
+
+/* Schedule modal */
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.4);z-index:200;display:none;align-items:center;justify-content:center;padding:24px}
+.modal-overlay.active{display:flex}
+.modal{background:var(--card);border-radius:16px;padding:28px;max-width:420px;width:100%;box-shadow:var(--shadowL)}
+.modal h2{font-size:18px;font-weight:700;margin-bottom:4px}
+.modal-sub{font-size:13px;color:var(--txtL);margin-bottom:20px}
+.form-group{margin-bottom:14px}
+.form-label{display:block;font-size:12px;font-weight:600;margin-bottom:5px;color:var(--txt)}
+.form-input{width:100%;padding:9px 12px;border:1px solid var(--bdr);border-radius:8px;font-size:13px;font-family:var(--font);background:var(--card);color:var(--txt)}
+.form-input:focus{outline:none;border-color:var(--p);box-shadow:0 0 0 3px var(--pL)}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
+.modal-btn{padding:9px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font);border:none;transition:all 0.2s}
+.modal-btn.cancel{background:var(--bg);color:var(--txtL)}
+.modal-btn.primary{background:var(--p);color:white}
+.modal-btn.primary:hover{background:var(--pD)}
+
+.loading{text-align:center;padding:80px;color:var(--txtL)}
+.locked{text-align:center;padding:80px 24px;color:var(--txtL)}
+.locked i{width:48px;height:48px;color:var(--txtXL);margin-bottom:16px}
+.locked h3{font-size:18px;color:var(--txt);margin-bottom:8px}
+.locked a{color:var(--p);text-decoration:none;font-weight:600}
+
+@media(max-width:640px){
+  .msg{max-width:85%}
+  .chat-actions-top{gap:4px}
+  .schedule-btn span{display:none}
+  .input-wrap{padding:8px 16px 12px}
+}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-brand">
+      <div class="nav-logo"><i data-lucide="radio" style="width:16px;height:16px;color:var(--p)"></i></div>
+      <span class="nav-name">Event <span style="color:var(--p)">Medium</span></span>
+    </a>
+    <a href="/matches.html" class="nav-back"><i data-lucide="arrow-left"></i> Matches</a>
+  </div>
+</nav>
+
+<div class="chat-header" id="chatHeader" style="display:none">
+  <div class="chat-header-inner">
+    <div class="chat-avatar" id="otherAvatar">?</div>
+    <div>
+      <div class="chat-name" id="otherName">Loading...</div>
+      <div class="chat-sub" id="otherSub"></div>
+      <div class="chat-status" id="chatStatus" style="display:none"><span class="chat-status-dot"></span> Online</div>
+    </div>
+    <div class="chat-actions-top">
+      <button class="schedule-btn" onclick="openSchedule()"><i data-lucide="calendar-plus"></i> <span>Schedule</span></button>
+    </div>
+  </div>
+</div>
+
+<div class="match-context" id="matchContext"></div>
+
+<div class="messages-wrap" id="messagesWrap">
+  <div class="messages-inner" id="messages">
+    <div class="loading">Loading conversation...</div>
+  </div>
+</div>
+
+<div class="typing-indicator" id="typingIndicator" style="display:none;margin:0 24px 8px">
+  <div class="typing-dots"><span></span><span></span><span></span></div>
+</div>
+
+<div class="input-wrap" id="inputWrap" style="display:none">
+  <div class="input-inner">
+    <textarea class="chat-input" id="chatInput" placeholder="Type a message..." rows="1"></textarea>
+    <button class="send-btn" id="sendBtn" disabled>
+      <i data-lucide="send"></i>
+    </button>
+  </div>
+</div>
+
+<!-- Schedule Modal -->
+<div class="modal-overlay" id="scheduleModal">
+  <div class="modal">
+    <h2>Propose a meeting</h2>
+    <p class="modal-sub">They'll see your proposal in the chat.</p>
+    <div class="form-group">
+      <label class="form-label">Date & time</label>
+      <input type="datetime-local" class="form-input" id="schedTime">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Duration (minutes)</label>
+      <input type="number" class="form-input" id="schedDuration" value="30" min="15" max="120" step="15">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Location / Link</label>
+      <input type="text" class="form-input" id="schedLocation" placeholder="Coffee shop, Zoom link...">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Notes (optional)</label>
+      <input type="text" class="form-input" id="schedNotes" placeholder="What to discuss">
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn cancel" onclick="closeSchedule()">Cancel</button>
+      <button class="modal-btn primary" onclick="sendSchedule()">Send proposal</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var token = localStorage.getItem('auth_token');
+if (!token) window.location.href = '/auth.html';
+
+var matchId = new URLSearchParams(window.location.search).get('match');
+if (!matchId) window.location.href = '/matches.html';
+
+var currentUserId = null;
+var otherUserId = null;
+var socket = null;
+var typingTimeout = null;
+var lastTypingEmit = 0;
+
+// Get current user ID
+fetch('/api/auth/me', { headers: { 'Authorization': 'Bearer ' + token } })
+  .then(function(r) { return r.json(); })
+  .then(function(d) { currentUserId = d.user ? d.user.id : null; });
+
+// Init WebSocket
+function initSocket() {
+  socket = io({ auth: { token: token } });
+
+  socket.on('connect', function() {
+    socket.emit('join_match', matchId);
+  });
+
+  socket.on('new_message', function(msg) {
+    if (msg.sender_id !== currentUserId) {
+      appendMessage(msg);
+      scrollToBottom();
+      // Send read receipt
+      socket.emit('mark_read', { match_id: matchId });
+      fetch('/api/messages/read/' + matchId, { method: 'POST', headers: { 'Authorization': 'Bearer ' + token } });
+    }
+  });
+
+  socket.on('typing', function(data) {
+    if (data.user_id !== currentUserId && data.match_id == matchId) {
+      document.getElementById('typingIndicator').style.display = data.typing ? 'block' : 'none';
+      if (data.typing) scrollToBottom();
+    }
+  });
+
+  socket.on('messages_read', function(data) {
+    if (data.user_id !== currentUserId) {
+      // Update read receipts on our messages
+      document.querySelectorAll('.msg.mine .msg-read').forEach(function(el) {
+        el.style.color = 'var(--ok)';
+        el.setAttribute('data-lucide', 'check-check');
+      });
+      lucide.createIcons();
+    }
+  });
+}
+
+async function loadChat() {
+  try {
+    var resp = await fetch('/api/messages/' + matchId, { headers: { 'Authorization': 'Bearer ' + token } });
+    if (!resp.ok) {
+      if (resp.status === 403) {
+        document.getElementById('messages').innerHTML = '<div class="locked"><i data-lucide="lock"></i><h3>Match not revealed yet</h3><p>Both users need to accept before you can chat.</p><br><a href="/matches.html">Back to matches</a></div>';
+        lucide.createIcons();
+        return;
+      }
+      throw new Error();
+    }
+
+    var data = await resp.json();
+    var messages = data.messages || [];
+    var otherUser = data.other_user;
+    otherUserId = otherUser ? otherUser.id : null;
+
+    // Set header
+    if (otherUser) {
+      document.getElementById('otherAvatar').textContent = getInitials(otherUser.name);
+      document.getElementById('otherName').textContent = otherUser.name || 'Unknown';
+      document.getElementById('otherSub').textContent = [otherUser.company, otherUser.stakeholder_type ? capitalize(otherUser.stakeholder_type) : ''].filter(Boolean).join(' · ');
+      document.getElementById('chatHeader').style.display = 'block';
+      document.title = (otherUser.name || 'Chat') + ' — Event Medium';
+    }
+
+    // Match context
+    if (data.match_score) {
+      var ctx = document.getElementById('matchContext');
+      ctx.innerHTML = '<strong>' + Math.round(data.match_score * 100) + '% match</strong>' + (data.match_event ? ' · ' + esc(data.match_event) : '');
+      ctx.style.display = 'block';
+    }
+
+    // Render messages
+    var container = document.getElementById('messages');
+    if (!messages.length) {
+      container.innerHTML = '<div class="no-messages"><div class="no-messages-icon"><i data-lucide="message-circle"></i></div>' +
+        '<h3>Start the conversation</h3><p>Say hello — you were matched for a reason.</p></div>';
+    } else {
+      container.innerHTML = '';
+      var lastDate = '';
+      messages.forEach(function(m) {
+        var msgDate = new Date(m.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' });
+        if (msgDate !== lastDate) {
+          var divider = document.createElement('div');
+          divider.className = 'date-divider';
+          divider.textContent = msgDate;
+          container.appendChild(divider);
+          lastDate = msgDate;
+        }
+        appendMessage(m);
+      });
+    }
+
+    document.getElementById('inputWrap').style.display = 'block';
+    lucide.createIcons();
+    scrollToBottom();
+
+    // Mark as read
+    fetch('/api/messages/read/' + matchId, { method: 'POST', headers: { 'Authorization': 'Bearer ' + token } });
+    if (socket) socket.emit('mark_read', { match_id: matchId });
+
+    // Init WebSocket after first load
+    if (!socket) initSocket();
+  } catch(err) {
+    document.getElementById('messages').innerHTML = '<div class="loading">Failed to load conversation.</div>';
+  }
+}
+
+function appendMessage(m) {
+  var container = document.getElementById('messages');
+  var isMine = m.sender_id === currentUserId;
+  var time = new Date(m.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+
+  var div = document.createElement('div');
+
+  if (m.message_type === 'calendar') {
+    div.className = 'msg calendar';
+    var meta = {};
+    try { meta = typeof m.metadata === 'string' ? JSON.parse(m.metadata) : (m.metadata || {}); } catch(e) {}
+    var calTime = meta.proposed_time ? new Date(meta.proposed_time) : null;
+    var calTimeStr = calTime ? calTime.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) + ' at ' + calTime.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '';
+
+    var calHtml = '<div class="cal-header"><i data-lucide="calendar-check"></i> Meeting proposal</div>' +
+      '<div class="cal-details">' +
+        (calTimeStr ? '<div class="cal-detail-row"><i data-lucide="clock"></i> ' + calTimeStr + '</div>' : '') +
+        (meta.duration_minutes ? '<div class="cal-detail-row"><i data-lucide="timer"></i> ' + meta.duration_minutes + ' minutes</div>' : '') +
+        (meta.location ? '<div class="cal-detail-row"><i data-lucide="map-pin"></i> ' + esc(meta.location) + '</div>' : '') +
+        (meta.notes ? '<div class="cal-detail-row"><i data-lucide="file-text"></i> ' + esc(meta.notes) + '</div>' : '') +
+      '</div>' +
+      '<div class="cal-actions">';
+
+    if (calTime) {
+      var calUrl = buildMeetingCalUrl(meta, calTime);
+      calHtml += '<a href="' + calUrl + '" target="_blank" class="cal-btn add-cal">Add to calendar</a>';
+    }
+    calHtml += '</div>';
+    calHtml += '<div class="msg-footer"><span class="msg-time">' + time + (isMine ? ' · You' : '') + '</span></div>';
+
+    div.innerHTML = calHtml;
+  } else {
+    div.className = 'msg ' + (isMine ? 'mine' : 'theirs');
+    var readIcon = isMine ? '<i data-lucide="check" class="msg-read" style="width:14px;height:14px"></i>' : '';
+    div.innerHTML = '<div>' + esc(m.body) + '</div>' +
+      '<div class="msg-footer"><span class="msg-time">' + time + '</span>' + readIcon + '</div>';
+  }
+
+  container.appendChild(div);
+  lucide.createIcons();
+}
+
+function scrollToBottom() {
+  var wrap = document.getElementById('messagesWrap');
+  wrap.scrollTop = wrap.scrollHeight;
+}
+
+// Input handling
+var chatInput = document.getElementById('chatInput');
+var sendBtn = document.getElementById('sendBtn');
+
+chatInput.addEventListener('input', function() {
+  this.style.height = 'auto';
+  this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+  sendBtn.disabled = !this.value.trim();
+
+  // Emit typing
+  if (socket && this.value.trim()) {
+    var now = Date.now();
+    if (now - lastTypingEmit > 2000) {
+      socket.emit('typing', { match_id: matchId, typing: true });
+      lastTypingEmit = now;
+    }
+    clearTimeout(typingTimeout);
+    typingTimeout = setTimeout(function() {
+      socket.emit('typing', { match_id: matchId, typing: false });
+    }, 3000);
+  }
+});
+
+chatInput.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    if (this.value.trim()) sendMessage();
+  }
+});
+
+sendBtn.addEventListener('click', function() { if (chatInput.value.trim()) sendMessage(); });
+
+async function sendMessage() {
+  var text = chatInput.value.trim();
+  if (!text) return;
+
+  // Stop typing
+  if (socket) socket.emit('typing', { match_id: matchId, typing: false });
+
+  // Optimistic append
+  var tempMsg = {
+    sender_id: currentUserId,
+    body: text,
+    message_type: 'text',
+    created_at: new Date().toISOString()
+  };
+  appendMessage(tempMsg);
+  scrollToBottom();
+
+  chatInput.value = '';
+  chatInput.style.height = 'auto';
+  sendBtn.disabled = true;
+
+  try {
+    await fetch('/api/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ match_id: parseInt(matchId), body: text })
+    });
+  } catch(e) {}
+}
+
+// Schedule
+function openSchedule() { document.getElementById('scheduleModal').classList.add('active'); }
+function closeSchedule() { document.getElementById('scheduleModal').classList.remove('active'); }
+document.getElementById('scheduleModal').addEventListener('click', function(e) { if (e.target === this) closeSchedule(); });
+
+async function sendSchedule() {
+  var time = document.getElementById('schedTime').value;
+  if (!time) return;
+
+  try {
+    await fetch('/api/messages/schedule', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({
+        match_id: parseInt(matchId),
+        proposed_time: time,
+        duration_minutes: parseInt(document.getElementById('schedDuration').value) || 30,
+        location: document.getElementById('schedLocation').value,
+        notes: document.getElementById('schedNotes').value
+      })
+    });
+    closeSchedule();
+    loadChat();
+  } catch(e) {}
+}
+
+function buildMeetingCalUrl(meta, date) {
+  var title = 'Meeting — Event Medium';
+  var end = new Date(date.getTime() + (meta.duration_minutes || 30) * 60000);
+  var desc = 'Meeting arranged via Event Medium';
+  if (meta.notes) desc += '\n\n' + meta.notes;
+  return 'https://calendar.google.com/calendar/render?action=TEMPLATE' +
+    '&text=' + encodeURIComponent(title) +
+    '&dates=' + formatGCalDate(date) + '/' + formatGCalDate(end) +
+    '&details=' + encodeURIComponent(desc) +
+    (meta.location ? '&location=' + encodeURIComponent(meta.location) : '');
+}
+
+function formatGCalDate(d) { return d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, ''); }
+function getInitials(name) { return (name || 'U').split(' ').map(function(w) { return w[0]; }).join('').toUpperCase().slice(0, 2); }
+function esc(s) { if (!s) return ''; var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function capitalize(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
+
+lucide.createIcons();
+loadChat();
+chatInput.focus();
+</script>
+</body>
+</html>
