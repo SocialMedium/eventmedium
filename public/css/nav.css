@@ -1,0 +1,53 @@
+/* ── Shared Nav ────────────────────────────── */
+.nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,0.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--bdr);padding:0 24px}
+.nav-inner{max-width:1140px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:64px}
+.nav-brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--txt)}
+.nav-logo{width:36px;height:36px;background:var(--p);border-radius:10px;display:flex;align-items:center;justify-content:center;color:white}
+.nav-name{font-weight:800;font-size:1.15rem;letter-spacing:-0.3px}
+.nav-links{display:flex;align-items:center;gap:8px}
+.nav-link{padding:8px 16px;color:var(--txtL);text-decoration:none;font-size:14px;font-weight:500;border-radius:8px;transition:all 0.2s}
+.nav-link:hover{color:var(--txt);background:var(--card)}
+.nav-link.active{color:var(--p);font-weight:600}
+.nav-cta{padding:8px 20px;background:var(--p);color:white;font-size:14px;font-weight:600;border-radius:8px;text-decoration:none;transition:all 0.2s;border:none;cursor:pointer}
+.nav-cta:hover{background:var(--pD)}
+
+/* Hamburger button - hidden on desktop */
+.nav-burger{display:none;background:none;border:none;cursor:pointer;padding:8px;border-radius:8px;color:var(--txt);transition:background 0.2s}
+.nav-burger:hover{background:var(--bdrL)}
+.nav-burger svg{width:24px;height:24px;display:block}
+
+/* Mobile overlay */
+.nav-mobile-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:200;opacity:0;transition:opacity 0.25s}
+.nav-mobile-overlay.open{display:block;opacity:1}
+
+/* Mobile drawer */
+.nav-mobile-drawer{position:fixed;top:0;right:-300px;bottom:0;width:280px;max-width:85vw;background:white;z-index:201;transition:right 0.3s ease;box-shadow:-4px 0 24px rgba(0,0,0,0.12);display:flex;flex-direction:column;overflow-y:auto}
+.nav-mobile-drawer.open{right:0}
+.nav-drawer-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--bdr)}
+.nav-drawer-brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--txt)}
+.nav-drawer-close{background:none;border:none;cursor:pointer;padding:8px;border-radius:8px;color:var(--txtL);transition:all 0.2s}
+.nav-drawer-close:hover{background:var(--bdrL);color:var(--txt)}
+.nav-drawer-close svg{width:20px;height:20px;display:block}
+.nav-drawer-links{display:flex;flex-direction:column;padding:12px 16px;gap:4px}
+.nav-drawer-links a{display:flex;align-items:center;gap:12px;padding:14px 16px;color:var(--txt);text-decoration:none;font-size:15px;font-weight:500;border-radius:10px;transition:all 0.15s}
+.nav-drawer-links a:hover,.nav-drawer-links a.active{background:var(--pL);color:var(--p)}
+.nav-drawer-links a i{width:18px;height:18px;color:var(--txtL)}
+.nav-drawer-links a.active i{color:var(--p)}
+.nav-drawer-divider{height:1px;background:var(--bdr);margin:8px 16px}
+.nav-drawer-cta{margin:12px 16px;padding:14px;background:var(--p);color:white;font-size:15px;font-weight:600;border-radius:10px;text-align:center;text-decoration:none;transition:all 0.2s}
+.nav-drawer-cta:hover{background:var(--pD)}
+
+/* ── Tablet: hamburger kicks in ──────────── */
+@media (max-width: 768px) {
+  .nav-links{display:none}
+  .nav-burger{display:block}
+  .nav{padding:0 16px}
+}
+
+/* ── Mobile fine-tuning ──────────────────── */
+@media (max-width: 640px) {
+  .nav-inner{height:56px}
+  .nav-logo{width:32px;height:32px;border-radius:8px}
+  .nav-logo i{width:16px!important;height:16px!important}
+  .nav-name{font-size:.95rem}
+}

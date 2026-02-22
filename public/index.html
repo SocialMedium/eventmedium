@@ -514,7 +514,7 @@ body {
   .footer-links{flex-wrap:wrap;justify-content:center;gap:12px}
 }
 </style>
-</head>
+<link rel="stylesheet" href="/css/nav.css"></head>
 <body>
 
 <!-- ── Nav ──────────────────────────────── -->
@@ -893,25 +893,9 @@ function toggleMode(mode) {
 // ── Auth-aware nav ──
 (function(){
   var token = localStorage.getItem('auth_token');
-  var loginEl = document.getElementById('nav-login');
-  var ctaEl = document.getElementById('nav-cta');
-  if (token) {
-    loginEl.href = '/matches.html';
-    loginEl.textContent = 'My Matches';
-    ctaEl.href = '/canister.html';
-    ctaEl.textContent = 'My Canister';
-    if (document.getElementById('nav-matches')) document.getElementById('nav-matches').style.display = '';
-    if (document.getElementById('nav-inbox')) document.getElementById('nav-inbox').style.display = '';
-    if (document.getElementById('nav-canister')) document.getElementById('nav-canister').style.display = '';
-  } else {
-    if (document.getElementById('nav-matches')) document.getElementById('nav-matches').style.display = 'none';
-    if (document.getElementById('nav-inbox')) document.getElementById('nav-inbox').style.display = 'none';
-    if (document.getElementById('nav-canister')) document.getElementById('nav-canister').style.display = 'none';
-  }
-})();
 
 // ── Init icons ──
 lucide.createIcons();
 </script>
-</body>
+<script src="/js/nav.js"></script></body>
 </html>

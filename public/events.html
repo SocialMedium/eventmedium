@@ -152,7 +152,7 @@ body{font-family:var(--font);color:var(--txt);background:var(--bg);-webkit-font-
   .event-footer-right{flex-wrap:wrap}
 }
 </style>
-</head>
+<link rel="stylesheet" href="/css/nav.css"></head>
 <body>
 
 <nav class="nav">
@@ -279,20 +279,6 @@ var allEvents = [];
 var currentPage = 1;
 var perPage = 12;
 
-// Nav auth state
-(function(){
-  if (token) {
-    document.getElementById('nav-cta').textContent = 'My Canister';
-    document.getElementById('nav-cta').href = '/canister.html';
-    if (document.getElementById('nav-matches')) document.getElementById('nav-matches').style.display = '';
-    if (document.getElementById('nav-inbox')) document.getElementById('nav-inbox').style.display = '';
-    if (document.getElementById('nav-canister')) document.getElementById('nav-canister').style.display = '';
-  } else {
-    if (document.getElementById('nav-matches')) document.getElementById('nav-matches').style.display = 'none';
-    if (document.getElementById('nav-inbox')) document.getElementById('nav-inbox').style.display = 'none';
-    if (document.getElementById('nav-canister')) document.getElementById('nav-canister').style.display = 'none';
-  }
-})();
 
 // Show skeleton loading
 function showSkeleton() {
@@ -563,5 +549,5 @@ loadEvents();
 // Refresh countdowns daily
 setInterval(loadEvents, 24 * 60 * 60 * 1000);
 </script>
-</body>
+<script src="/js/nav.js"></script></body>
 </html>
