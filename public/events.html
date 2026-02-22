@@ -284,6 +284,13 @@ var perPage = 12;
   if (token) {
     document.getElementById('nav-cta').textContent = 'My Canister';
     document.getElementById('nav-cta').href = '/canister.html';
+    if (document.getElementById('nav-matches')) document.getElementById('nav-matches').style.display = '';
+    if (document.getElementById('nav-inbox')) document.getElementById('nav-inbox').style.display = '';
+    if (document.getElementById('nav-canister')) document.getElementById('nav-canister').style.display = '';
+  } else {
+    if (document.getElementById('nav-matches')) document.getElementById('nav-matches').style.display = 'none';
+    if (document.getElementById('nav-inbox')) document.getElementById('nav-inbox').style.display = 'none';
+    if (document.getElementById('nav-canister')) document.getElementById('nav-canister').style.display = 'none';
   }
 })();
 
