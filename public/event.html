@@ -173,7 +173,7 @@ async function loadEvent() {
         (!token && !isPast ? '<a href="/auth.html" class="btn-primary"><i data-lucide="users"></i> Sign in to find your people</a>' : '') +
         (e.website_url ? '<a href="' + esc(e.website_url) + '" target="_blank" class="btn-secondary"><i data-lucide="external-link"></i> Event website</a>' : '') +
         (isRegistered ? '<button class="btn-secondary" onclick="openCalendarModal()"><i data-lucide="calendar-plus"></i> Add to calendar</button>' : '') +
-        '<span class="attendee-count"><i data-lucide="users"></i> ' + ((e.registration_count || e.registrations) > 0 ? (e.registration_count || e.registrations) + ' going' : e.expected_attendees ? e.expected_attendees.toLocaleString() + ' expected' : '') + '</span>' +
+        '<span class="attendee-count"><i data-lucide="bar-chart-2"></i> Event insights reveal @ 100+</span>' +
       '</div>' +
     '</div>';
 
