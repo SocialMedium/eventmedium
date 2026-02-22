@@ -134,6 +134,12 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
 .btn-message { background: var(--bdrL); color: var(--txt); border: 1px solid var(--bdr); }
 .btn-message:hover { border-color: var(--p); color: var(--p); }
 .contact-btn i { width: 16px; height: 16px; }
+.cal-dropdown { position: relative; flex: 1; }
+.cal-dropdown-menu { display: none; position: absolute; bottom: 100%; left: 0; right: 0; background: var(--card); border: 1px solid var(--bdr); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); overflow: hidden; z-index: 10; margin-bottom: 4px; }
+.cal-dropdown-menu.open { display: block; }
+.cal-option { display: flex; align-items: center; gap: 8px; padding: 10px 14px; font-size: 13px; color: var(--txt); cursor: pointer; text-decoration: none; transition: background 0.15s; border: none; background: none; width: 100%; font-family: inherit; }
+.cal-option:hover { background: var(--pL); color: var(--p); }
+.cal-option i { width: 14px; height: 14px; }
 
 .feedback-bar {
   display: flex; align-items: center; gap: 8px;
@@ -261,6 +267,7 @@ async function loadMutuals() {
   document.getElementById('mutualCount').style.display = 'inline-flex';
   document.getElementById('countNum').textContent = list.length;
 
+  cacheMatchData(list);
   container.innerHTML = list.map((m, i) => mutualCardHTML(m, i)).join('');
   lucide.createIcons();
 }
@@ -319,6 +326,13 @@ function mutualCardHTML(m, idx) {
       <div class="contact-actions">
         ${p.email ? `<a class="contact-btn btn-email" href="mailto:${esc(p.email)}"><i data-lucide="mail"></i> Email</a>` : ''}
         <button class="contact-btn btn-message" onclick="toggleMessage(${m.match_id})"><i data-lucide="message-circle"></i> Message</button>
+        <div class="cal-dropdown">
+          <button class="contact-btn btn-message" onclick="toggleCalMenu(${m.match_id})" style="width:100%"><i data-lucide="calendar-plus"></i> Schedule</button>
+          <div class="cal-dropdown-menu" id="cal-${m.match_id}">
+            <button class="cal-option" onclick="scheduleGoogle(${m.match_id})"><i data-lucide="external-link"></i> Google Calendar</button>
+            <button class="cal-option" onclick="scheduleICS(${m.match_id})"><i data-lucide="download"></i> Apple / Outlook (.ics)</button>
+          </div>
+        </div>
         <a class="contact-btn btn-message" href="/debrief.html?match=${m.match_id}" style="background:var(--sL);color:var(--s);border-color:var(--s)"><i data-lucide="sparkles"></i> Debrief</a>
       </div>
 
@@ -377,6 +391,89 @@ async function feedback(matchId, type, btn) {
 
 loadMutuals();
 lucide.createIcons();
+ // ── Calendar scheduling ──
+  var matchDataCache = {};
+  function cacheMatchData(matches) {
+    matches.forEach(m => { matchDataCache[m.match_id] = m; });
+  }
+
+  function toggleCalMenu(matchId) {
+    document.querySelectorAll('.cal-dropdown-menu').forEach(el => {
+      if (el.id !== 'cal-' + matchId) el.classList.remove('open');
+    });
+    var menu = document.getElementById('cal-' + matchId);
+    menu.classList.toggle('open');
+  }
+
+  // Close dropdowns on outside click
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.cal-dropdown')) {
+      document.querySelectorAll('.cal-dropdown-menu').forEach(el => el.classList.remove('open'));
+    }
+  });
+
+  function getMeetingDetails(matchId) {
+    var m = matchDataCache[matchId];
+    if (!m) return null;
+    var p = m.other_user || {};
+    var name = p.name || 'Match';
+    var company = p.company ? ' (' + p.company + ')' : '';
+    var eventName = m.event_name || 'Event';
+    // Default to tomorrow 10am, 30 min
+    var start = new Date();
+    start.setDate(start.getDate() + 1);
+    start.setHours(10, 0, 0, 0);
+    var end = new Date(start.getTime() + 30 * 60000);
+    return {
+      title: 'Meet ' + name + company + ' — ' + eventName,
+      description: 'Event Medium match (Score: ' + (m.score_total ? (m.score_total * 100).toFixed(0) + '%' : 'N/A') + ')\\n' + (m.match_reason || '') + '\\n\\nScheduled via eventmedium.ai',
+      start: start,
+      end: end,
+      name: name
+    };
+  }
+
+  function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+  function toGCalDate(d) {
+    return d.getFullYear() + pad2(d.getMonth()+1) + pad2(d.getDate()) + 'T' + pad2(d.getHours()) + pad2(d.getMinutes()) + '00';
+  }
+  function toICSDate(d) {
+    return d.getUTCFullYear() + pad2(d.getUTCMonth()+1) + pad2(d.getUTCDate()) + 'T' + pad2(d.getUTCHours()) + pad2(d.getUTCMinutes()) + '00Z';
+  }
+
+  function scheduleGoogle(matchId) {
+    var d = getMeetingDetails(matchId);
+    if (!d) return;
+    var url = 'https://calendar.google.com/calendar/render?action=TEMPLATE' +
+      '&text=' + encodeURIComponent(d.title) +
+      '&dates=' + toGCalDate(d.start) + '/' + toGCalDate(d.end) +
+      '&details=' + encodeURIComponent(d.description);
+    window.open(url, '_blank');
+    toggleCalMenu(matchId);
+  }
+
+  function scheduleICS(matchId) {
+    var d = getMeetingDetails(matchId);
+    if (!d) return;
+    var ics = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//EventMedium//EN',
+      'BEGIN:VEVENT',
+      'DTSTART:' + toICSDate(d.start),
+      'DTEND:' + toICSDate(d.end),
+      'SUMMARY:' + d.title,
+      'DESCRIPTION:' + d.description.replace(/\n/g, '\\n'),
+      'END:VEVENT',
+      'END:VCALENDAR'
+    ].join('\r\n');
+    var blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+    var link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'meeting-' + d.name.replace(/\s+/g, '-').toLowerCase() + '.ics';
+    link.click();
+    toggleCalMenu(matchId);
+  }
 </script>
 </body>
 </html>
