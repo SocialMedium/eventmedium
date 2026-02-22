@@ -387,7 +387,7 @@ function renderEvents() {
       (themes.length ? '<div class="event-themes">' + themes.slice(0, 4).map(function(t) { return '<span class="event-theme">' + esc(t) + '</span>'; }).join('') + (themes.length > 4 ? '<span class="event-theme" style="background:var(--bg);color:var(--txtXL)">+' + (themes.length - 4) + '</span>' : '') + '</div>' : '') +
       (!isPast && date ? buildCountdown(date) : '') +
       '<div class="event-footer">' +
-        '<span class="event-attendees"><i data-lucide="users"></i> ' + (e.registrations || 0) + ' going</span>' +
+        '<span class="event-attendees"><i data-lucide="bar-chart-2"></i> Event insights reveal @ 100+</span>' +
         '<div class="event-footer-right">' +
           (isRegistered ? '<button class="share-icon-btn" style="background:var(--pL);color:var(--p)" onclick="event.stopPropagation();openShareForEvent(' + e.id + ')" title="Add to Calendar"><i data-lucide="calendar-plus"></i></button>' : '') +
           (token && !isPast ? '<button class="register-btn ' + (isRegistered ? 'registered' : '') + '" onclick="event.stopPropagation();toggleRegister(' + e.id + ',this)">' + (isRegistered ? "I\'m Going \u2713" : 'Find My People') + '</button>' : '') +
