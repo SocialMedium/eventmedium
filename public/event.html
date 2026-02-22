@@ -130,6 +130,7 @@ var currentEvent = null;
 
 async function loadEvent() {
   if (!eventId) { window.location.href = '/events.html'; return; }
+  document.getElementById('page').innerHTML = '<div style="text-align:center;padding:120px 24px;color:var(--txtL)"><div style="font-size:24px;margin-bottom:8px">⚡</div>Loading event...</div>';
   try {
     var resp = await fetch('/api/events/' + eventId);
     if (!resp.ok) throw new Error();
@@ -151,7 +152,7 @@ async function loadEvent() {
     var dateStr = date ? date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : 'TBD';
     var isPast = date && date < new Date();
     var themes = parseArr(e.themes);
-    var appUrl = window.location.origin;
+    var appUrl = 'https://www.eventmedium.ai';
 
     // Share text (updated messaging)
     var shareUrl = appUrl + '/event.html?id=' + e.id;
