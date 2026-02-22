@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Inbox — Event Medium</title>
+
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+:root {
+  --p: #0066ff; --pL: #e8f0fe; --pD: #0052cc;
+  --s: #6c63ff; --sL: #eeedff;
+  --ok: #00d084; --okL: #e6f9f0; --okD: #059669;
+  --warn: #f59e0b; --warnL: #fef3cd;
+  --bg: #f8f9fd; --card: #ffffff; --txt: #1a1d29; --txtL: #6b7280; --txtXL: #9ca3af;
+  --bdr: #e5e7eb; --bdrL: #f3f4f6;
+  --shadow: 0 2px 8px rgba(0,0,0,0.06), 0 0 1px rgba(0,0,0,0.1);
+  --shadowL: 0 8px 24px rgba(0,0,0,0.08), 0 0 1px rgba(0,0,0,0.1);
+  --radius: 16px; --radiusSm: 10px;
+  --font-d: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-b: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--txt); min-height: 100dvh; }
+
+.topbar {
+  position: sticky; top: 0; z-index: 50;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 20px; background: var(--card); border-bottom: 1px solid var(--bdr);
+}
+.topbar-brand { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 15px; color: var(--p); }
+.topbar-brand i { width: 20px; height: 20px; }
+.topbar-actions { display: flex; gap: 8px; }
+.topbar-btn {
+  display: flex; align-items: center; gap: 6px; padding: 8px 14px;
+  border: 1px solid var(--bdr); border-radius: 8px; background: var(--card);
+  font-size: 13px; color: var(--txt); cursor: pointer; transition: all 0.15s; text-decoration: none;
+}
+.topbar-btn:hover { border-color: var(--p); color: var(--p); }
+.topbar-btn i { width: 16px; height: 16px; }
+
+.page { max-width: 720px; margin: 0 auto; padding: 24px 20px 100px; }
+.page-header { margin-bottom: 24px; }
+.page-title { font-size: 24px; font-weight: 600; margin-bottom: 4px; }
+.page-subtitle { font-size: 14px; color: var(--txtL); line-height: 1.5; }
+.mutual-count {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 14px; border-radius: 20px; margin-top: 12px;
+  background: var(--okL); color: var(--okD); font-size: 13px; font-weight: 600;
+}
+.mutual-count i { width: 14px; height: 14px; }
+
+.mutual-list { display: flex; flex-direction: column; gap: 16px; }
+.mutual-card {
+  background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow);
+  border: 1px solid var(--bdr); overflow: hidden;
+  transition: all 0.25s ease;
+  animation: cardIn 0.4s ease backwards;
+}
+.mutual-card:nth-child(2) { animation-delay: 0.08s; }
+.mutual-card:nth-child(3) { animation-delay: 0.16s; }
+@keyframes cardIn { from { opacity: 0; transform: translateY(12px); } }
+.mutual-card:hover { box-shadow: var(--shadowL); }
+
+.mutual-badge {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 18px; background: linear-gradient(135deg, var(--okL), #ccfbf1);
+  font-size: 13px; font-weight: 600; color: var(--okD);
+}
+.mutual-badge i { width: 16px; height: 16px; }
+.mutual-time { margin-left: auto; font-weight: 400; font-size: 12px; color: var(--txtL); }
+
+.person-header {
+  display: flex; align-items: center; gap: 14px; padding: 18px 18px 12px;
+}
+.person-avatar {
+  width: 52px; height: 52px; border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; font-weight: 700; color: white;
+}
+.person-avatar.investor { background: linear-gradient(135deg, var(--p), var(--s)); }
+.person-avatar.founder { background: linear-gradient(135deg, #f97316, #ef4444); }
+.person-avatar.researcher { background: linear-gradient(135deg, var(--ok), #06b6d4); }
+.person-avatar.company { background: linear-gradient(135deg, #8b5cf6, #a855f7); }
+.person-avatar.institution { background: linear-gradient(135deg, #0ea5e9, #3b82f6); }
+
+.person-info { flex: 1; min-width: 0; }
+.person-name { font-size: 17px; font-weight: 600; }
+.person-role { font-size: 13px; color: var(--txtL); margin-top: 2px; }
+.person-company { font-size: 13px; color: var(--p); font-weight: 500; }
+
+.match-score-mini {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 8px 12px; border-radius: var(--radiusSm); background: var(--bdrL);
+}
+.match-score-mini .num { font-family: inherit; font-size: 18px; font-weight: 700; color: var(--okD); }
+.match-score-mini .label { font-size: 10px; color: var(--txtXL); text-transform: uppercase; letter-spacing: 0.5px; }
+
+.mutual-body { padding: 0 18px 16px; }
+
+.context-block {
+  padding: 12px 14px; border-radius: var(--radiusSm); margin-bottom: 12px;
+}
+.context-block.theirs { background: var(--pL); }
+.context-block.yours { background: var(--bdrL); }
+.context-label { font-size: 11px; font-weight: 600; color: var(--txtXL); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+.context-text { font-size: 14px; line-height: 1.5; }
+
+.focus-block {
+  font-size: 13px; color: var(--txtL); line-height: 1.5;
+  padding: 10px 14px; background: var(--bdrL); border-radius: var(--radiusSm);
+  margin-bottom: 10px;
+}
+.focus-label { font-size: 11px; font-weight: 600; color: var(--txtXL); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+.theme-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.theme-pill { padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 500; background: var(--pL); color: var(--pD); }
+
+.match-reason {
+  font-size: 14px; line-height: 1.55; color: var(--txt); margin-bottom: 12px;
+  padding-left: 12px; border-left: 3px solid var(--ok);
+}
+
+.contact-actions {
+  display: flex; gap: 10px; padding: 14px 18px; border-top: 1px solid var(--bdr);
+}
+.contact-btn {
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 12px; border-radius: var(--radiusSm); font-size: 14px; font-weight: 600;
+  font-family: inherit; cursor: pointer; transition: all 0.15s;
+  border: none; text-decoration: none;
+}
+.btn-email { background: var(--p); color: white; }
+.btn-email:hover { filter: brightness(1.1); }
+.btn-message { background: var(--bdrL); color: var(--txt); border: 1px solid var(--bdr); }
+.btn-message:hover { border-color: var(--p); color: var(--p); }
+.contact-btn i { width: 16px; height: 16px; }
+
+.feedback-bar {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 18px; border-top: 1px solid var(--bdrL);
+  font-size: 12px; color: var(--txtXL);
+}
+.feedback-btn {
+  padding: 5px 10px; border-radius: 6px; font-size: 12px; border: 1px solid var(--bdr);
+  background: var(--card); cursor: pointer; transition: all 0.15s;
+}
+.feedback-btn:hover { border-color: var(--p); color: var(--p); }
+.feedback-btn.selected { background: var(--pL); border-color: var(--p); color: var(--p); }
+
+.message-panel {
+  display: none; padding: 14px 18px; border-top: 1px solid var(--bdrL);
+  background: var(--bdrL);
+}
+.message-panel.open { display: block; }
+.message-panel textarea {
+  width: 100%; padding: 10px 12px; border: 1px solid var(--bdr); border-radius: 8px;
+  font-family: inherit; font-size: 14px; resize: none; min-height: 60px;
+  background: var(--card);
+}
+.message-panel textarea:focus { outline: none; border-color: var(--p); }
+.msg-send-row { display: flex; justify-content: flex-end; margin-top: 8px; }
+.msg-send-btn {
+  padding: 8px 18px; border-radius: 8px; background: var(--p); color: white;
+  font-size: 13px; font-weight: 600; border: none; cursor: pointer; font-family: inherit;
+}
+
+.empty-state { text-align: center; padding: 80px 20px; max-width: 400px; margin: 0 auto; }
+.empty-icon { width: 56px; height: 56px; color: var(--txtXL); margin: 0 auto 16px; }
+.empty-title { font-family: inherit; font-size: 20px; margin-bottom: 8px; }
+.empty-text { font-size: 14px; color: var(--txtL); line-height: 1.5; margin-bottom: 20px; }
+.empty-cta {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 12px 24px; border-radius: var(--radiusSm); text-decoration: none;
+  background: linear-gradient(135deg, var(--p), var(--s)); color: white;
+  font-size: 14px; font-weight: 600; transition: filter 0.15s;
+}
+.empty-cta:hover { filter: brightness(1.1); }
+
+.skeleton { background: linear-gradient(90deg, var(--bdrL) 25%, var(--bdr) 50%, var(--bdrL) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: var(--radius); }
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+.skeleton-card { height: 260px; margin-bottom: 16px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a class="topbar-brand" href="/eventmedium.html" style="text-decoration:none;font-size:1.15rem;font-weight:800;gap:4px;color:var(--txt)">Event <span style="color:var(--p)">Medium</span></a>
+  <div class="topbar-actions">
+    <a class="topbar-btn" href="/matches.html"><i data-lucide="layers"></i> Matches</a>
+    <a class="topbar-btn" href="/canister.html"><i data-lucide="layout-dashboard"></i> Canister</a>
+    <a class="topbar-btn" href="#" onclick="localStorage.removeItem('auth_token');location.href='/eventmedium.html'"><i data-lucide="log-out"></i></a>
+  </div>
+</div>
+
+<div class="page">
+  <div class="page-header">
+    <h1 class="page-title">Inbox</h1>
+    <p class="page-subtitle">These people are interested in connecting with you too. Nev found the overlap.</p>
+    <div class="mutual-count" id="mutualCount" style="display:none"><i data-lucide="handshake"></i> <span id="countNum">0</span> mutual matches</div>
+  </div>
+
+  <div class="mutual-list" id="mutualList">
+    <div class="skeleton skeleton-card"></div>
+    <div class="skeleton skeleton-card"></div>
+  </div>
+</div>
+
+<script>
+const API = '';
+const TOKEN = localStorage.getItem('auth_token') || '';
+
+async function api(path, opts = {}) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (TOKEN) headers['Authorization'] = 'Bearer ' + TOKEN;
+  const res = await fetch(API + path, { ...opts, headers });
+  if (res.status === 401) { localStorage.clear(); location.href = '/auth_em.html'; return null; }
+  return res.json();
+}
+
+function esc(s) {
+  if (!s) return '';
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function initials(name) {
+  if (!name) return '?';
+  return name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+}
+
+function timeAgo(dt) {
+  if (!dt) return '';
+  const diff = Date.now() - new Date(dt).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return mins + 'm ago';
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return hrs + 'h ago';
+  const days = Math.floor(hrs / 24);
+  return days + 'd ago';
+}
+
+async function loadMutuals() {
+  const data = await api('/api/matches/mutual');
+  if (!data) return;
+  const list = data.matches || [];
+  const container = document.getElementById('mutualList');
+
+  if (list.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <i data-lucide="heart" class="empty-icon"></i>
+        <h3 class="empty-title">No mutual matches yet</h3>
+        <p class="empty-text">When someone you're interested in is also interested in you, they'll appear here with their full profile.</p>
+        <a href="/matches.html" class="empty-cta"><i data-lucide="layers"></i> Browse your matches</a>
+      </div>`;
+    lucide.createIcons();
+    return;
+  }
+
+  document.getElementById('mutualCount').style.display = 'inline-flex';
+  document.getElementById('countNum').textContent = list.length;
+
+  container.innerHTML = list.map((m, i) => mutualCardHTML(m, i)).join('');
+  lucide.createIcons();
+}
+
+function mutualCardHTML(m, idx) {
+  const p = m.other_user || {};
+  const prof = m.other_profile || {};
+  const type = prof.stakeholder_type || 'investor';
+  const themes = (() => { try { return JSON.parse(prof.themes || '[]'); } catch { return []; } })();
+  const score = m.score_total ? (m.score_total * 100).toFixed(0) : '—';
+
+  return `
+    <div class="mutual-card" style="animation-delay:${idx * 0.08}s">
+      <div class="mutual-badge">
+        <i data-lucide="sparkles"></i> Mutual match
+        <span class="mutual-time">${timeAgo(m.mutual_at)}</span>
+      </div>
+
+      <div class="person-header">
+        <div class="person-avatar ${type}">${initials(p.name)}</div>
+        <div class="person-info">
+          <div class="person-name">${esc(p.name) || 'Anonymous'}</div>
+          ${p.role ? `<div class="person-role">${esc(p.role)}</div>` : ''}
+          ${p.company ? `<div class="person-company">${esc(p.company)}</div>` : ''}
+        </div>
+        <div class="match-score-mini">
+          <div class="num">${score}%</div>
+          <div class="label">Match</div>
+        </div>
+      </div>
+
+      <div class="mutual-body">
+        ${m.match_reason ? `<div class="match-reason">${esc(m.match_reason)}</div>` : ''}
+
+        ${m.their_context ? `
+          <div class="context-block theirs">
+            <div class="context-label">Their note to you</div>
+            <div class="context-text">${esc(m.their_context)}</div>
+          </div>` : ''}
+
+        ${m.my_context ? `
+          <div class="context-block yours">
+            <div class="context-label">Your note</div>
+            <div class="context-text">${esc(m.my_context)}</div>
+          </div>` : ''}
+
+        ${prof.focus_text ? `
+          <div class="focus-block">
+            <div class="focus-label">Their focus</div>
+            ${esc(prof.focus_text)}
+          </div>` : ''}
+
+        ${themes.length ? `<div class="theme-pills">${themes.slice(0, 6).map(t => `<span class="theme-pill">${esc(t)}</span>`).join('')}</div>` : ''}
+      </div>
+
+      <div class="contact-actions">
+        ${p.email ? `<a class="contact-btn btn-email" href="mailto:${esc(p.email)}"><i data-lucide="mail"></i> Email</a>` : ''}
+        <button class="contact-btn btn-message" onclick="toggleMessage(${m.match_id})"><i data-lucide="message-circle"></i> Message</button>
+        <a class="contact-btn btn-message" href="/debrief.html?match=${m.match_id}" style="background:var(--sL);color:var(--s);border-color:var(--s)"><i data-lucide="sparkles"></i> Debrief</a>
+      </div>
+
+      <div class="message-panel" id="msg-${m.match_id}">
+        <textarea id="msgtext-${m.match_id}" placeholder="Write a message to ${esc(p.name || 'them')}..."></textarea>
+        <div class="msg-send-row">
+          <button class="msg-send-btn" onclick="sendMessage(${m.match_id})">Send</button>
+        </div>
+      </div>
+
+      <div class="feedback-bar">
+        <span>How was this match?</span>
+        <button class="feedback-btn" onclick="feedback(${m.match_id},'valuable',this)">Valuable</button>
+        <button class="feedback-btn" onclick="feedback(${m.match_id},'not_relevant',this)">Not relevant</button>
+        <button class="feedback-btn" onclick="feedback(${m.match_id},'didnt_connect',this)">Didn't connect</button>
+        <a href="/debrief.html?match=${m.match_id}" style="margin-left:auto;font-size:12px;color:var(--s);text-decoration:none;font-weight:500">Chat with Nev →</a>
+        ${m.feedback && m.feedback.nev_chat_completed ? '<span style="color:var(--okD);font-size:12px">✓ Debriefed</span>' : ''}
+      </div>
+    </div>`;
+}
+
+function toggleMessage(matchId) {
+  const panel = document.getElementById('msg-' + matchId);
+  panel.classList.toggle('open');
+  if (panel.classList.contains('open')) {
+    panel.querySelector('textarea').focus();
+  }
+}
+
+async function sendMessage(matchId) {
+  const text = document.getElementById('msgtext-' + matchId).value.trim();
+  if (!text) return;
+
+  const data = await api('/api/matches/' + matchId + '/context', {
+    method: 'POST',
+    body: JSON.stringify({ context: text })
+  });
+
+  if (data && data.success) {
+    const panel = document.getElementById('msg-' + matchId);
+    panel.innerHTML = '<div style="padding:12px;color:var(--okD);font-size:13px;font-weight:500"><i data-lucide="check" style="width:14px;height:14px;display:inline"></i> Message sent</div>';
+    lucide.createIcons();
+  }
+}
+
+async function feedback(matchId, type, btn) {
+  const bar = btn.parentElement;
+  bar.querySelectorAll('.feedback-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+
+  await api('/api/matches/' + matchId + '/feedback', {
+    method: 'POST',
+    body: JSON.stringify({ feedback: type })
+  });
+}
+
+loadMutuals();
+lucide.createIcons();
+</script>
+</body>
+</html>

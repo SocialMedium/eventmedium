@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Debrief with Nev — Event Medium</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..700;1,9..40,300..700&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+:root {
+  --p: #0066ff; --pL: #e8f0fe; --pD: #0052cc;
+  --s: #6c63ff; --sL: #eeedff;
+  --ok: #00d084; --okL: #e6f9f0; --okD: #059669;
+  --bg: #f8f9fd; --card: #ffffff; --txt: #1a1d29; --txtL: #6b7280; --txtXL: #9ca3af;
+  --bdr: #e5e7eb; --bdrL: #f3f4f6;
+  --shadow: 0 2px 8px rgba(0,0,0,0.06);
+  --radius: 16px; --radiusSm: 10px;
+  --nev: #6c63ff; --nevL: #eeedff;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--txt); min-height: 100dvh; display: flex; flex-direction: column; }
+h1,h2,h3 { font-family: 'Fraunces', serif; }
+
+/* Topbar */
+.topbar {
+  position: sticky; top: 0; z-index: 50;
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 20px; background: var(--card); border-bottom: 1px solid var(--bdr);
+}
+.back-btn { display: flex; align-items: center; padding: 8px; border-radius: 8px; border: none; background: none; cursor: pointer; color: var(--txt); }
+.back-btn:hover { background: var(--bdrL); }
+.topbar-title { font-size: 15px; font-weight: 600; }
+.topbar-sub { font-size: 12px; color: var(--txtL); }
+
+/* Match context banner */
+.match-context {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 20px; background: var(--nevL); border-bottom: 1px solid var(--bdr);
+}
+.match-context-avatar {
+  width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, var(--nev), var(--p));
+  display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 15px;
+}
+.match-context-info { flex: 1; }
+.match-context-name { font-size: 14px; font-weight: 600; }
+.match-context-detail { font-size: 12px; color: var(--txtL); }
+
+/* Chat area */
+.chat-area { flex: 1; overflow-y: auto; padding: 20px; max-width: 640px; width: 100%; margin: 0 auto; }
+.chat-area::-webkit-scrollbar { display: none; }
+
+.msg { display: flex; gap: 10px; margin-bottom: 16px; max-width: 85%; animation: msgIn 0.3s ease; }
+@keyframes msgIn { from { opacity: 0; transform: translateY(8px); } }
+.msg.nev { align-self: flex-start; }
+.msg.user { align-self: flex-end; margin-left: auto; flex-direction: row-reverse; }
+
+.msg-avatar {
+  width: 32px; height: 32px; border-radius: 10px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; color: white;
+}
+.msg.nev .msg-avatar { background: linear-gradient(135deg, var(--nev), var(--p)); }
+.msg.user .msg-avatar { background: var(--txtXL); }
+
+.msg-bubble {
+  padding: 12px 16px; border-radius: 16px; font-size: 14px; line-height: 1.55;
+}
+.msg.nev .msg-bubble { background: var(--card); border: 1px solid var(--bdr); border-bottom-left-radius: 4px; }
+.msg.user .msg-bubble { background: var(--p); color: white; border-bottom-right-radius: 4px; }
+
+.msg-time { font-size: 10px; color: var(--txtXL); margin-top: 4px; }
+
+/* Typing indicator */
+.typing { display: none; gap: 10px; margin-bottom: 16px; align-items: flex-end; }
+.typing.show { display: flex; }
+.typing .msg-avatar { background: linear-gradient(135deg, var(--nev), var(--p)); }
+.typing-dots { display: flex; gap: 4px; padding: 12px 16px; background: var(--card); border: 1px solid var(--bdr); border-radius: 16px; border-bottom-left-radius: 4px; }
+.typing-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--txtXL); animation: bounce 1.4s infinite; }
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes bounce { 0%,60%,100% { transform: translateY(0); } 30% { transform: translateY(-6px); } }
+
+/* Quick actions (structured feedback buttons) */
+.quick-actions {
+  display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 20px;
+  max-width: 640px; width: 100%; margin: 0 auto;
+}
+.quick-btn {
+  padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 500;
+  border: 1px solid var(--bdr); background: var(--card); cursor: pointer;
+  font-family: 'DM Sans', sans-serif; transition: all 0.15s;
+}
+.quick-btn:hover { border-color: var(--p); color: var(--p); }
+
+/* Completion banner */
+.complete-banner {
+  display: none; padding: 16px 20px; text-align: center;
+  background: var(--okL); color: var(--okD); font-size: 14px; font-weight: 500;
+}
+.complete-banner.show { display: block; }
+
+/* Input bar */
+.input-bar {
+  position: sticky; bottom: 0; padding: 12px 20px; padding-bottom: max(12px, env(safe-area-inset-bottom));
+  background: var(--card); border-top: 1px solid var(--bdr);
+}
+.input-row { display: flex; gap: 10px; max-width: 640px; margin: 0 auto; }
+.input-row textarea {
+  flex: 1; padding: 12px 16px; border: 1px solid var(--bdr); border-radius: 12px;
+  font-family: 'DM Sans', sans-serif; font-size: 14px; resize: none; min-height: 44px; max-height: 120px;
+  background: var(--bdrL);
+}
+.input-row textarea:focus { outline: none; border-color: var(--p); background: var(--card); }
+.send-btn {
+  width: 44px; height: 44px; border-radius: 12px; border: none;
+  background: var(--p); color: white; cursor: pointer; display: flex;
+  align-items: center; justify-content: center; transition: all 0.15s; flex-shrink: 0;
+}
+.send-btn:hover { filter: brightness(1.1); }
+.send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.send-btn i { width: 18px; height: 18px; }
+</style>
+</head>
+<body>
+
+<!-- Topbar -->
+<div class="topbar">
+  <button class="back-btn" onclick="history.back()"><i data-lucide="arrow-left" style="width:20px;height:20px"></i></button>
+  <div>
+    <div class="topbar-title">Debrief with Nev</div>
+    <div class="topbar-sub">Post-meeting feedback</div>
+  </div>
+</div>
+
+<!-- Match context -->
+<div class="match-context" id="matchContext" style="display:none">
+  <div class="match-context-avatar" id="ctxAvatar">?</div>
+  <div class="match-context-info">
+    <div class="match-context-name" id="ctxName"></div>
+    <div class="match-context-detail" id="ctxDetail"></div>
+  </div>
+</div>
+
+<!-- Chat -->
+<div class="chat-area" id="chatArea"></div>
+
+<!-- Quick action buttons (shown contextually by Nev) -->
+<div class="quick-actions" id="quickActions" style="display:none"></div>
+
+<!-- Completion -->
+<div class="complete-banner" id="completeBanner">
+  <i data-lucide="check-circle" style="width:16px;height:16px;display:inline;vertical-align:middle"></i>
+  Thanks for the debrief! This helps Nev make better matches for you.
+</div>
+
+<!-- Input -->
+<div class="input-bar" id="inputBar">
+  <div class="input-row">
+    <textarea id="userInput" placeholder="Tell Nev how it went..." rows="1" onkeydown="handleKey(event)"></textarea>
+    <button class="send-btn" id="sendBtn" onclick="sendMsg()"><i data-lucide="send"></i></button>
+  </div>
+</div>
+
+<script>
+const API = '';
+const TOKEN = localStorage.getItem('auth_token') || '';
+const params = new URLSearchParams(location.search);
+const MATCH_ID = params.get('match');
+
+let sending = false;
+let chatComplete = false;
+
+async function apiFetch(path, opts = {}) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (TOKEN) headers['Authorization'] = 'Bearer ' + TOKEN;
+  const res = await fetch(API + path, { ...opts, headers });
+  if (res.status === 401) { location.href = '/login.html'; return null; }
+  return res.json();
+}
+
+function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+function initials(name) { return name ? name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) : '?'; }
+
+function addMsg(role, text) {
+  const area = document.getElementById('chatArea');
+  const isNev = role === 'nev';
+  const div = document.createElement('div');
+  div.className = 'msg ' + (isNev ? 'nev' : 'user');
+  div.innerHTML = `
+    <div class="msg-avatar">${isNev ? 'N' : '👤'}</div>
+    <div>
+      <div class="msg-bubble">${esc(text)}</div>
+    </div>`;
+  area.appendChild(div);
+  area.scrollTop = area.scrollHeight;
+}
+
+function showTyping(show) {
+  let el = document.getElementById('typingIndicator');
+  if (!el && show) {
+    el = document.createElement('div');
+    el.id = 'typingIndicator';
+    el.className = 'typing show';
+    el.innerHTML = `<div class="msg-avatar" style="background:linear-gradient(135deg,var(--nev),var(--p));width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:white;font-size:14px">N</div>
+      <div class="typing-dots"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>`;
+    document.getElementById('chatArea').appendChild(el);
+    document.getElementById('chatArea').scrollTop = document.getElementById('chatArea').scrollHeight;
+  } else if (el) {
+    el.remove();
+  }
+}
+
+async function loadDebrief() {
+  if (!MATCH_ID) { location.href = '/inbox.html'; return; }
+
+  const data = await apiFetch('/api/matches/' + MATCH_ID + '/debrief');
+  if (!data) return;
+
+  // Show match context
+  if (data.match_context) {
+    const ctx = data.match_context;
+    document.getElementById('matchContext').style.display = 'flex';
+    document.getElementById('ctxAvatar').textContent = initials(ctx.other_name);
+    document.getElementById('ctxName').textContent = ctx.other_name || 'Your match';
+    document.getElementById('ctxDetail').textContent = [ctx.other_company, ctx.event_name].filter(Boolean).join(' · ');
+  }
+
+  // Load existing chat
+  if (data.chat && data.chat.length) {
+    data.chat.forEach(m => addMsg(m.role, m.content));
+  }
+
+  // If no chat yet, send opener to Nev
+  if (!data.chat || !data.chat.length) {
+    showTyping(true);
+    setTimeout(async () => {
+      const resp = await apiFetch('/api/matches/' + MATCH_ID + '/debrief/chat', {
+        method: 'POST',
+        body: JSON.stringify({ message: '[User opened debrief chat]' })
+      });
+      showTyping(false);
+      if (resp && resp.reply) {
+        addMsg('nev', resp.reply);
+        if (resp.chat_complete) markComplete();
+      }
+    }, 800);
+  }
+
+  if (data.feedback && data.feedback.nev_chat_completed) {
+    markComplete();
+  }
+}
+
+async function sendMsg() {
+  if (sending || chatComplete) return;
+  const input = document.getElementById('userInput');
+  const text = input.value.trim();
+  if (!text) return;
+
+  sending = true;
+  input.value = '';
+  input.style.height = 'auto';
+  addMsg('user', text);
+  showTyping(true);
+
+  const resp = await apiFetch('/api/matches/' + MATCH_ID + '/debrief/chat', {
+    method: 'POST',
+    body: JSON.stringify({ message: text })
+  });
+
+  showTyping(false);
+  sending = false;
+
+  if (resp && resp.reply) {
+    addMsg('nev', resp.reply);
+    if (resp.chat_complete) markComplete();
+  }
+
+  input.focus();
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
+  // Auto-resize
+  e.target.style.height = 'auto';
+  e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+}
+
+function markComplete() {
+  chatComplete = true;
+  document.getElementById('completeBanner').classList.add('show');
+  document.getElementById('inputBar').style.display = 'none';
+}
+
+loadDebrief();
+lucide.createIcons();
+</script>
+</body>
+</html>

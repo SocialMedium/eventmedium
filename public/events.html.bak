@@ -395,7 +395,7 @@ function renderEvents() {
       '<div class="event-footer">' +
         '<span class="event-attendees"><i data-lucide="users"></i> ' + (e.registrations || 0) + ' going</span>' +
         '<div class="event-footer-right">' +
-          (isRegistered ? '<button class="share-icon-btn" style="background:var(--pL);color:var(--p)" onclick="event.stopPropagation();openShareForEvent(' + e.id + ')" title="Add to Calendar"><i data-lucide="calendar-plus"></i></button>' : '') +
+          (isRegistered ? '<button class="share-icon-btn" onclick="event.stopPropagation();openShareForEvent(' + e.id + ')" title="Share this event"><i data-lucide="share-2"></i></button>' : '') +
           (token && !isPast ? '<button class="register-btn ' + (isRegistered ? 'registered' : '') + '" onclick="event.stopPropagation();toggleRegister(' + e.id + ',this)">' + (isRegistered ? "I\'m Going \u2713" : 'Find My People') + '</button>' : '') +
           (!token && !isPast ? '<a href="/auth.html" class="register-btn" onclick="event.stopPropagation()" style="text-decoration:none;display:inline-block">Find My People</a>' : '') +
         '</div>' +
