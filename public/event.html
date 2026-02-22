@@ -300,8 +300,9 @@ function openCalendarModal() {
 }
 
 function copyShareLink() {
-  var shareText = 'At ' + e.name + ' this week. Should we be talking? See if Nev connects us.';
-  navigator.clipboard.writeText(text);
+  var url = 'https://www.eventmedium.ai/event.html?id=' + eventId;
+  var msg = currentEvent ? 'At ' + currentEvent.name + ' this week. Should we be talking? See if Nev connects us. ' + url : url;
+  navigator.clipboard.writeText(msg);
   showToast('Link copied!', 'success');
 }
 
