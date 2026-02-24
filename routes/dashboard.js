@@ -1,25 +1,11 @@
 var express = require('express');
 var router = express.Router();
 var { dbGet, dbAll, dbRun } = require('../db');
+var { authenticateToken } = require('../middleware/auth');
 
-// Simple admin check — replace with proper auth later
-function adminAuth(req, res, next) {
-  var token = (req.headers.authorization || '').replace('Bearer ', '');
-  if (!token) return res.status(401).json({ error: 'Unauthorized' });
-  try {
-    var jwt = require('jsonwebtoken');
-    var decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
-    // For now, all authenticated users can see admin dashboard
-    // TODO: add admin flag to users table
-    next();
-  } catch (e) {
-    res.status(401).json({ error: 'Invalid token' });
-  }
-}
 
 // ── GET /api/admin/dashboard — full network intelligence ──
-router.get('/dashboard', adminAuth, async function(req, res) {
+router.get('/dashboard', authenticateToken, async function(req, res) {
   try {
     // ─── NETWORK TOTALS ───
     var totalUsers = await dbGet('SELECT COUNT(*) as c FROM users');
@@ -311,7 +297,7 @@ router.get('/dashboard', adminAuth, async function(req, res) {
 });
 
 // ── GET /api/admin/dashboard/event/:id — single event drill-down ──
-router.get('/dashboard/event/:id', adminAuth, async function(req, res) {
+router.get('/dashboard/event/:id', authenticateToken, async function(req, res) {
   try {
     var eventId = parseInt(req.params.id);
 
