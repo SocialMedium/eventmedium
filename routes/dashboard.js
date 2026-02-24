@@ -1,11 +1,11 @@
 var express = require('express');
 var router = express.Router();
 var { dbGet, dbAll, dbRun } = require('../db');
-var { authenticateToken } = require('../middleware/auth');
+var { authenticateToken, optionalAuth } = require('../middleware/auth');
 
 
 // ── GET /api/admin/dashboard — full network intelligence ──
-router.get('/dashboard', authenticateToken, async function(req, res) {
+router.get('/dashboard', authenticateToken, function(req, res, next) { if (req.user.email !== 'jon@mitchellake.com') return res.status(403).json({ error: 'Admin only' }); next(); }, async function(req, res) {
   try {
     // ─── NETWORK TOTALS ───
     var totalUsers = await dbGet('SELECT COUNT(*) as c FROM users');
@@ -297,7 +297,7 @@ router.get('/dashboard', authenticateToken, async function(req, res) {
 });
 
 // ── GET /api/admin/dashboard/event/:id — single event drill-down ──
-router.get('/dashboard/event/:id', authenticateToken, async function(req, res) {
+router.get('/dashboard/event/:id', authenticateToken, function(req, res, next) { if (req.user.email !== 'jon@mitchellake.com') return res.status(403).json({ error: 'Admin only' }); next(); }, async function(req, res) {
   try {
     var eventId = parseInt(req.params.id);
 
