@@ -81,6 +81,71 @@ router.get('/user/registrations', authenticateToken, async function(req, res) {
   }
 });
 
+
+// ── GET /api/events/recommended — personalized event scoring ──
+router.get('/recommended', authenticateToken, async function(req, res) {
+  try {
+    // Load user profile
+    var profile = await dbGet(
+      'SELECT stakeholder_type, themes, intent, offering, geography, deal_details FROM stakeholder_profiles WHERE user_id = $1',
+      [req.user.id]
+    );
+    if (!profile || !profile.themes) {
+      return res.json({ recommendations: [], reason: 'no_profile' });
+    }
+
+    var userThemes = typeof profile.themes === 'string' ? JSON.parse(profile.themes) : (profile.themes || []);
+    var userIntent = typeof profile.intent === 'string' ? JSON.parse(profile.intent) : (profile.intent || []);
+    var userOffering = typeof profile.offering === 'string' ? JSON.parse(profile.offering) : (profile.offering || []);
+    var userGeo = (profile.geography || '').toLowerCase();
+    var userType = profile.stakeholder_type || '';
+
+    // Load upcoming events not already registered for
+    var events = await dbAll(
+      `SELECT e.*, 
+        (SELECT COUNT(*) FROM event_registrations WHERE event_id = e.id AND status = 'active') as reg_count
+       FROM events e 
+       WHERE e.event_date >= CURRENT_DATE 
+       AND e.id NOT IN (SELECT event_id FROM event_registrations WHERE user_id = $1 AND status = 'active')
+       ORDER BY e.event_date ASC`,
+      [req.user.id]
+    );
+
+    // Score each event
+    var scored = [];
+    for (var i = 0; i < events.length; i++) {
+      var ev = events[i];
+      var evThemes = typeof ev.themes === 'string' ? JSON.parse(ev.themes) : (ev.themes || []);
+      var evCity = (ev.city || '').toLowerCase();
+      var evCountry = (ev.country || '').toLowerCase();
+
+      // 1. Theme overlap (0-1) — Jaccard
+      var themeSet = new Set(userThemes.map(function(t) { return t.toLowerCase(); }));
+      var evSet = new Set(evThemes.map(function(t) { return t.toLowerCase(); }));
+      var intersection = 0;
+      evSet.forEach(function(t) { if (themeSet.has(t)) intersection++; });
+      var union = new Set([...themeSet, ...evSet]).size;
+      var themeScore = union > 0 ? intersection / union : 0;
+
+      // 2. Geographic relevance (0-1)
+      var geoScore = 0;
+      if (userGeo) {
+        if (userGeo.indexOf(evCity) !== -1 || evCity.indexOf(userGeo) !== -1) geoScore = 1;
+        else if (userGeo.indexOf(evCountry) !== -1 || evCountry.indexOf(userGeo) !== -1) geoScore = 0.6;
+        else {
+          // Region matching
+          var euroCountries = ['uk','germany','france','spain','netherlands','sweden','switzerland','italy','portugal','austria','belgium','denmark','finland','norway','ireland','poland','czech','romania','greece'];
+          var apacCountries = ['singapore','australia','japan','south korea','china','india','hong kong','taiwan','new zealand','indonesia','thailand','malaysia','vietnam','philippines'];
+          var naCountries = ['usa','us','canada','united states'];
+          var meaCountries = ['uae','saudi arabia','israel','qatar','south africa','kenya','nigeria','egypt'];
+          var userRegion = '';
+          var evRegion = '';
+          [['europe', euroCountries], ['apac', apacCountries], ['americas', naCountries], ['mea', meaCountries]].forEach(function(r) {
+            r[1].forEach(function(c) {
+              if (userGeo.indexOf(c) !== -1) userRegion = r[0];
+              if (evCountry.indexOf(c) !== -1 || evCity.indexOf(c) !== -1) evRegion = r[0];
+            });
+
 // ── GET /api/events/:id ── (single event)
 router.get('/:id', optionalAuth, async function(req, res) {
   try {
@@ -422,69 +487,6 @@ function icsEscape(s) {
 }
 
 
-// ── GET /api/events/recommended — personalized event scoring ──
-router.get('/recommended', authenticateToken, async function(req, res) {
-  try {
-    // Load user profile
-    var profile = await dbGet(
-      'SELECT stakeholder_type, themes, intent, offering, geography, deal_details FROM stakeholder_profiles WHERE user_id = $1',
-      [req.user.id]
-    );
-    if (!profile || !profile.themes) {
-      return res.json({ recommendations: [], reason: 'no_profile' });
-    }
-
-    var userThemes = typeof profile.themes === 'string' ? JSON.parse(profile.themes) : (profile.themes || []);
-    var userIntent = typeof profile.intent === 'string' ? JSON.parse(profile.intent) : (profile.intent || []);
-    var userOffering = typeof profile.offering === 'string' ? JSON.parse(profile.offering) : (profile.offering || []);
-    var userGeo = (profile.geography || '').toLowerCase();
-    var userType = profile.stakeholder_type || '';
-
-    // Load upcoming events not already registered for
-    var events = await dbAll(
-      `SELECT e.*, 
-        (SELECT COUNT(*) FROM event_registrations WHERE event_id = e.id AND status = 'active') as reg_count
-       FROM events e 
-       WHERE e.event_date >= CURRENT_DATE 
-       AND e.id NOT IN (SELECT event_id FROM event_registrations WHERE user_id = $1 AND status = 'active')
-       ORDER BY e.event_date ASC`,
-      [req.user.id]
-    );
-
-    // Score each event
-    var scored = [];
-    for (var i = 0; i < events.length; i++) {
-      var ev = events[i];
-      var evThemes = typeof ev.themes === 'string' ? JSON.parse(ev.themes) : (ev.themes || []);
-      var evCity = (ev.city || '').toLowerCase();
-      var evCountry = (ev.country || '').toLowerCase();
-
-      // 1. Theme overlap (0-1) — Jaccard
-      var themeSet = new Set(userThemes.map(function(t) { return t.toLowerCase(); }));
-      var evSet = new Set(evThemes.map(function(t) { return t.toLowerCase(); }));
-      var intersection = 0;
-      evSet.forEach(function(t) { if (themeSet.has(t)) intersection++; });
-      var union = new Set([...themeSet, ...evSet]).size;
-      var themeScore = union > 0 ? intersection / union : 0;
-
-      // 2. Geographic relevance (0-1)
-      var geoScore = 0;
-      if (userGeo) {
-        if (userGeo.indexOf(evCity) !== -1 || evCity.indexOf(userGeo) !== -1) geoScore = 1;
-        else if (userGeo.indexOf(evCountry) !== -1 || evCountry.indexOf(userGeo) !== -1) geoScore = 0.6;
-        else {
-          // Region matching
-          var euroCountries = ['uk','germany','france','spain','netherlands','sweden','switzerland','italy','portugal','austria','belgium','denmark','finland','norway','ireland','poland','czech','romania','greece'];
-          var apacCountries = ['singapore','australia','japan','south korea','china','india','hong kong','taiwan','new zealand','indonesia','thailand','malaysia','vietnam','philippines'];
-          var naCountries = ['usa','us','canada','united states'];
-          var meaCountries = ['uae','saudi arabia','israel','qatar','south africa','kenya','nigeria','egypt'];
-          var userRegion = '';
-          var evRegion = '';
-          [['europe', euroCountries], ['apac', apacCountries], ['americas', naCountries], ['mea', meaCountries]].forEach(function(r) {
-            r[1].forEach(function(c) {
-              if (userGeo.indexOf(c) !== -1) userRegion = r[0];
-              if (evCountry.indexOf(c) !== -1 || evCity.indexOf(c) !== -1) evRegion = r[0];
-            });
           });
           if (userRegion && userRegion === evRegion) geoScore = 0.3;
         }
