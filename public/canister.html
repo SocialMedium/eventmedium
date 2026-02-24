@@ -378,6 +378,31 @@ function logout() {
 }
 
 lucide.createIcons();
+async function loadRecommendedFeed() {
+  try {
+    var resp = await fetch("/api/events/recommended", {
+      headers: { "Authorization": "Bearer " + token }
+    });
+    var data = await resp.json();
+    if (!data.recommendations || !data.recommendations.length) return;
+    var card = document.getElementById("recFeedCard");
+    var feed = document.getElementById("recFeed");
+    if (!card || !feed) return;
+    card.style.display = "";
+    feed.innerHTML = data.recommendations.slice(0, 4).map(function(r) {
+      var date = r.event_date ? new Date(r.event_date).toLocaleDateString("en-GB", {day:"numeric",month:"short"}) : "TBD";
+      var reason = (r.reasons && r.reasons[0]) || "";
+      return '<a href="/event.html?id=' + r.id + '" class="rec-feed-item" style="text-decoration:none;color:inherit">' +
+        '<div class="rec-feed-score">' + r.score + '%</div>' +
+        '<div class="rec-feed-info">' +
+          '<div class="rec-feed-name">' + esc(r.name) + '</div>' +
+          '<div class="rec-feed-meta">' + date + (r.city ? " · " + r.city : "") + '</div>' +
+          (reason ? '<div class="rec-feed-reason">' + esc(reason) + '</div>' : "") +
+        '</div></a>';
+    }).join("");
+  } catch(e) {}
+}
+
 loadCanister();
 </script>
 <script src="/js/nav.js"></script></body>
