@@ -342,7 +342,7 @@ async function loadEvents() {
     sortEvents();
     currentPage = 1;
     renderEvents();
-    if (token) loadRecommended();
+    if (token && typeof loadRecommended === "function") loadRecommended();
   } catch (err) {
     document.getElementById('eventsContainer').innerHTML =
       '<div class="empty"><div class="empty-icon"><i data-lucide="wifi-off"></i></div><h3>Failed to load events</h3><p>Check your connection and try again.</p></div>';
@@ -554,6 +554,40 @@ document.getElementById('searchInput').addEventListener('input', function() {
   clearTimeout(searchTimeout);
   searchTimeout = setTimeout(loadEvents, 300);
 });
+async function loadRecommended() {
+  try {
+    var resp = await fetch('/api/events/recommended', {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    var data = await resp.json();
+    if (!data.recommendations || !data.recommendations.length) return;
+    var recs = data.recommendations;
+    var container = document.getElementById('recSection');
+    if (!container) {
+      container = document.createElement('div');
+      container.id = 'recSection';
+      var evContainer = document.getElementById('eventsContainer');
+      evContainer.parentNode.insertBefore(container, evContainer);
+    }
+    container.innerHTML = '<div class="rec-section">' +
+      '<div class="rec-header"><i data-lucide="sparkles" style="width:18px;height:18px;color:var(--p)"></i><h3>Recommended for You</h3><span class="rec-badge">BASED ON YOUR CANISTER</span></div>' +
+      '<div class="rec-scroll">' +
+      recs.map(function(r) {
+        var date = r.event_date ? new Date(r.event_date).toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'}) : 'TBD';
+        return '<div class="rec-card" onclick="goToEvent(' + r.id + ')">' +
+          '<div class="rec-score">' + r.score + '%</div>' +
+          '<div class="rec-name">' + esc(r.name) + '</div>' +
+          '<div class="rec-meta">' + date + (r.city ? ' · ' + esc(r.city) : '') + '</div>' +
+          '<div class="rec-reasons">' + (r.reasons || []).map(function(reason) {
+            return '<span class="rec-reason">' + esc(reason) + '</span>';
+          }).join('') + '</div>' +
+        '</div>';
+      }).join('') +
+      '</div></div>';
+    lucide.createIcons();
+  } catch(e) { console.log('Recommendations not available'); }
+}
+
 document.getElementById('themeFilter').addEventListener('change', loadEvents);
 document.getElementById('upcomingOnly').addEventListener('change', loadEvents);
 document.getElementById('sortSelect').addEventListener('change', function() { sortEvents(); currentPage = 1; renderEvents(); });
