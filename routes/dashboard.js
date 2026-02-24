@@ -15,8 +15,8 @@ router.get('/dashboard', authenticateToken, function(req, res, next) { if (req.u
     var totalMatches = await dbGet('SELECT COUNT(*) as c FROM event_matches');
     var acceptedOneWay = await dbGet("SELECT COUNT(*) as c FROM event_matches WHERE user_a_decision = 'accept' OR user_b_decision = 'accept'");
     var revealed = await dbGet("SELECT COUNT(*) as c FROM event_matches WHERE status = 'revealed'");
-    var meetingsHeld = await dbGet("SELECT COUNT(*) as c FROM match_feedback WHERE did_meet = true");
-    var debriefsDone = await dbGet("SELECT COUNT(DISTINCT match_id) as c FROM nev_debrief_messages WHERE role = 'user'");
+    var meetingsHeld; try { meetingsHeld = await dbGet("SELECT COUNT(*) as c FROM match_feedback WHERE did_meet = true"); } catch(e) { meetingsHeld = { c: 0 }; }
+    var debriefsDone; try { debriefsDone = await dbGet("SELECT COUNT(DISTINCT match_id) as c FROM nev_debrief_messages WHERE role = 'user'"); } catch(e) { debriefsDone = { c: 0 }; }
     var avgScore = await dbGet('SELECT AVG(score_total) as avg FROM event_matches WHERE score_total > 0');
 
     var network = {
@@ -38,9 +38,9 @@ router.get('/dashboard', authenticateToken, function(req, res, next) { if (req.u
     var matchGenerated = await dbGet("SELECT COUNT(DISTINCT user_a_id) + COUNT(DISTINCT user_b_id) as c FROM event_matches");
     var matchAccepted = await dbGet("SELECT COUNT(DISTINCT CASE WHEN user_a_decision='accept' THEN user_a_id END) + COUNT(DISTINCT CASE WHEN user_b_decision='accept' THEN user_b_id END) as c FROM event_matches");
     var mutualReveal = await dbGet("SELECT COUNT(DISTINCT user_a_id) + COUNT(DISTINCT user_b_id) as c FROM event_matches WHERE status = 'revealed'");
-    var messageSent = await dbGet("SELECT COUNT(DISTINCT user_id) as c FROM nev_debrief_messages WHERE role = 'user'");
-    var meetingHeld = await dbGet("SELECT COUNT(DISTINCT user_id) as c FROM match_feedback WHERE did_meet = true");
-    var debriefComplete = await dbGet("SELECT COUNT(DISTINCT user_id) as c FROM nev_debrief_messages WHERE role = 'user'");
+    var messageSent; try { messageSent = await dbGet("SELECT COUNT(DISTINCT user_id) as c FROM nev_debrief_messages WHERE role = 'user'"); } catch(e) { messageSent = { c: 0 }; }
+    var meetingHeld; try { meetingHeld = await dbGet("SELECT COUNT(DISTINCT user_id) as c FROM match_feedback WHERE did_meet = true"); } catch(e) { meetingHeld = { c: 0 }; }
+    var debriefComplete; try { debriefComplete = await dbGet("SELECT COUNT(DISTINCT user_id) as c FROM nev_debrief_messages WHERE role = 'user'"); } catch(e) { debriefComplete = { c: 0 }; }
 
     var funnel = [
       { stage: 'Signups', count: network.totalUsers },
