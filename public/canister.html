@@ -146,6 +146,16 @@ body{font-family:var(--font);color:var(--txt);background:var(--bg);-webkit-font-
   .actions{flex-direction:column}
   .incomplete-banner{flex-direction:column;text-align:center}
 }
+
+.rec-feed{margin-top:0}
+.rec-feed-item{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--bdr);cursor:pointer;transition:background 0.15s}
+.rec-feed-item:last-child{border-bottom:none}
+.rec-feed-item:hover{background:var(--bg);margin:0 -8px;padding:10px 8px;border-radius:8px}
+.rec-feed-score{width:36px;height:36px;border-radius:10px;background:var(--pL);color:var(--p);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex-shrink:0}
+.rec-feed-info{flex:1;min-width:0}
+.rec-feed-name{font-size:13px;font-weight:600;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rec-feed-meta{font-size:11px;color:var(--txtL)}
+.rec-feed-reason{font-size:10px;color:var(--p);font-weight:500;margin-top:1px}
 </style>
 <link rel="stylesheet" href="/css/nav.css"></head>
 <body>
@@ -315,6 +325,10 @@ async function loadCanister() {
       html += '</div></div>';
     }
 
+    
+    // Recommended events feed in sidebar
+    html += '<div class="card" id="recFeedCard" style="display:none"><div class="card-header"><h2>Recommended Events</h2></div><div id="recFeed" class="rec-feed"></div></div>';
+
     // Activity timeline
     html += '<div class="card"><div class="card-header"><h2>Activity</h2></div>';
     var activities = [];
@@ -345,6 +359,7 @@ async function loadCanister() {
 
     document.getElementById('page').innerHTML = html;
     lucide.createIcons();
+    loadRecommendedFeed();
   } catch(err) {
     console.error(err);
     document.getElementById('page').innerHTML = '<div class="loading">Something went wrong. <a href="/auth.html" style="color:var(--p)">Try signing in again</a></div>';

@@ -421,4 +421,172 @@ function icsEscape(s) {
   return s.replace(/[\\;,]/g, function(c) { return '\\' + c; });
 }
 
+
+// ── GET /api/events/recommended — personalized event scoring ──
+router.get('/recommended', authenticateToken, async function(req, res) {
+  try {
+    // Load user profile
+    var profile = await dbGet(
+      'SELECT stakeholder_type, themes, intent, offering, geography, deal_details FROM stakeholder_profiles WHERE user_id = $1',
+      [req.user.id]
+    );
+    if (!profile || !profile.themes) {
+      return res.json({ recommendations: [], reason: 'no_profile' });
+    }
+
+    var userThemes = typeof profile.themes === 'string' ? JSON.parse(profile.themes) : (profile.themes || []);
+    var userIntent = typeof profile.intent === 'string' ? JSON.parse(profile.intent) : (profile.intent || []);
+    var userOffering = typeof profile.offering === 'string' ? JSON.parse(profile.offering) : (profile.offering || []);
+    var userGeo = (profile.geography || '').toLowerCase();
+    var userType = profile.stakeholder_type || '';
+
+    // Load upcoming events not already registered for
+    var events = await dbAll(
+      `SELECT e.*, 
+        (SELECT COUNT(*) FROM event_registrations WHERE event_id = e.id AND status = 'active') as reg_count
+       FROM events e 
+       WHERE e.event_date >= CURRENT_DATE 
+       AND e.id NOT IN (SELECT event_id FROM event_registrations WHERE user_id = $1 AND status = 'active')
+       ORDER BY e.event_date ASC`,
+      [req.user.id]
+    );
+
+    // Score each event
+    var scored = [];
+    for (var i = 0; i < events.length; i++) {
+      var ev = events[i];
+      var evThemes = typeof ev.themes === 'string' ? JSON.parse(ev.themes) : (ev.themes || []);
+      var evCity = (ev.city || '').toLowerCase();
+      var evCountry = (ev.country || '').toLowerCase();
+
+      // 1. Theme overlap (0-1) — Jaccard
+      var themeSet = new Set(userThemes.map(function(t) { return t.toLowerCase(); }));
+      var evSet = new Set(evThemes.map(function(t) { return t.toLowerCase(); }));
+      var intersection = 0;
+      evSet.forEach(function(t) { if (themeSet.has(t)) intersection++; });
+      var union = new Set([...themeSet, ...evSet]).size;
+      var themeScore = union > 0 ? intersection / union : 0;
+
+      // 2. Geographic relevance (0-1)
+      var geoScore = 0;
+      if (userGeo) {
+        if (userGeo.indexOf(evCity) !== -1 || evCity.indexOf(userGeo) !== -1) geoScore = 1;
+        else if (userGeo.indexOf(evCountry) !== -1 || evCountry.indexOf(userGeo) !== -1) geoScore = 0.6;
+        else {
+          // Region matching
+          var euroCountries = ['uk','germany','france','spain','netherlands','sweden','switzerland','italy','portugal','austria','belgium','denmark','finland','norway','ireland','poland','czech','romania','greece'];
+          var apacCountries = ['singapore','australia','japan','south korea','china','india','hong kong','taiwan','new zealand','indonesia','thailand','malaysia','vietnam','philippines'];
+          var naCountries = ['usa','us','canada','united states'];
+          var meaCountries = ['uae','saudi arabia','israel','qatar','south africa','kenya','nigeria','egypt'];
+          var userRegion = '';
+          var evRegion = '';
+          [['europe', euroCountries], ['apac', apacCountries], ['americas', naCountries], ['mea', meaCountries]].forEach(function(r) {
+            r[1].forEach(function(c) {
+              if (userGeo.indexOf(c) !== -1) userRegion = r[0];
+              if (evCountry.indexOf(c) !== -1 || evCity.indexOf(c) !== -1) evRegion = r[0];
+            });
+          });
+          if (userRegion && userRegion === evRegion) geoScore = 0.3;
+        }
+      }
+
+      // 3. Stakeholder density — are there registered users who'd be good matches?
+      var densityScore = 0;
+      if (ev.reg_count > 0) {
+        // Check for complementary archetypes
+        var complementMap = {
+          founder: ['investor', 'corporate', 'advisor'],
+          investor: ['founder'],
+          researcher: ['corporate', 'founder'],
+          corporate: ['founder', 'researcher'],
+          advisor: ['founder'],
+          operator: ['founder', 'corporate']
+        };
+        var targetTypes = complementMap[userType] || [];
+        if (targetTypes.length > 0) {
+          var densityResult = await dbGet(
+            `SELECT COUNT(DISTINCT sp.user_id) as match_count 
+             FROM event_registrations er 
+             JOIN stakeholder_profiles sp ON sp.user_id = er.user_id 
+             WHERE er.event_id = $1 AND er.status = 'active' 
+             AND sp.stakeholder_type = ANY($2::text[])`,
+            [ev.id, targetTypes]
+          );
+          var matchCount = parseInt(densityResult.match_count) || 0;
+          densityScore = Math.min(matchCount / 10, 1); // caps at 10 complementary users
+        }
+
+        // Bonus: check for theme-aligned registered users
+        if (userThemes.length > 0) {
+          var themeAligned = await dbGet(
+            `SELECT COUNT(DISTINCT sp.user_id) as aligned 
+             FROM event_registrations er 
+             JOIN stakeholder_profiles sp ON sp.user_id = er.user_id 
+             WHERE er.event_id = $1 AND er.status = 'active' 
+             AND sp.themes::text ILIKE ANY($2::text[])`,
+            [ev.id, userThemes.map(function(t) { return '%' + t + '%'; })]
+          );
+          var alignedCount = parseInt(themeAligned.aligned) || 0;
+          densityScore = Math.max(densityScore, Math.min(alignedCount / 8, 1));
+        }
+      }
+
+      // 4. Intent fit — does this event attract people who match user intent?
+      var intentScore = 0;
+      if (userIntent.length > 0 && ev.reg_count > 0) {
+        var intentResult = await dbGet(
+          `SELECT COUNT(DISTINCT sp.user_id) as intent_match 
+           FROM event_registrations er 
+           JOIN stakeholder_profiles sp ON sp.user_id = er.user_id 
+           WHERE er.event_id = $1 AND er.status = 'active' 
+           AND sp.offering::text ILIKE ANY($2::text[])`,
+          [ev.id, userIntent.map(function(t) { return '%' + t + '%'; })]
+        );
+        intentScore = Math.min((parseInt(intentResult.intent_match) || 0) / 5, 1);
+      }
+
+      // Weighted total
+      var total = (themeScore * 0.40) + (geoScore * 0.15) + (densityScore * 0.30) + (intentScore * 0.15);
+
+      // Build match reasons
+      var reasons = [];
+      if (themeScore > 0) {
+        var overlapping = userThemes.filter(function(t) {
+          return evThemes.some(function(et) { return et.toLowerCase() === t.toLowerCase(); });
+        });
+        if (overlapping.length) reasons.push(overlapping.join(', ') + ' overlap');
+      }
+      if (densityScore > 0) reasons.push('Relevant attendees registered');
+      if (geoScore >= 0.6) reasons.push('Near your geography');
+      if (intentScore > 0) reasons.push('People offering what you seek');
+
+      if (total > 0.05) {
+        scored.push({
+          id: ev.id,
+          name: ev.name,
+          event_date: ev.event_date,
+          city: ev.city,
+          country: ev.country,
+          themes: evThemes,
+          slug: ev.slug,
+          score: Math.round(total * 100),
+          reasons: reasons,
+          reg_count: parseInt(ev.reg_count),
+          theme_score: Math.round(themeScore * 100),
+          density_score: Math.round(densityScore * 100),
+          geo_score: Math.round(geoScore * 100),
+          intent_score: Math.round(intentScore * 100)
+        });
+      }
+    }
+
+    // Sort by score descending, limit to top 6
+    scored.sort(function(a, b) { return b.score - a.score; });
+    res.json({ recommendations: scored.slice(0, 6) });
+  } catch (err) {
+    console.error('Recommended events error:', err);
+    res.status(500).json({ error: 'Failed to generate recommendations' });
+  }
+});
+
 module.exports = { router };
