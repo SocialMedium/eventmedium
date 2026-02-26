@@ -657,6 +657,8 @@ setInterval(loadEvents, 24 * 60 * 60 * 1000);
 .sidecar-badge.free{background:#dcfce7;color:#166534}
 .sidecar-badge.paid{background:#fef3c7;color:#92400e}
 .sidecar-badge.invite{background:#fce7f3;color:#9d174d}
+.sidecar-ticket{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:10px;background:#6366f1;color:#fff;font-size:11px;font-weight:600;text-decoration:none;transition:all .15s;margin-left:auto}
+.sidecar-ticket:hover{background:#4f46e5}
 @media(max-width:600px){.sidecar-panel-content{width:100vw}}
 </style>
 
@@ -755,11 +757,12 @@ function renderSidecars(sidecars) {
       var cost = ev.cost === 'Free' ? '<span class="sidecar-badge free">Free</span>' : (ev.cost && ev.cost !== 'TBA' ? '<span class="sidecar-badge paid">' + ev.cost + '</span>' : '');
       var inv = ev.invite_only ? '<span class="sidecar-badge invite">Invite Only</span>' : '';
       var ven = ev.venue_name ? '<span class="sidecar-badge">' + ev.venue_name + '</span>' : '';
+      var ticket = ev.source_url ? '<a href="' + ev.source_url + '" target="_blank" class="sidecar-ticket" onclick="event.stopPropagation()"><i data-lucide="ticket" style="width:12px;height:12px"></i> Get Tickets</a>' : '';
       html += '<div class="sidecar-event">' +
         (time ? '<div class="sidecar-event-time">' + time + '</div>' : '') +
         '<div class="sidecar-event-name">' + (ev.source_url ? '<a href="' + ev.source_url + '" target="_blank">' + ev.name + '</a>' : ev.name) + '</div>' +
         (ev.organizer ? '<div class="sidecar-event-org">by ' + ev.organizer + '</div>' : '') +
-        '<div class="sidecar-event-meta">' + cost + inv + ven + '</div></div>';
+        '<div class="sidecar-event-meta">' + cost + inv + ven + ticket + '</div></div>';
     });
   });
   body.innerHTML = html;
