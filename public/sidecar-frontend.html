@@ -1,0 +1,527 @@
+<!-- ============================================================
+     SIDECAR EVENTS — Frontend Implementation
+     ============================================================
+
+     TWO PARTS:
+     1. Button to add to each event card (in renderEvents function)
+     2. Slide-out panel with grouped sidecar listing
+
+     ============================================================ -->
+
+
+<!-- ─── PART 1: Add sidecar button to event card actions ────
+     Find your event card template in events.html (likely in
+     renderEvents or similar). Add this button alongside your
+     existing calendar + share buttons:
+     ──────────────────────────────────────────────────────── -->
+
+<!--
+  Inside each event card's action bar, add:
+
+  <button class="btn-sidecar" onclick="openSidecars(EVENT_ID)" title="Sidecar Events">
+    <i data-lucide="layers" style="width:16px;height:16px"></i>
+    <span class="sidecar-count" id="sidecar-count-EVENT_ID"></span>
+  </button>
+
+  Replace EVENT_ID with your template variable e.g. ${event.id}
+-->
+
+
+<!-- ─── PART 2: Slide-out panel (add before </body>) ────── -->
+
+<div id="sidecar-panel" class="sidecar-panel">
+  <div class="sidecar-panel-backdrop" onclick="closeSidecars()"></div>
+  <div class="sidecar-panel-content">
+
+    <!-- Header -->
+    <div class="sidecar-header">
+      <div>
+        <div class="sidecar-label">SIDECAR EVENTS</div>
+        <h2 id="sidecar-parent-name"></h2>
+      </div>
+      <button class="sidecar-close" onclick="closeSidecars()">
+        <i data-lucide="x" style="width:20px;height:20px"></i>
+      </button>
+    </div>
+
+    <!-- Stats bar -->
+    <div class="sidecar-stats" id="sidecar-stats"></div>
+
+    <!-- Filter chips -->
+    <div class="sidecar-filters" id="sidecar-filters"></div>
+
+    <!-- Day-grouped list -->
+    <div class="sidecar-body" id="sidecar-body">
+      <div class="sidecar-loading">Loading sidecar events...</div>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ─── PART 3: Styles ──────────────────────────────────── -->
+
+<style>
+/* ── Sidecar Button on Event Card ── */
+.btn-sidecar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 20px;
+  background: #fff;
+  color: #555;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+.btn-sidecar:hover {
+  border-color: #6366f1;
+  color: #6366f1;
+  background: #f5f3ff;
+}
+.sidecar-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  border-radius: 10px;
+  background: #6366f1;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 0 5px;
+}
+.sidecar-count:empty {
+  display: none;
+}
+
+/* ── Slide-out Panel ── */
+.sidecar-panel {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+}
+.sidecar-panel.open {
+  display: flex;
+}
+.sidecar-panel-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  animation: fadeIn 0.2s ease;
+}
+.sidecar-panel-content {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: min(520px, 90vw);
+  background: #fff;
+  box-shadow: -4px 0 24px rgba(0,0,0,0.15);
+  display: flex;
+  flex-direction: column;
+  animation: slideIn 0.25s ease;
+  overflow: hidden;
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+
+/* ── Header ── */
+.sidecar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid #eee;
+}
+.sidecar-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  color: #6366f1;
+  margin-bottom: 4px;
+}
+.sidecar-header h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a1a2e;
+}
+.sidecar-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  color: #888;
+  border-radius: 6px;
+}
+.sidecar-close:hover {
+  background: #f0f0f0;
+  color: #333;
+}
+
+/* ── Stats Bar ── */
+.sidecar-stats {
+  display: flex;
+  gap: 16px;
+  padding: 12px 24px;
+  background: #fafafa;
+  border-bottom: 1px solid #eee;
+  font-size: 13px;
+  color: #666;
+}
+.sidecar-stat {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.sidecar-stat strong {
+  color: #1a1a2e;
+  font-weight: 600;
+}
+
+/* ── Filter Chips ── */
+.sidecar-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 12px 24px;
+  border-bottom: 1px solid #eee;
+}
+.sidecar-chip {
+  padding: 4px 12px;
+  border-radius: 14px;
+  border: 1px solid #e0e0e0;
+  background: #fff;
+  font-size: 12px;
+  color: #555;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.sidecar-chip:hover,
+.sidecar-chip.active {
+  background: #6366f1;
+  color: #fff;
+  border-color: #6366f1;
+}
+
+/* ── Body / Day Groups ── */
+.sidecar-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0;
+}
+.sidecar-loading {
+  text-align: center;
+  padding: 40px;
+  color: #999;
+  font-size: 14px;
+}
+
+/* Day header */
+.sidecar-day-header {
+  position: sticky;
+  top: 0;
+  background: #f7f7f8;
+  padding: 10px 24px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a1a2e;
+  border-bottom: 1px solid #eee;
+  z-index: 1;
+}
+.sidecar-day-count {
+  float: right;
+  color: #999;
+  font-weight: 400;
+}
+
+/* Event card */
+.sidecar-event {
+  padding: 14px 24px;
+  border-bottom: 1px solid #f0f0f0;
+  transition: background 0.15s;
+}
+.sidecar-event:hover {
+  background: #fafafa;
+}
+.sidecar-event-time {
+  font-size: 12px;
+  color: #6366f1;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+.sidecar-event-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1a2e;
+  margin-bottom: 2px;
+}
+.sidecar-event-name a {
+  color: inherit;
+  text-decoration: none;
+}
+.sidecar-event-name a:hover {
+  text-decoration: underline;
+}
+.sidecar-event-org {
+  font-size: 12px;
+  color: #888;
+  margin-bottom: 6px;
+}
+.sidecar-event-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 11px;
+}
+.sidecar-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: #f0f0f0;
+  color: #666;
+}
+.sidecar-badge.free {
+  background: #dcfce7;
+  color: #166534;
+}
+.sidecar-badge.paid {
+  background: #fef3c7;
+  color: #92400e;
+}
+.sidecar-badge.invite {
+  background: #fce7f3;
+  color: #9d174d;
+}
+
+/* ── Mobile ── */
+@media (max-width: 600px) {
+  .sidecar-panel-content {
+    width: 100vw;
+  }
+}
+</style>
+
+
+<!-- ─── PART 4: JavaScript ──────────────────────────────── -->
+
+<script>
+// ── Sidecar Events Controller ──
+
+var sidecarData = null;
+var sidecarFilter = null;
+
+// Load sidecar count badges on event cards
+async function loadSidecarCounts() {
+  // Find all event cards that have sidecar count elements
+  var badges = document.querySelectorAll('.sidecar-count');
+  for (var i = 0; i < badges.length; i++) {
+    var badge = badges[i];
+    var eventId = badge.id.replace('sidecar-count-', '');
+    try {
+      var resp = await fetch('/api/events/' + eventId + '/sidecar-count');
+      var data = await resp.json();
+      if (data.count > 0) {
+        badge.textContent = data.count;
+        badge.closest('.btn-sidecar').style.display = 'inline-flex';
+      } else {
+        badge.closest('.btn-sidecar').style.display = 'none';
+      }
+    } catch (e) {
+      badge.closest('.btn-sidecar').style.display = 'none';
+    }
+  }
+}
+
+// Open panel
+async function openSidecars(eventId) {
+  var panel = document.getElementById('sidecar-panel');
+  var body = document.getElementById('sidecar-body');
+  body.innerHTML = '<div class="sidecar-loading">Loading sidecar events...</div>';
+  panel.classList.add('open');
+  document.body.style.overflow = 'hidden';
+
+  try {
+    var resp = await fetch('/api/events/' + eventId + '/sidecars');
+    sidecarData = await resp.json();
+    sidecarFilter = null;
+
+    // Header
+    document.getElementById('sidecar-parent-name').textContent = sidecarData.parent.name;
+
+    // Stats
+    var stats = sidecarData.stats;
+    document.getElementById('sidecar-stats').innerHTML =
+      '<span class="sidecar-stat"><strong>' + stats.total + '</strong> events</span>' +
+      '<span class="sidecar-stat"><strong>' + stats.days + '</strong> days</span>' +
+      '<span class="sidecar-stat"><strong>' + stats.free + '</strong> free</span>' +
+      (stats.invite_only > 0
+        ? '<span class="sidecar-stat"><strong>' + stats.invite_only + '</strong> invite-only</span>'
+        : '');
+
+    // Build filter chips from all tags
+    buildFilterChips(sidecarData.sidecars);
+
+    // Render
+    renderSidecars(sidecarData.sidecars);
+
+  } catch (err) {
+    body.innerHTML = '<div class="sidecar-loading">Failed to load sidecar events.</div>';
+    console.error('Sidecar load error:', err);
+  }
+}
+
+function closeSidecars() {
+  document.getElementById('sidecar-panel').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// Build filter chips
+function buildFilterChips(sidecars) {
+  var tagCounts = {};
+  sidecars.forEach(function(s) {
+    var tags = Array.isArray(s.tags) ? s.tags : JSON.parse(s.tags || '[]');
+    tags.forEach(function(t) {
+      // Only show activity-type tags as filters
+      if (['Conference', 'Networking', 'Party', 'Hackathon', 'Brunch',
+           'Wellness', 'VCs/Angels', 'Devs/Builders', 'DeFi', 'AI', 'RWA'].indexOf(t) !== -1) {
+        tagCounts[t] = (tagCounts[t] || 0) + 1;
+      }
+    });
+  });
+
+  // Sort by count descending, take top 8
+  var sorted = Object.keys(tagCounts).sort(function(a, b) { return tagCounts[b] - tagCounts[a]; }).slice(0, 8);
+
+  var html = '<span class="sidecar-chip active" onclick="filterSidecars(null)">All</span>';
+  sorted.forEach(function(tag) {
+    html += '<span class="sidecar-chip" onclick="filterSidecars(\'' + tag + '\')">' + tag + '</span>';
+  });
+
+  document.getElementById('sidecar-filters').innerHTML = html;
+}
+
+// Filter sidecars by tag
+function filterSidecars(tag) {
+  sidecarFilter = tag;
+
+  // Update chip states
+  var chips = document.querySelectorAll('.sidecar-chip');
+  chips.forEach(function(c) {
+    c.classList.remove('active');
+    if ((!tag && c.textContent === 'All') || c.textContent === tag) {
+      c.classList.add('active');
+    }
+  });
+
+  // Filter and re-render
+  var filtered = sidecarData.sidecars;
+  if (tag) {
+    filtered = filtered.filter(function(s) {
+      var tags = Array.isArray(s.tags) ? s.tags : JSON.parse(s.tags || '[]');
+      return tags.indexOf(tag) !== -1;
+    });
+  }
+  renderSidecars(filtered);
+}
+
+// Render sidecars grouped by day
+function renderSidecars(sidecars) {
+  var body = document.getElementById('sidecar-body');
+
+  if (sidecars.length === 0) {
+    body.innerHTML = '<div class="sidecar-loading">No events match this filter.</div>';
+    return;
+  }
+
+  // Group by date
+  var days = {};
+  sidecars.forEach(function(s) {
+    var d = s.event_date.split('T')[0]; // handle ISO date
+    if (!days[d]) days[d] = [];
+    days[d].push(s);
+  });
+
+  var html = '';
+  var dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  var monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  Object.keys(days).sort().forEach(function(dateStr) {
+    var events = days[dateStr];
+    var d = new Date(dateStr + 'T12:00:00');
+    var label = dayNames[d.getDay()] + ', ' + monthNames[d.getMonth()] + ' ' + d.getDate();
+
+    html += '<div class="sidecar-day-header">' +
+      label +
+      '<span class="sidecar-day-count">' + events.length + ' event' + (events.length !== 1 ? 's' : '') + '</span>' +
+      '</div>';
+
+    events.forEach(function(ev) {
+      var tags = Array.isArray(ev.tags) ? ev.tags : JSON.parse(ev.tags || '[]');
+      var startTime = ev.start_time ? formatTime(ev.start_time) : '';
+      var endTime = ev.end_time ? formatTime(ev.end_time) : '';
+      var timeStr = startTime + (endTime ? ' – ' + endTime : '');
+
+      var costBadge = '';
+      if (ev.cost === 'Free') {
+        costBadge = '<span class="sidecar-badge free">Free</span>';
+      } else if (ev.cost && ev.cost !== 'TBA') {
+        costBadge = '<span class="sidecar-badge paid">' + ev.cost + '</span>';
+      }
+
+      var inviteBadge = ev.invite_only ? '<span class="sidecar-badge invite">Invite Only</span>' : '';
+
+      var venueBadge = ev.venue_name
+        ? '<span class="sidecar-badge">' + ev.venue_name + '</span>'
+        : '';
+
+      html += '<div class="sidecar-event">' +
+        (timeStr ? '<div class="sidecar-event-time">' + timeStr + '</div>' : '') +
+        '<div class="sidecar-event-name">' +
+          (ev.source_url
+            ? '<a href="' + ev.source_url + '" target="_blank" rel="noopener">' + ev.name + '</a>'
+            : ev.name) +
+        '</div>' +
+        (ev.organizer ? '<div class="sidecar-event-org">by ' + ev.organizer + '</div>' : '') +
+        '<div class="sidecar-event-meta">' +
+          costBadge + inviteBadge + venueBadge +
+        '</div>' +
+      '</div>';
+    });
+  });
+
+  body.innerHTML = html;
+}
+
+// Format time "14:00" → "2:00p"
+function formatTime(timeStr) {
+  if (!timeStr) return '';
+  var parts = timeStr.split(':');
+  var h = parseInt(parts[0]);
+  var m = parts[1] || '00';
+  var suffix = h >= 12 ? 'p' : 'a';
+  if (h > 12) h -= 12;
+  if (h === 0) h = 12;
+  return h + (m !== '00' ? ':' + m : '') + suffix;
+}
+
+// Close on Escape
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeSidecars();
+});
+
+// Load counts after events render
+// Call this AFTER your existing renderEvents() completes:
+// loadSidecarCounts();
+</script>
