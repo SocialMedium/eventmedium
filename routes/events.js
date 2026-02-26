@@ -591,4 +591,49 @@ function icsEscape(s) {
   }
 });
 
+// ── SIDECAR EVENTS ───────────────────────────────────────
+
+// GET /api/events/:id/sidecars
+router.get('/:id/sidecars', async function(req, res) {
+  try {
+    var eventId = parseInt(req.params.id);
+    if (isNaN(eventId)) return res.status(400).json({ error: 'Invalid event ID' });
+
+    var parent = await dbGet('SELECT id, name, slug FROM events WHERE id = $1', [eventId]);
+    if (!parent) return res.status(404).json({ error: 'Event not found' });
+
+    var sidecars = await dbAll(
+      `SELECT id, name, organizer, description, event_date, start_time, end_time,
+              venue_name, venue_address, cost, tags, themes, source_url,
+              food, bar, notes, invite_only
+       FROM sidecar_events WHERE parent_event_id = $1
+       ORDER BY event_date ASC, start_time ASC`, [eventId]);
+
+    var stats = await dbGet(
+      `SELECT COUNT(*) as total, COUNT(DISTINCT event_date) as days,
+              COUNT(*) FILTER (WHERE cost = 'Free') as free_count,
+              COUNT(*) FILTER (WHERE invite_only = TRUE) as invite_only_count
+       FROM sidecar_events WHERE parent_event_id = $1`, [eventId]);
+
+    res.json({
+      parent: parent,
+      stats: { total: parseInt(stats.total), days: parseInt(stats.days), free: parseInt(stats.free_count), invite_only: parseInt(stats.invite_only_count) },
+      sidecars: sidecars
+    });
+  } catch (err) {
+    console.error('Sidecar fetch error:', err);
+    res.status(500).json({ error: 'Failed to load sidecar events' });
+  }
+});
+
+// GET /api/events/:id/sidecar-count
+router.get('/:id/sidecar-count', async function(req, res) {
+  try {
+    var result = await dbGet('SELECT COUNT(*) as count FROM sidecar_events WHERE parent_event_id = $1', [parseInt(req.params.id)]);
+    res.json({ count: parseInt(result.count) });
+  } catch (err) {
+    res.json({ count: 0 });
+  }
+});
+
 module.exports = { router };
