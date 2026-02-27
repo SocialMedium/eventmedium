@@ -636,4 +636,52 @@ router.get('/:id/sidecar-count', async function(req, res) {
   }
 });
 
+
+// POST /api/events/:id/sidecars — user submits a sidecar event
+router.post('/:id/sidecars', async function(req, res) {
+  try {
+    if (!req.session || !req.session.userId) {
+      return res.status(401).json({ error: 'Sign in to submit a side event' });
+    }
+    var eventId = parseInt(req.params.id);
+    if (isNaN(eventId)) return res.status(400).json({ error: 'Invalid event ID' });
+
+    var parent = await dbGet('SELECT id, name FROM events WHERE id = $1', [eventId]);
+    if (!parent) return res.status(404).json({ error: 'Event not found' });
+
+    var b = req.body;
+    if (!b.name || !b.event_date) {
+      return res.status(400).json({ error: 'Event name and date are required' });
+    }
+
+    var result = await dbGet(
+      `INSERT INTO sidecar_events
+        (parent_event_id, name, organizer, event_date, start_time, end_time,
+         venue_name, venue_address, cost, tags, source_url, invite_only, submitted_by)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+       RETURNING id`,
+      [
+        eventId,
+        b.name.trim(),
+        (b.organizer || '').trim() || null,
+        b.event_date,
+        b.start_time || null,
+        b.end_time || null,
+        (b.venue_name || '').trim() || null,
+        (b.venue_address || '').trim() || null,
+        (b.cost || 'Free').trim(),
+        JSON.stringify(b.tags || []),
+        (b.source_url || '').trim() || null,
+        b.invite_only || false,
+        req.session.userId
+      ]
+    );
+
+    res.json({ success: true, id: result.id });
+  } catch (err) {
+    console.error('Sidecar submit error:', err);
+    res.status(500).json({ error: 'Failed to submit side event' });
+  }
+});
+
 module.exports = { router };
