@@ -94,10 +94,10 @@ img{max-width:100%;display:block}
 .match-card.hidden{opacity:0;pointer-events:none}
 .match-card:nth-child(1){top:0;right:60px;z-index:3;animation:cardFloat1 6s ease-in-out infinite}
 .match-card:nth-child(2){top:200px;right:0;z-index:2;animation:cardFloat2 7s ease-in-out infinite}
-.match-card:nth-child(3){top:380px;right:80px;z-index:1;animation:cardFloat3 8s ease-in-out infinite}
+.match-card:nth-child(3){top:380px;right:120px;z-index:1;animation:cardFloat3 8s ease-in-out infinite}
 .match-card:nth-child(n+4){top:0;right:60px;z-index:3}
 .match-card:nth-child(5){top:200px;right:0;z-index:2}
-.match-card:nth-child(6){top:380px;right:80px;z-index:1}
+.match-card:nth-child(6){top:380px;right:120px;z-index:1}
 @keyframes cardFloat1{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-10px) rotate(0.5deg)}}
 @keyframes cardFloat2{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(8px) rotate(-0.5deg)}}
 @keyframes cardFloat3{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-6px) rotate(0.3deg)}}
@@ -606,9 +606,9 @@ img{max-width:100%;display:block}
 (function() {
   var cards = Array.from(document.querySelectorAll('[data-archetype]'));
   var positions = [
-    {top:'0',right:'40px',zIndex:3,anim:'cardFloat1 6s ease-in-out infinite'},
-    {top:'180px',right:'0',zIndex:2,anim:'cardFloat2 7s ease-in-out infinite'},
-    {top:'340px',right:'60px',zIndex:1,anim:'cardFloat3 8s ease-in-out infinite'}
+    {top:'0',right:'60px',zIndex:3,anim:'cardFloat1 6s ease-in-out infinite'},
+    {top:'200px',right:'0',zIndex:2,anim:'cardFloat2 7s ease-in-out infinite'},
+    {top:'380px',right:'120px',zIndex:1,anim:'cardFloat3 8s ease-in-out infinite'}
   ];
   // Shuffle and pick 3
   for (var i = cards.length - 1; i > 0; i--) {
