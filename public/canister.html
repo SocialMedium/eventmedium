@@ -239,6 +239,7 @@ async function loadCanister() {
       '<a href="/events.html" class="action-btn primary"><i data-lucide="calendar"></i> Browse Events</a>' +
       '<a href="/matches.html" class="action-btn"><i data-lucide="heart-handshake"></i> My Matches' + (pendingMatches.length ? ' (' + pendingMatches.length + ')' : '') + '</a>' +
       '<a href="/onboard.html" class="action-btn"><i data-lucide="bot"></i> Talk to Nev</a>' +
+      '<a href="/privacy.html" class="action-btn"><i data-lucide="shield"></i> Your Data</a>' +
     '</div>';
 
     html += '<div class="layout"><div class="main-col">';
@@ -355,7 +356,9 @@ async function loadCanister() {
       html += '<div class="empty-state">No activity yet. Register for an event to get started.</div>';
     }
     html += '</div>';
-
+    html += '<div class="card" style="text-align:center;padding:16px">' +
+      '<a href="/privacy.html" style="color:var(--txtL);font-size:13px;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px"><i data-lucide="shield" style="width:14px;height:14px"></i> Your Data & Privacy</a>' +
+    '</div>';
     html += '</div></div>'; // close side-col + layout
 
     document.getElementById('page').innerHTML = html;
