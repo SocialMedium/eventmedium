@@ -176,7 +176,7 @@ router.get('/dashboard', authenticateToken, adminOnly, async function(req, res) 
       return {
         theme: s.theme, founders: fou, investors: inv,
         corporates: parseInt(s.corporates) || 0, researchers: parseInt(s.researchers) || 0,
-        ratio: inv > 0 ? (fou / inv).toFixed(1) : (fou > 0 ? 'inf' : '0')
+        ratio: inv > 0 ? (fou / inv).toFixed(1) : (fou > 0 ? '∞' : '0')
       };
     });
 
@@ -266,12 +266,73 @@ router.get('/dashboard', authenticateToken, adminOnly, async function(req, res) 
       };
     });
 
+    // ─── CANISTER INTELLIGENCE (anonymized snapshots) ───
+    var canisterSnapshots = await safeAll(`
+      SELECT 
+        sp.stakeholder_type as type,
+        sp.themes::text as themes,
+        sp.intent::text as intent,
+        sp.offering::text as offering,
+        sp.focus_text,
+        sp.geography,
+        sp.deal_details::text as deal_details
+      FROM stakeholder_profiles sp
+      WHERE sp.stakeholder_type IS NOT NULL
+      ORDER BY sp.created_at DESC
+      LIMIT 10
+    `, [], []);
+
+    canisterSnapshots = canisterSnapshots.map(function(c) {
+      var themes = [], intent = [], offering = [];
+      try { themes = JSON.parse(c.themes || '[]'); } catch(e) {}
+      try { intent = JSON.parse(c.intent || '[]'); } catch(e) {}
+      try { offering = JSON.parse(c.offering || '[]'); } catch(e) {}
+      var deal = {};
+      try { deal = JSON.parse(c.deal_details || '{}'); } catch(e) {}
+      return {
+        type: c.type,
+        themes: Array.isArray(themes) ? themes : [],
+        seeking: Array.isArray(intent) ? intent : [],
+        offering: Array.isArray(offering) ? offering : [],
+        focus: c.focus_text || '',
+        geography: c.geography || '',
+        dealStage: deal.stage || '',
+        dealSize: deal.check_size || deal.raise_size || ''
+      };
+    });
+
+    // ─── AGGREGATE NETWORK SIGNALS ───
+    var topThemes = await safeAll(`
+      SELECT theme, COUNT(*) as c
+      FROM stakeholder_profiles,
+        LATERAL jsonb_array_elements_text(CASE WHEN jsonb_typeof(themes) = 'array' THEN themes ELSE '[]'::jsonb END) as theme
+      GROUP BY theme ORDER BY COUNT(*) DESC LIMIT 8
+    `, [], []);
+
+    var topIntents = await safeAll(`
+      SELECT intent_item as item, COUNT(*) as c
+      FROM stakeholder_profiles,
+        LATERAL jsonb_array_elements_text(CASE WHEN jsonb_typeof(intent) = 'array' THEN intent ELSE '[]'::jsonb END) as intent_item
+      GROUP BY intent_item ORDER BY COUNT(*) DESC LIMIT 8
+    `, [], []);
+
+    var topOfferings = await safeAll(`
+      SELECT offer_item as item, COUNT(*) as c
+      FROM stakeholder_profiles,
+        LATERAL jsonb_array_elements_text(CASE WHEN jsonb_typeof(offering) = 'array' THEN offering ELSE '[]'::jsonb END) as offer_item
+      GROUP BY offer_item ORDER BY COUNT(*) DESC LIMIT 8
+    `, [], []);
+
     res.json({
       network: network, funnel: funnel, scoreAcceptance: scoreAcceptance,
       archetypePairs: archetypePairs, acceptanceByType: acceptanceByType,
       canisterDepth: canisterDepth, supplyDemand: supplyDemand,
       intentGaps: intentGaps, growth: growth, eventScorecard: eventScorecard,
-      dailySignups: dailySignups
+      dailySignups: dailySignups,
+      canisterSnapshots: canisterSnapshots,
+      topThemes: topThemes.map(function(t){ return {theme:t.theme, count:parseInt(t.c)||0}; }),
+      topIntents: topIntents.map(function(t){ return {item:t.item, count:parseInt(t.c)||0}; }),
+      topOfferings: topOfferings.map(function(t){ return {item:t.item, count:parseInt(t.c)||0}; })
     });
 
   } catch(e) {

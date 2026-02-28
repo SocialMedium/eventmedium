@@ -25,19 +25,22 @@ body{font-family:var(--sans);background:var(--bg2);color:var(--text);min-height:
 
 /* ── Header ── */
 .header{background:linear-gradient(135deg,var(--bg) 0%,var(--bg2) 100%);border-bottom:1px solid var(--border);padding:28px 36px 24px}
-.header-row{max-width:var(--max);margin:0 auto;display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px}
-.logo{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;color:var(--heading);text-decoration:none;margin-bottom:8px}
+.header-inner{max-width:var(--max);margin:0 auto}
+.header-row{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px}
+.logo{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;color:var(--heading);text-decoration:none;margin-bottom:6px}
 .logo .dot{width:20px;height:20px;border-radius:5px;background:linear-gradient(135deg,var(--accent),var(--accent2))}
 .logo span{color:var(--accent)}
 .title{font-size:22px;font-weight:700;letter-spacing:-0.03em;color:var(--heading)}
 .subtitle{font-size:13px;color:var(--text3);margin-top:2px}
 .pill{display:inline-block;padding:3px 12px;border-radius:20px;font-size:11px;font-weight:600}
 .pill-green{background:var(--greenL);color:var(--green)}
-.pill-amber{background:var(--amberL);color:var(--amber)}
-.pill-red{background:var(--redL);color:var(--red)}
-.kpi-row{max-width:var(--max);margin:20px auto 0;display:flex;gap:28px;flex-wrap:wrap}
-.kpi-val{font-size:26px;font-weight:700;line-height:1;color:var(--heading)}
-.kpi-label{font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-top:5px}
+
+/* ── KPI Cards ── */
+.kpi-row{max-width:var(--max);margin:20px auto 0;display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.kpi-card{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px 16px;transition:all 0.2s;cursor:default}
+.kpi-card:hover{border-color:rgba(99,102,241,0.2);box-shadow:0 2px 12px rgba(99,102,241,0.06)}
+.kpi-val{font-size:24px;font-weight:700;line-height:1;color:var(--heading)}
+.kpi-label{font-size:10px;font-weight:600;letter-spacing:0.8px;text-transform:uppercase;color:var(--text3);margin-top:6px}
 
 /* ── Body ── */
 .body{max-width:var(--max);margin:0 auto;padding:28px 36px}
@@ -47,7 +50,7 @@ body{font-family:var(--sans);background:var(--bg2);color:var(--text);min-height:
 .tab:hover{color:var(--heading)}
 
 /* ── Cards ── */
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(400px,1fr));gap:16px;margin-bottom:16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:16px;margin-bottom:16px}
 .grid-full{margin-bottom:16px}
 .card{background:linear-gradient(160deg,var(--bg) 0%,var(--bg2) 100%);border:1px solid var(--border);border-radius:12px;padding:24px;transition:border-color 0.2s}
 .card:hover{border-color:rgba(99,102,241,0.12)}
@@ -74,14 +77,23 @@ body{font-family:var(--sans);background:var(--bg2);color:var(--text);min-height:
 .chart-wrap{position:relative;height:220px;margin-bottom:8px}
 
 /* ── Metrics ── */
-.metric-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.metric-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .metric-box{background:linear-gradient(135deg,var(--bg2),var(--bg));border-radius:8px;padding:14px;border:1px solid var(--border)}
-.metric-val{font-size:24px;font-weight:700;color:var(--heading)}
+.metric-val{font-size:22px;font-weight:700;color:var(--heading)}
 .metric-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-top:4px}
+
+/* ── Tags ── */
+.tag{display:inline-block;font-size:10px;padding:2px 8px;border-radius:10px;margin:2px}
+.tag-accent{background:var(--accent);color:#fff;opacity:0.85}
+.tag-red{background:rgba(220,38,38,0.12);color:var(--red)}
+.tag-green{background:rgba(5,150,105,0.12);color:var(--green)}
 
 /* ── Select ── */
 .select{background:var(--bg);border:1px solid var(--border2);border-radius:8px;padding:8px 16px;color:var(--text);font-size:13px;font-family:var(--sans);cursor:pointer;outline:none}
 .select:focus{border-color:var(--accent)}
+
+/* ── Canister card ── */
+.canister{background:linear-gradient(160deg,var(--bg2),var(--bg));border:1px solid var(--border);border-radius:10px;padding:16px;border-top:3px solid var(--accent)}
 
 /* ── States ── */
 .loading{text-align:center;padding:80px;color:var(--text3);font-size:15px}
@@ -95,9 +107,14 @@ body{font-family:var(--sans);background:var(--bg2);color:var(--text);min-height:
 .btn-back{display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(99,102,241,0.3);background:linear-gradient(135deg,rgba(99,102,241,0.04),rgba(79,70,229,0.08));border-radius:8px;padding:10px 24px;cursor:pointer;color:var(--accent);font-size:13px;font-weight:600;font-family:var(--sans);transition:all 0.2s}
 .btn-back:hover{background:linear-gradient(135deg,rgba(99,102,241,0.08),rgba(79,70,229,0.14));border-color:var(--accent)}
 
+/* ── Matrix table ── */
+.matrix{border-collapse:collapse;font-size:10px;width:100%}
+.matrix th,.matrix td{padding:5px 6px;text-align:center}
+.matrix th{font-weight:700}
+
 @media(max-width:900px){
   .grid{grid-template-columns:1fr}
-  .kpi-row{gap:16px}
+  .kpi-row{grid-template-columns:repeat(3,1fr)}
   .header{padding:20px 16px 16px}
   .body{padding:20px 16px}
 }
@@ -105,18 +122,20 @@ body{font-family:var(--sans);background:var(--bg2);color:var(--text);min-height:
 </head>
 <body>
 <div class="header">
-  <div class="header-row">
-    <div>
-      <a href="/" class="logo"><span class="dot"></span>Event <span>Medium</span></a>
-      <h1 class="title">Command</h1>
-      <div class="subtitle">Internal network intelligence · All data anonymized</div>
+  <div class="header-inner">
+    <div class="header-row">
+      <div>
+        <a href="/" class="logo"><span class="dot"></span>Event <span>Medium</span></a>
+        <h1 class="title">Command</h1>
+        <div class="subtitle">Internal network intelligence · All data anonymized</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <span class="pill pill-green">Live</span>
+        <span style="font-size:12px;color:var(--text3);font-family:var(--mono)" id="dateLabel"></span>
+      </div>
     </div>
-    <div style="display:flex;align-items:center;gap:12px">
-      <span class="pill pill-green">Live</span>
-      <span style="font-size:12px;color:var(--text3);font-family:var(--mono)" id="dateLabel"></span>
-    </div>
+    <div class="kpi-row" id="kpiRow"><div class="loading" style="grid-column:1/-1">Loading...</div></div>
   </div>
-  <div class="kpi-row" id="kpiRow"><div class="loading">Loading...</div></div>
 </div>
 <div class="body">
   <div class="tabs">
@@ -130,17 +149,15 @@ body{font-family:var(--sans);background:var(--bg2);color:var(--text);min-height:
   <div id="network" class="tab-content"></div>
   <div id="events" class="tab-content"></div>
   <div class="footer">
-    <span>EventMedium.ai · Internal Dashboard · All data anonymized</span>
-    <span style="font-family:var(--mono)">Signal coherence · Signals Guide v1</span>
+    <span>EventMedium.ai · Internal · Anonymized</span>
+    <span style="font-family:var(--mono)">Signals Guide v1</span>
   </div>
 </div>
 <script>
 var token = localStorage.getItem('auth_token');
 if (!token) window.location.href = '/auth.html';
-
 document.getElementById('dateLabel').textContent = new Date().toLocaleDateString();
 
-// ── TAB SWITCHING ──
 document.querySelectorAll('.tab').forEach(function(t) {
   t.addEventListener('click', function() {
     document.querySelectorAll('.tab').forEach(function(x) { x.classList.remove('active'); });
@@ -150,313 +167,390 @@ document.querySelectorAll('.tab').forEach(function(t) {
   });
 });
 
-// ── COLORS ──
-var TC = {
-  founder:'#ea580c',investor:'#6366f1',corporate:'#2563eb',
-  researcher:'#059669',advisor:'#7c3aed',operator:'#be185d'
-};
+var TC = {founder:'#ea580c',investor:'#6366f1',corporate:'#2563eb',researcher:'#059669',advisor:'#7c3aed',operator:'#be185d'};
 var ACCENT='#6366f1',BLUE='#2563eb',AMBER='#d97706',RED='#dc2626',GREEN='#059669',PURPLE='#7c3aed';
 
-// ── HELPERS ──
 function esc(s){if(!s)return '';var d=document.createElement('div');d.textContent=s;return d.innerHTML}
 function pct(v){return(v*100).toFixed(0)+'%'}
 function pill(text,color){return '<span class="pill" style="background:'+color+'14;color:'+color+'">'+esc(text)+'</span>'}
 function insight(text){return '<div class="insight"><div class="insight-label">Signal</div><div class="insight-text">'+text+'</div></div>'}
-function barTrack(pctVal,color){return '<div class="bar-track"><div class="bar-fill" style="width:'+pctVal+'%;background:linear-gradient(90deg,'+color+','+color+'cc)"></div></div>'}
-function dot(color){return '<span class="dot" style="background:'+color+'"></span>'}
+function barTrack(pv,color){return '<div class="bar-track"><div class="bar-fill" style="width:'+pv+'%;background:linear-gradient(90deg,'+color+','+color+'cc)"></div></div>'}
+function dot(c){return '<span class="dot" style="background:'+c+'"></span>'}
+function tag(text,cls){return '<span class="tag tag-'+cls+'">'+esc(text)+'</span>'}
 
-// ── CHART DEFAULTS ──
-Chart.defaults.font.family = "system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif";
-Chart.defaults.font.size = 11;
-Chart.defaults.color = '#999';
-Chart.defaults.plugins.legend.display = false;
-Chart.defaults.scale.grid = { color: '#f0f0f4' };
-Chart.defaults.scale.ticks = { color: '#999' };
+Chart.defaults.font.family="system-ui,-apple-system,sans-serif";
+Chart.defaults.font.size=11;Chart.defaults.color='#999';
+Chart.defaults.plugins.legend.display=false;
+Chart.defaults.scale.grid={color:'#f0f0f4'};Chart.defaults.scale.ticks={color:'#999'};
 
-// ── LOAD DATA ──
-var D = null;
-async function loadDashboard() {
-  try {
-    var resp = await fetch('/api/admin/dashboard', { headers: { 'Authorization': 'Bearer ' + token } });
-    if (!resp.ok) {
-      var err = await resp.json().catch(function(){return {error:'Unknown'}});
-      throw new Error(err.error || 'Failed: ' + resp.status);
-    }
-    D = await resp.json();
-    renderKPIs();
-    renderMatching();
-    renderSupplyDemand();
-    renderNetwork();
-    renderEvents();
-  } catch (e) {
+var D=null;
+async function loadDashboard(){
+  try{
+    var resp=await fetch('/api/admin/dashboard',{headers:{'Authorization':'Bearer '+token}});
+    if(!resp.ok){var err=await resp.json().catch(function(){return{error:'Unknown'}});throw new Error(err.error||'Failed: '+resp.status)}
+    D=await resp.json();
+    renderKPIs();renderMatching();renderSupplyDemand();renderNetwork();renderEvents();
+  }catch(e){
     console.error(e);
-    document.getElementById('kpiRow').innerHTML = '<div class="loading">Failed to load: ' + esc(e.message) + '. <a href="/auth.html" style="color:var(--accent)">Sign in again</a></div>';
+    document.getElementById('kpiRow').innerHTML='<div class="loading" style="grid-column:1/-1">Failed: '+esc(e.message)+'. <a href="/auth.html" style="color:var(--accent)">Sign in again</a></div>';
   }
 }
 
-function renderKPIs() {
-  var n = D.network;
-  var html = [
-    {v:n.totalUsers,l:'Users'},
-    {v:n.completeCanisters,l:'Canisters'},
-    {v:n.activeEvents,l:'Active Events'},
+// ══════════════════════════════
+// KPIs — card grid
+// ══════════════════════════════
+function renderKPIs(){
+  var n=D.network;
+  var items=[
+    {v:n.totalUsers,l:'Users',c:''},
+    {v:n.completeCanisters,l:'Canisters',c:''},
+    {v:n.activeEvents,l:'Active Events',c:''},
     {v:n.totalMatches.toLocaleString(),l:'Matches',c:ACCENT},
     {v:n.revealedMatches,l:'Reveals',c:AMBER},
     {v:n.meetingsConfirmed,l:'Meetings',c:GREEN},
-    {v:n.avgMatchScore > 0 ? pct(n.avgMatchScore) : '—',l:'Avg Score'}
-  ].map(function(k){
-    return '<div class="kpi"><span class="kpi-val" style="color:'+(k.c||'var(--heading)')+'">'+k.v+'</span><span class="kpi-label">'+k.l+'</span></div>';
+    {v:n.avgMatchScore>0?pct(n.avgMatchScore):'—',l:'Avg Score',c:''}
+  ];
+  document.getElementById('kpiRow').innerHTML=items.map(function(k){
+    return '<div class="kpi-card"><div class="kpi-val" style="color:'+(k.c||'var(--heading)')+'">'+k.v+'</div><div class="kpi-label">'+k.l+'</div></div>';
   }).join('');
-  document.getElementById('kpiRow').innerHTML = html;
 }
 
-// ── MATCHING TAB ──
-function renderMatching() {
-  var el = document.getElementById('matching');
-  var html = '<div class="grid">';
+// ══════════════════════════════
+// MATCHING TAB
+// ══════════════════════════════
+function renderMatching(){
+  var el=document.getElementById('matching');
+  var html='';
 
-  // Score chart
-  html += '<div class="card"><div class="card-t">Match Score → Acceptance Rate</div><div class="chart-wrap"><canvas id="scoreChart"></canvas></div>';
-  html += insight('Correlation between match score and acceptance. Higher scores should produce higher acceptance — flat means the algorithm isn\'t discriminating.');
-  html += '</div>';
+  // ── Canister Intelligence ──
+  html+='<div class="grid-full"><div class="card"><div class="card-t">Canister Intelligence — What\'s in the Network</div>';
 
-  // Archetype pairs
-  html += '<div class="card"><div class="card-t">Archetype Pair Performance</div>';
-  if (D.archetypePairs.length) {
-    html += '<div class="tbl-head" style="grid-template-columns:180px 50px 65px 65px 65px"><span>Pair</span><span class="r">#</span><span class="r">Accept</span><span class="r">Reveal</span><span class="r">Avg</span></div>';
-    D.archetypePairs.forEach(function(a) {
-      html += '<div class="tbl-row" style="grid-template-columns:180px 50px 65px 65px 65px">' +
-        '<span style="font-weight:600;font-size:12px">'+esc(a.pair)+'</span>' +
-        '<span class="r mono">'+a.matches+'</span>' +
-        '<span class="r mono" style="color:'+(a.acceptRate>0.35?GREEN:a.acceptRate>0.25?AMBER:RED)+'">'+pct(a.acceptRate)+'</span>' +
-        '<span class="r mono">'+pct(a.revealRate)+'</span>' +
-        '<span class="r mono">'+pct(a.avgScore)+'</span></div>';
+  if(D.topThemes&&D.topThemes.length){
+    html+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px;margin-bottom:20px">';
+    // Themes
+    html+='<div><div style="font-size:10px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:var(--text3);margin-bottom:10px">Top Themes</div>';
+    D.topThemes.forEach(function(t){
+      html+='<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border)"><span style="font-size:12px">'+esc(t.theme)+'</span><span class="mono" style="color:var(--accent)">'+t.count+'</span></div>';
     });
-    html += insight('High acceptance + low reveal = one-sided interest. Cross-type pairs often outperform same-type.');
-  } else { html += '<div class="empty-section">No match data yet</div>'; }
-  html += '</div></div>';
+    html+='</div>';
+    // Seeking
+    html+='<div><div style="font-size:10px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:var(--text3);margin-bottom:10px">'+dot(RED)+' Seeking</div>';
+    if(D.topIntents&&D.topIntents.length){D.topIntents.forEach(function(t){
+      html+='<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border)"><span style="font-size:12px">'+esc(t.item)+'</span><span class="mono" style="color:'+RED+'">'+t.count+'</span></div>';
+    });}else{html+='<div style="font-size:12px;color:var(--text3)">No data</div>';}
+    html+='</div>';
+    // Offering
+    html+='<div><div style="font-size:10px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:var(--text3);margin-bottom:10px">'+dot(GREEN)+' Offering</div>';
+    if(D.topOfferings&&D.topOfferings.length){D.topOfferings.forEach(function(t){
+      html+='<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border)"><span style="font-size:12px">'+esc(t.item)+'</span><span class="mono" style="color:'+GREEN+'">'+t.count+'</span></div>';
+    });}else{html+='<div style="font-size:12px;color:var(--text3)">No data</div>';}
+    html+='</div></div>';
+  }
 
-  // Acceptance by type + canister depth
-  html += '<div class="grid"><div class="card"><div class="card-t">Acceptance by Archetype</div>';
-  if (D.acceptanceByType.length) {
-    D.acceptanceByType.forEach(function(a) {
-      var c = TC[a.type.toLowerCase().replace(/s$/,'')] || ACCENT;
-      html += '<div style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><div style="display:flex;align-items:center;gap:8px">'+dot(c)+'<span style="font-size:13px;font-weight:600">'+esc(a.type)+'</span></div><span class="mono" style="color:'+(a.rate>0.4?GREEN:a.rate>0.3?AMBER:RED)+'">'+pct(a.rate)+'</span></div>'+barTrack(a.rate*100,c)+'</div>';
+  // Canister snapshots
+  if(D.canisterSnapshots&&D.canisterSnapshots.length){
+    html+='<div style="font-size:10px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:var(--text3);margin-bottom:10px">Anonymized Canister Snapshots</div>';
+    html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px">';
+    D.canisterSnapshots.forEach(function(c,i){
+      var tc=TC[c.type]||ACCENT;
+      html+='<div class="canister" style="border-top-color:'+tc+'">';
+      html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">';
+      html+='<span style="font-size:11px;font-weight:700;color:'+tc+';text-transform:uppercase">'+esc(c.type)+' #'+(i+1)+'</span>';
+      if(c.geography)html+='<span style="font-size:10px;color:var(--text3)">'+esc(c.geography)+'</span>';
+      html+='</div>';
+      if(c.focus)html+='<div style="font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:8px;font-style:italic">"'+esc(c.focus.substring(0,120))+(c.focus.length>120?'…':'')+'"</div>';
+      if(c.themes.length){html+='<div style="margin-bottom:6px">';c.themes.forEach(function(t){html+=tag(t,'accent');});html+='</div>';}
+      if(c.seeking.length){html+='<div style="margin-bottom:6px">';c.seeking.forEach(function(s){html+=tag(s,'red');});html+='</div>';}
+      if(c.offering.length){html+='<div style="margin-bottom:4px">';c.offering.forEach(function(o){html+=tag(o,'green');});html+='</div>';}
+      if(c.dealStage||c.dealSize){html+='<div style="margin-top:6px;font-size:10px;color:var(--text3)">';if(c.dealStage)html+='Stage: <strong>'+esc(c.dealStage)+'</strong> ';if(c.dealSize)html+='Size: <strong>'+esc(c.dealSize)+'</strong>';html+='</div>';}
+      html+='</div>';
     });
-  } else { html += '<div class="empty-section">No acceptance data yet</div>'; }
-  html += '</div>';
+    html+='</div>';
+    html+=insight('Each card is one anonymized canister. Themes + seeking + offering drive the matching engine. Sparse canisters = weaker matches.');
+  }else{
+    html+='<div class="empty-section">No canister data yet — profiles appear as users complete Nev onboarding.</div>';
+  }
+  html+='</div></div>';
 
-  html += '<div class="card"><div class="card-t">Canister Completion Depth</div>';
-  D.canisterDepth.forEach(function(f) {
-    var c = f.pct>75?GREEN:f.pct>50?AMBER:RED;
-    html += '<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px"><span style="font-size:12px;width:110px;text-align:right;color:var(--text3)">'+esc(f.field)+'</span><div style="flex:1">'+barTrack(f.pct,c)+'</div><span class="mono" style="width:35px;text-align:right;color:'+c+'">'+f.pct+'%</span></div>';
+  // ── Match Engine Logic ──
+  html+='<div class="grid-full"><div class="card"><div class="card-t">Match Engine — How Scoring Works</div>';
+  html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:28px">';
+
+  // Left: components
+  html+='<div><div style="font-size:13px;font-weight:600;margin-bottom:14px">6 Scoring Components</div>';
+  var comps=[
+    {n:'Semantic similarity',w:'35–50%',c:ACCENT,d:'Vector embedding of full focus text — captures nuance beyond keywords'},
+    {n:'Theme overlap',w:'10–15%',c:'#ea580c',d:'Jaccard similarity on normalized themes (50+ variants → 16 canonical)'},
+    {n:'Intent complementarity',w:'10–15%',c:RED,d:'Does A\'s "seeking" match B\'s "offering"? Bidirectional check'},
+    {n:'Stakeholder fit',w:'8–10%',c:PURPLE,d:'Archetype compatibility — founder↔investor = 0.95, founder↔founder = 0.4'},
+    {n:'Capital alignment',w:'7–10%',c:AMBER,d:'Deal stage + check size compatibility — only when both have deal data'},
+    {n:'Signal convergence',w:'0–30%',c:BLUE,d:'Tier 2: external signals — convergence, timing, constraint analysis'}
+  ];
+  comps.forEach(function(comp){
+    html+='<div style="display:flex;gap:10px;margin-bottom:14px;align-items:flex-start">';
+    html+='<div style="min-width:8px;height:8px;border-radius:50%;background:'+comp.c+';margin-top:5px"></div>';
+    html+='<div><div style="font-size:12px;font-weight:600">'+comp.n+' <span class="mono" style="color:'+comp.c+'">'+comp.w+'</span></div>';
+    html+='<div style="font-size:11px;color:var(--text3);line-height:1.5;margin-top:2px">'+comp.d+'</div></div></div>';
   });
-  html += insight('Fields below 50% = Nev off-ramps taken early. Do deeper canisters produce better matches?');
-  html += '</div></div>';
 
-  el.innerHTML = html;
+  // Worked example
+  html+='<div style="background:var(--bg2);border-radius:8px;padding:14px;border:1px solid var(--border);margin-top:8px">';
+  html+='<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text3);margin-bottom:8px">Worked Example</div>';
+  html+='<div style="font-size:12px;line-height:1.7;color:var(--text2)">';
+  html+='<strong style="color:#ea580c">Founder</strong> (AI, HealthTech · seeking: fundraising, advisors · offering: pilot access)<br>';
+  html+='<strong style="color:'+ACCENT+'">Investor</strong> (AI, Enterprise SaaS · seeking: deal flow · offering: capital, board seats)<br><br>';
+  html+='<span class="mono" style="font-size:11px">';
+  html+='Semantic: <strong>0.72</strong> × 0.50 = 0.360<br>';
+  html+='Theme:    <strong>0.33</strong> × 0.15 = 0.050<br>';
+  html+='Intent:   <strong>0.85</strong> × 0.15 = 0.128<br>';
+  html+='Archetype:<strong>0.95</strong> × 0.10 = 0.095<br>';
+  html+='Capital:  <strong>0.70</strong> × 0.10 = 0.070<br>';
+  html+='<strong style="color:var(--accent)">Total: 0.703</strong></span>';
+  html+='</div></div>';
+  html+='</div>';
 
-  if (D.scoreAcceptance.length) {
-    new Chart(document.getElementById('scoreChart'), {
-      type:'bar',
-      data:{labels:D.scoreAcceptance.map(function(s){return s.band}),datasets:[{data:D.scoreAcceptance.map(function(s){return s.rate}),backgroundColor:ACCENT+'cc',borderRadius:4,barPercentage:0.6}]},
-      options:{responsive:true,maintainAspectRatio:false,scales:{y:{beginAtZero:true,max:1,ticks:{callback:function(v){return(v*100)+'%'}},border:{display:false}},x:{border:{display:false}}},plugins:{tooltip:{callbacks:{label:function(ctx){return pct(ctx.raw)}}}}}
+  // Right: compatibility matrix
+  html+='<div><div style="font-size:13px;font-weight:600;margin-bottom:14px">Archetype Compatibility Matrix</div>';
+  var types=['founder','investor','researcher','corporate','advisor','operator'];
+  var mx={
+    founder:[0.4,0.95,0.5,0.6,0.8,0.7],investor:[0.95,0.5,0.4,0.6,0.5,0.4],
+    researcher:[0.7,0.5,0.6,0.8,0.4,0.3],corporate:[0.7,0.6,0.8,0.4,0.5,0.5],
+    advisor:[0.8,0.5,0.4,0.5,0.3,0.4],operator:[0.7,0.4,0.3,0.5,0.4,0.3]
+  };
+  html+='<div style="overflow-x:auto"><table class="matrix"><tr><th></th>';
+  types.forEach(function(t){html+='<th style="color:'+TC[t]+'">'+t.substring(0,4).toUpperCase()+'</th>';});
+  html+='</tr>';
+  types.forEach(function(row){
+    html+='<tr><td style="font-weight:700;text-align:left;color:'+TC[row]+'">'+row.substring(0,4).toUpperCase()+'</td>';
+    mx[row].forEach(function(val){
+      var bg=val>=0.8?GREEN+'22':val>=0.6?AMBER+'18':val>=0.5?'var(--bg2)':RED+'10';
+      var fg=val>=0.8?GREEN:val>=0.6?AMBER:val>=0.5?'var(--text3)':RED;
+      html+='<td style="background:'+bg+';color:'+fg+';font-weight:600;font-family:var(--mono);border-radius:3px">'+val.toFixed(1)+'</td>';
     });
+    html+='</tr>';
+  });
+  html+='</table></div>';
+
+  // Intent complementarity explanation
+  html+='<div style="background:var(--bg2);border-radius:8px;padding:14px;border:1px solid var(--border);margin-top:16px">';
+  html+='<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text3);margin-bottom:8px">Intent Complementarity</div>';
+  html+='<div style="font-size:12px;color:var(--text2);line-height:1.7">';
+  html+='The engine cross-matches each user\'s <span style="color:'+RED+'">seeking</span> against the other\'s <span style="color:'+GREEN+'">offering</span>. High overlap in both directions = strong complementarity.<br><br>';
+  html+='<span class="mono" style="font-size:11px">A seeks: fundraising, advisors<br>B offers: capital, board seats<br>→ "fundraising" ≈ "capital" = <strong style="color:'+GREEN+'">0.85</strong></span>';
+  html+='</div></div>';
+
+  // Tier 2 signals
+  html+='<div style="background:var(--bg2);border-radius:8px;padding:14px;border:1px solid var(--border);margin-top:12px">';
+  html+='<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text3);margin-bottom:8px">Tier 2: Signal Convergence</div>';
+  html+='<div style="font-size:12px;color:var(--text2);line-height:1.7">';
+  html+='When external signals exist (events, news, filings), the engine activates <strong>convergence scoring</strong>: do independent signals point in the same direction? This adds up to 30% weight, reducing semantic similarity to 35%.<br><br>';
+  html+='Three sub-components: <em>convergence</em> (theme alignment across sources), <em>timing</em> (are both actors accelerating now?), <em>constraint</em> (are implied needs detectable?).';
+  html+='</div></div>';
+
+  html+='</div></div>';
+  html+=insight('The match engine uses a 2-tier weighted composite. Tier 1 (profile only) weights semantic similarity at 50%. Tier 2 (with signals) rebalances to 35% semantic + 30% signals. The archetype matrix ensures cross-type matches are prioritised.');
+  html+='</div></div>';
+
+  // ── Score → Acceptance + Pair Performance ──
+  html+='<div class="grid">';
+  html+='<div class="card"><div class="card-t">Score → Acceptance Rate</div><div class="chart-wrap"><canvas id="scoreChart"></canvas></div>';
+  html+=insight('Higher scores should produce higher acceptance — flat line means the algorithm isn\'t discriminating.');
+  html+='</div>';
+
+  html+='<div class="card"><div class="card-t">Archetype Pair Performance</div>';
+  if(D.archetypePairs.length){
+    html+='<div class="tbl-head" style="grid-template-columns:1fr 45px 55px 55px 55px"><span>Pair</span><span class="r">#</span><span class="r">Acpt</span><span class="r">Rvl</span><span class="r">Avg</span></div>';
+    D.archetypePairs.forEach(function(a){
+      html+='<div class="tbl-row" style="grid-template-columns:1fr 45px 55px 55px 55px"><span style="font-weight:600;font-size:12px">'+esc(a.pair)+'</span><span class="r mono">'+a.matches+'</span><span class="r mono" style="color:'+(a.acceptRate>0.35?GREEN:a.acceptRate>0.25?AMBER:RED)+'">'+pct(a.acceptRate)+'</span><span class="r mono">'+pct(a.revealRate)+'</span><span class="r mono">'+pct(a.avgScore)+'</span></div>';
+    });
+    html+=insight('High accept + low reveal = one-sided interest.');
+  }else{html+='<div class="empty-section">No match data yet</div>';}
+  html+='</div></div>';
+
+  // ── Acceptance by type + Canister depth ──
+  html+='<div class="grid"><div class="card"><div class="card-t">Acceptance by Archetype</div>';
+  if(D.acceptanceByType.length){
+    D.acceptanceByType.forEach(function(a){
+      var c=TC[a.type.toLowerCase().replace(/s$/,'')]||ACCENT;
+      html+='<div style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><div style="display:flex;align-items:center;gap:8px">'+dot(c)+'<span style="font-size:13px;font-weight:600">'+esc(a.type)+'</span></div><span class="mono" style="color:'+(a.rate>0.4?GREEN:a.rate>0.3?AMBER:RED)+'">'+pct(a.rate)+'</span></div>'+barTrack(a.rate*100,c)+'</div>';
+    });
+  }else{html+='<div class="empty-section">No acceptance data yet</div>';}
+  html+='</div>';
+
+  html+='<div class="card"><div class="card-t">Canister Completion Depth</div>';
+  D.canisterDepth.forEach(function(f){
+    var c=f.pct>75?GREEN:f.pct>50?AMBER:RED;
+    html+='<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px"><span style="font-size:12px;width:100px;text-align:right;color:var(--text3)">'+esc(f.field)+'</span><div style="flex:1">'+barTrack(f.pct,c)+'</div><span class="mono" style="width:35px;text-align:right;color:'+c+'">'+f.pct+'%</span></div>';
+  });
+  html+=insight('Below 50% = Nev off-ramps taken early. Deeper canisters → better matches.');
+  html+='</div></div>';
+
+  el.innerHTML=html;
+
+  if(D.scoreAcceptance.length){
+    new Chart(document.getElementById('scoreChart'),{type:'bar',data:{labels:D.scoreAcceptance.map(function(s){return s.band}),datasets:[{data:D.scoreAcceptance.map(function(s){return s.rate}),backgroundColor:ACCENT+'cc',borderRadius:4,barPercentage:0.6}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{beginAtZero:true,max:1,ticks:{callback:function(v){return(v*100)+'%'}},border:{display:false}},x:{border:{display:false}}},plugins:{tooltip:{callbacks:{label:function(ctx){return pct(ctx.raw)}}}}}});
   }
 }
 
-// ── SUPPLY-DEMAND TAB ──
-function renderSupplyDemand() {
-  var el = document.getElementById('supply');
-  var html = '';
+// ══════════════════════════════
+// SUPPLY-DEMAND TAB
+// ══════════════════════════════
+function fmtRatio(r){if(r==='inf'||r==='∞')return '∞';var n=parseFloat(r);if(isNaN(n))return r;return n.toFixed(1)+'×';}
 
-  html += '<div class="grid-full"><div class="card"><div class="card-t">Theme × Archetype Supply-Demand</div>';
-  if (D.supplyDemand.length) {
-    html += '<div style="overflow-x:auto"><div class="tbl-head" style="grid-template-columns:120px 70px 70px 70px 70px 70px;min-width:480px"><span>Theme</span><span class="r">Founders</span><span class="r">Investors</span><span class="r">Corp</span><span class="r">Research</span><span class="r">F:I</span></div>';
-    D.supplyDemand.forEach(function(s) {
+function renderSupplyDemand(){
+  var el=document.getElementById('supply');
+  var html='';
+
+  html+='<div class="grid-full"><div class="card"><div class="card-t">Theme × Archetype Supply-Demand</div>';
+  if(D.supplyDemand.length){
+    html+='<div style="overflow-x:auto"><div class="tbl-head" style="grid-template-columns:140px 70px 70px 70px 70px 65px;min-width:500px"><span>Theme</span><span class="r">Founders</span><span class="r">Investors</span><span class="r">Corp</span><span class="r">Research</span><span class="r">F:I</span></div>';
+    D.supplyDemand.forEach(function(s){
       var rn=parseFloat(s.ratio);var rc=rn>3?RED:rn<1?GREEN:'var(--text2)';
-      html += '<div class="tbl-row" style="grid-template-columns:120px 70px 70px 70px 70px 70px;min-width:480px"><span style="font-weight:600;font-size:13px">'+esc(s.theme)+'</span><span class="r mono" style="color:#ea580c">'+s.founders+'</span><span class="r mono" style="color:'+ACCENT+'">'+s.investors+'</span><span class="r mono" style="color:'+BLUE+'">'+s.corporates+'</span><span class="r mono" style="color:'+GREEN+'">'+s.researchers+'</span><span class="r mono" style="font-weight:600;color:'+rc+'">'+s.ratio+'x</span></div>';
+      var ratioDisplay=fmtRatio(s.ratio);
+      html+='<div class="tbl-row" style="grid-template-columns:140px 70px 70px 70px 70px 65px;min-width:500px"><span style="font-weight:600;font-size:13px">'+esc(s.theme)+'</span><span class="r mono" style="color:#ea580c">'+s.founders+'</span><span class="r mono" style="color:'+ACCENT+'">'+s.investors+'</span><span class="r mono" style="color:'+BLUE+'">'+s.corporates+'</span><span class="r mono" style="color:'+GREEN+'">'+s.researchers+'</span><span class="r mono" style="font-weight:600;color:'+rc+'">'+ratioDisplay+'</span></div>';
     });
-    html += '</div>';
-    html += insight('F:I > 3x = founders competing for limited investor attention. Below 1x = investor surplus — seeding opportunity.');
-  } else { html += '<div class="empty-section">No profile data yet</div>'; }
-  html += '</div></div>';
+    html+='</div>';
+    html+=insight('F:I > 3× = founders competing for limited investor attention. Below 1× = investor surplus — seeding opportunity.');
+  }else{html+='<div class="empty-section">No profile data yet</div>';}
+  html+='</div></div>';
 
-  html += '<div class="grid"><div class="card"><div class="card-t">Intent vs Offering — Network Gaps</div>';
-  if (D.intentGaps.length) {
-    html += '<div class="chart-wrap" style="height:240px"><canvas id="gapChart"></canvas></div>';
-    html += '<div style="display:flex;gap:16px;font-size:11px;color:var(--text3)">'+dot(RED)+' Seeking &nbsp;'+dot(GREEN)+' Offering</div>';
-    html += insight('Large gaps = structural friction. The biggest gaps show which user types to recruit.');
-  } else { html += '<div class="empty-section">No intent/offering data yet</div>'; }
-  html += '</div>';
+  html+='<div class="grid"><div class="card"><div class="card-t">Intent vs Offering — Network Gaps</div>';
+  if(D.intentGaps.length){
+    html+='<div class="chart-wrap" style="height:240px"><canvas id="gapChart"></canvas></div>';
+    html+='<div style="display:flex;gap:16px;font-size:11px;color:var(--text3)">'+dot(RED)+' Seeking &nbsp;'+dot(GREEN)+' Offering</div>';
+    html+=insight('Large gaps = structural friction. Biggest gaps → which user types to recruit.');
+  }else{html+='<div class="empty-section">No intent/offering data yet</div>';}
+  html+='</div>';
 
-  html += '<div class="card"><div class="card-t">Geographic Corridors</div><div class="empty-section">Activates when users from multiple regions register for overlapping events.</div></div></div>';
+  html+='<div class="card"><div class="card-t">Geographic Corridors</div><div class="empty-section">Activates when users from multiple regions register for overlapping events.</div></div></div>';
 
-  el.innerHTML = html;
+  el.innerHTML=html;
 
-  if (D.intentGaps.length) {
-    new Chart(document.getElementById('gapChart'), {
-      type:'bar',
-      data:{labels:D.intentGaps.map(function(g){return g.intent}),datasets:[
-        {label:'Seeking',data:D.intentGaps.map(function(g){return g.seeking}),backgroundColor:RED+'cc',borderRadius:3,barPercentage:0.4},
-        {label:'Offering',data:D.intentGaps.map(function(g){return g.offering}),backgroundColor:GREEN+'cc',borderRadius:3,barPercentage:0.4}
-      ]},
-      options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,scales:{x:{display:false},y:{border:{display:false}}}}
-    });
+  if(D.intentGaps.length){
+    new Chart(document.getElementById('gapChart'),{type:'bar',data:{labels:D.intentGaps.map(function(g){return g.intent}),datasets:[{label:'Seeking',data:D.intentGaps.map(function(g){return g.seeking}),backgroundColor:RED+'cc',borderRadius:3,barPercentage:0.4},{label:'Offering',data:D.intentGaps.map(function(g){return g.offering}),backgroundColor:GREEN+'cc',borderRadius:3,barPercentage:0.4}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,scales:{x:{display:false},y:{border:{display:false}}}}});
   }
 }
 
-// ── NETWORK TAB ──
-function renderNetwork() {
-  var el = document.getElementById('network');
-  var html = '<div class="grid">';
+// ══════════════════════════════
+// NETWORK TAB
+// ══════════════════════════════
+function renderNetwork(){
+  var el=document.getElementById('network');
+  var html='<div class="grid">';
 
   // Funnel
-  html += '<div class="card"><div class="card-t">Conversion Funnel</div>';
+  html+='<div class="card"><div class="card-t">Conversion Funnel</div>';
   var maxC=D.funnel[0]?D.funnel[0].count:1;
   D.funnel.forEach(function(f,i){
     var pv=maxC>0?(f.count/maxC*100):0;
     var dr=i>0&&D.funnel[i-1].count>0?((D.funnel[i-1].count-f.count)/D.funnel[i-1].count*100).toFixed(0):null;
-    html += '<div style="display:flex;align-items:center;gap:12px;margin-bottom:5px"><span style="font-size:11px;color:var(--text3);width:120px;text-align:right">'+esc(f.stage)+'</span><div style="flex:1">'+barTrack(pv,ACCENT)+'</div><span class="mono" style="width:30px;text-align:right">'+f.count+'</span>'+(dr?'<span class="mono" style="width:36px;font-size:10px;color:'+(parseInt(dr)>40?RED:'var(--text3)')+'">-'+dr+'%</span>':'<span style="width:36px"></span>')+'</div>';
+    html+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px"><span style="font-size:11px;color:var(--text3);width:110px;text-align:right">'+esc(f.stage)+'</span><div style="flex:1">'+barTrack(pv,ACCENT)+'</div><span class="mono" style="width:28px;text-align:right">'+f.count+'</span>'+(dr?'<span class="mono" style="width:34px;font-size:10px;color:'+(parseInt(dr)>40?RED:'var(--text3)')+'">-'+dr+'%</span>':'<span style="width:34px"></span>')+'</div>';
   });
-  html += insight('Steepest drops = biggest UX opportunities. One-sided acceptance is typically the main bottleneck.');
-  html += '</div>';
+  html+=insight('Steepest drops = biggest UX opportunities. One-sided acceptance is typically the main bottleneck.');
+  html+='</div>';
 
-  // Growth
-  html += '<div class="card"><div class="card-t">Weekly Growth</div>';
-  if (D.growth.length > 1) {
-    html += '<div class="chart-wrap"><canvas id="growthChart"></canvas></div>';
-    html += '<div style="display:flex;gap:16px;font-size:11px;color:var(--text3)">'+dot(ACCENT)+' Users &nbsp;'+dot(BLUE)+' Registrations</div>';
-  } else { html += '<div class="empty-section">Growth data appears after first weeks of activity.</div>'; }
-  html += '</div></div>';
-
-  // Daily signups
-  html += '<div class="grid"><div class="card"><div class="card-t">Daily Signups — Last 30 Days</div>';
-  if (D.dailySignups && D.dailySignups.length > 1) {
-    html += '<div class="chart-wrap"><canvas id="dailyChart"></canvas></div>';
-  } else { html += '<div class="empty-section">Daily signup data appears as users register.</div>'; }
-  html += '</div>';
-
-  html += '<div class="card"><div class="card-t">Key Ratios</div>';
-  var n = D.network;
-  var ratios = [
-    {l:'Canister rate', v: n.totalUsers > 0 ? pct(n.completeCanisters / n.totalUsers) : '—', c: n.completeCanisters/n.totalUsers > 0.7 ? GREEN : AMBER},
-    {l:'Match acceptance', v: n.totalMatches > 0 ? pct(n.acceptedMatches / n.totalMatches) : '—', c: n.acceptedMatches/n.totalMatches > 0.3 ? GREEN : AMBER},
-    {l:'Reveal rate', v: n.totalMatches > 0 ? pct(n.revealedMatches / n.totalMatches) : '—', c: n.revealedMatches/n.totalMatches > 0.15 ? GREEN : RED},
-    {l:'Meeting rate', v: n.revealedMatches > 0 ? pct(n.meetingsConfirmed / n.revealedMatches) : '—', c: GREEN}
+  // Key ratios
+  html+='<div class="card"><div class="card-t">Key Ratios</div>';
+  var n=D.network;
+  var ratios=[
+    {l:'Canister rate',v:n.totalUsers>0?pct(n.completeCanisters/n.totalUsers):'—',c:n.completeCanisters/n.totalUsers>0.7?GREEN:AMBER},
+    {l:'Match acceptance',v:n.totalMatches>0?pct(n.acceptedMatches/n.totalMatches):'—',c:n.acceptedMatches/n.totalMatches>0.3?GREEN:AMBER},
+    {l:'Reveal rate',v:n.totalMatches>0?pct(n.revealedMatches/n.totalMatches):'—',c:n.revealedMatches/n.totalMatches>0.15?GREEN:RED},
+    {l:'Meeting rate',v:n.revealedMatches>0?pct(n.meetingsConfirmed/n.revealedMatches):'—',c:GREEN}
   ];
-  html += '<div class="metric-grid">';
-  ratios.forEach(function(r){
-    html += '<div class="metric-box"><div class="metric-val" style="color:'+r.c+'">'+r.v+'</div><div class="metric-label">'+r.l+'</div></div>';
-  });
-  html += '</div>';
-  html += insight('Canister rate > 70% = Nev onboarding is effective. Reveal rate below 15% = acceptance is one-sided or hesitant.');
-  html += '</div></div>';
+  html+='<div class="metric-grid">';
+  ratios.forEach(function(r){html+='<div class="metric-box"><div class="metric-val" style="color:'+r.c+'">'+r.v+'</div><div class="metric-label">'+r.l+'</div></div>';});
+  html+='</div>';
+  html+=insight('Canister rate > 70% = Nev onboarding effective. Reveal rate below 15% = one-sided or hesitant.');
+  html+='</div></div>';
 
-  el.innerHTML = html;
+  // Growth + daily signups
+  html+='<div class="grid">';
+  html+='<div class="card"><div class="card-t">Weekly Growth</div>';
+  if(D.growth.length>1){html+='<div class="chart-wrap"><canvas id="growthChart"></canvas></div><div style="display:flex;gap:16px;font-size:11px;color:var(--text3)">'+dot(ACCENT)+' Users &nbsp;'+dot(BLUE)+' Registrations</div>';}
+  else{html+='<div class="empty-section">Growth data appears after first weeks.</div>';}
+  html+='</div>';
 
-  if (D.growth.length > 1) {
-    new Chart(document.getElementById('growthChart'), {
-      type:'line',
-      data:{labels:D.growth.map(function(g){return g.week}),datasets:[
-        {label:'Users',data:D.growth.map(function(g){return g.users}),borderColor:ACCENT,backgroundColor:ACCENT+'22',fill:true,tension:0.3,borderWidth:2,pointRadius:3},
-        {label:'Regs',data:D.growth.map(function(g){return g.regs}),borderColor:BLUE,backgroundColor:BLUE+'22',fill:true,tension:0.3,borderWidth:2,pointRadius:3}
-      ]},
-      options:{responsive:true,maintainAspectRatio:false,scales:{y:{beginAtZero:true,border:{display:false}},x:{border:{display:false}}}}
-    });
+  html+='<div class="card"><div class="card-t">Daily Signups — 30 Days</div>';
+  if(D.dailySignups&&D.dailySignups.length>1){html+='<div class="chart-wrap"><canvas id="dailyChart"></canvas></div>';}
+  else{html+='<div class="empty-section">Daily data appears as users register.</div>';}
+  html+='</div></div>';
+
+  el.innerHTML=html;
+
+  if(D.growth.length>1){
+    new Chart(document.getElementById('growthChart'),{type:'line',data:{labels:D.growth.map(function(g){return g.week}),datasets:[{label:'Users',data:D.growth.map(function(g){return g.users}),borderColor:ACCENT,backgroundColor:ACCENT+'22',fill:true,tension:0.3,borderWidth:2,pointRadius:3},{label:'Regs',data:D.growth.map(function(g){return g.regs}),borderColor:BLUE,backgroundColor:BLUE+'22',fill:true,tension:0.3,borderWidth:2,pointRadius:3}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{beginAtZero:true,border:{display:false}},x:{border:{display:false}}}}});
   }
-
-  if (D.dailySignups && D.dailySignups.length > 1) {
-    new Chart(document.getElementById('dailyChart'), {
-      type:'bar',
-      data:{labels:D.dailySignups.map(function(d){return d.day}),datasets:[{data:D.dailySignups.map(function(d){return d.signups}),backgroundColor:ACCENT+'88',borderRadius:3,barPercentage:0.7}]},
-      options:{responsive:true,maintainAspectRatio:false,scales:{y:{beginAtZero:true,border:{display:false},ticks:{stepSize:1}},x:{border:{display:false}}},plugins:{tooltip:{callbacks:{label:function(ctx){return ctx.raw+' signups'}}}}}
-    });
+  if(D.dailySignups&&D.dailySignups.length>1){
+    new Chart(document.getElementById('dailyChart'),{type:'bar',data:{labels:D.dailySignups.map(function(d){return d.day}),datasets:[{data:D.dailySignups.map(function(d){return d.signups}),backgroundColor:ACCENT+'88',borderRadius:3,barPercentage:0.7}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{beginAtZero:true,border:{display:false},ticks:{stepSize:1}},x:{border:{display:false}}},plugins:{tooltip:{callbacks:{label:function(ctx){return ctx.raw+' signups'}}}}}});
   }
 }
 
-// ── EVENTS TAB ──
-function renderEvents() {
-  var el = document.getElementById('events');
-  var html = '';
+// ══════════════════════════════
+// EVENTS TAB
+// ══════════════════════════════
+function renderEvents(){
+  var el=document.getElementById('events');
+  var html='';
 
-  html += '<div style="display:flex;align-items:center;gap:16px;margin-bottom:20px"><select class="select" id="eventSelect" onchange="drillEvent(this.value)"><option value="">All Events — Scorecard View</option>';
-  D.eventScorecard.forEach(function(e) { html += '<option value="'+e.id+'">'+esc(e.name)+'</option>'; });
-  html += '</select></div>';
+  html+='<div style="margin-bottom:20px"><select class="select" id="eventSelect" onchange="drillEvent(this.value)"><option value="">All Events — Scorecard View</option>';
+  D.eventScorecard.forEach(function(e){html+='<option value="'+e.id+'">'+esc(e.name)+'</option>';});
+  html+='</select></div>';
 
-  html += '<div class="card" id="eventTable"><div class="card-t">Event Health Scorecards</div>';
-  if (D.eventScorecard.length) {
-    html += '<div style="overflow-x:auto"><div class="tbl-head" style="grid-template-columns:200px 60px 50px 60px 60px 60px 60px;min-width:560px"><span>Event</span><span class="r">Date</span><span class="r">Regs</span><span class="r">Matches</span><span class="r">Accept</span><span class="r">Reveal</span><span class="r">Avg</span></div>';
-    D.eventScorecard.forEach(function(e) {
-      html += '<div class="tbl-row clickable" style="grid-template-columns:200px 60px 50px 60px 60px 60px 60px;min-width:560px" onclick="drillEvent('+e.id+')"><span style="font-weight:700;font-size:13px;color:var(--accent)">'+esc(e.name)+'</span><span class="r mono" style="color:var(--text3);font-size:11px">'+esc(e.date)+'</span><span class="r mono">'+e.regs+'</span><span class="r mono">'+e.matches+'</span><span class="r mono" style="color:'+(e.acceptRate>0.35?GREEN:e.acceptRate>0.25?AMBER:RED)+'">'+pct(e.acceptRate)+'</span><span class="r mono">'+pct(e.revealRate)+'</span><span class="r mono">'+pct(e.avgScore)+'</span></div>';
+  html+='<div class="card" id="eventTable"><div class="card-t">Event Health Scorecards</div>';
+  if(D.eventScorecard.length){
+    html+='<div style="overflow-x:auto"><div class="tbl-head" style="grid-template-columns:1fr 55px 45px 55px 55px 55px 50px;min-width:500px"><span>Event</span><span class="r">Date</span><span class="r">Regs</span><span class="r">Match</span><span class="r">Acpt</span><span class="r">Rvl</span><span class="r">Avg</span></div>';
+    D.eventScorecard.forEach(function(e){
+      html+='<div class="tbl-row clickable" style="grid-template-columns:1fr 55px 45px 55px 55px 55px 50px;min-width:500px" onclick="drillEvent('+e.id+')"><span style="font-weight:700;font-size:13px;color:var(--accent)">'+esc(e.name)+'</span><span class="r mono" style="color:var(--text3);font-size:11px">'+esc(e.date)+'</span><span class="r mono">'+e.regs+'</span><span class="r mono">'+e.matches+'</span><span class="r mono" style="color:'+(e.acceptRate>0.35?GREEN:e.acceptRate>0.25?AMBER:RED)+'">'+pct(e.acceptRate)+'</span><span class="r mono">'+pct(e.revealRate)+'</span><span class="r mono">'+pct(e.avgScore)+'</span></div>';
     });
-    html += '</div>';
-    html += insight('Click any event to drill in. Small focused events often outperform large broad ones on acceptance.');
-  } else { html += '<div class="empty-section">No events with registrations yet</div>'; }
-  html += '</div>';
+    html+='</div>';
+    html+=insight('Click any event to drill in. Small focused events often outperform large ones on acceptance.');
+  }else{html+='<div class="empty-section">No events with registrations yet</div>';}
+  html+='</div>';
 
-  html += '<div id="eventDrill" style="display:none"></div>';
-  el.innerHTML = html;
+  html+='<div id="eventDrill" style="display:none"></div>';
+  el.innerHTML=html;
 }
 
-async function drillEvent(id) {
-  if (!id || id === '') {
-    document.getElementById('eventDrill').style.display = 'none';
-    document.getElementById('eventTable').style.display = '';
-    document.getElementById('eventSelect').value = '';
-    return;
-  }
-  document.getElementById('eventSelect').value = id;
-  try {
-    var resp = await fetch('/api/admin/dashboard/event/' + id, { headers: { 'Authorization': 'Bearer ' + token } });
-    var data = await resp.json();
-    document.getElementById('eventTable').style.display = 'none';
-    var drill = document.getElementById('eventDrill');
-    drill.style.display = '';
-    var html = '<div class="grid">';
+async function drillEvent(id){
+  if(!id||id===''){document.getElementById('eventDrill').style.display='none';document.getElementById('eventTable').style.display='';document.getElementById('eventSelect').value='';return;}
+  document.getElementById('eventSelect').value=id;
+  try{
+    var resp=await fetch('/api/admin/dashboard/event/'+id,{headers:{'Authorization':'Bearer '+token}});
+    var data=await resp.json();
+    document.getElementById('eventTable').style.display='none';
+    var drill=document.getElementById('eventDrill');drill.style.display='';
+    var html='<div class="grid">';
 
-    html += '<div class="card"><div class="card-t">' + esc(data.event.name) + ' — Key Metrics</div><div class="metric-grid">';
+    html+='<div class="card"><div class="card-t">'+esc(data.event.name)+'</div><div class="metric-grid">';
     [{l:'Registrations',v:data.regs},{l:'Matches',v:data.matches,c:BLUE},{l:'Accepted',v:data.accepted,c:AMBER},{l:'Revealed',v:data.revealed,c:GREEN},{l:'Avg Score',v:data.avgScore>0?pct(data.avgScore):'—'}].forEach(function(m){
-      html += '<div class="metric-box"><div class="metric-val" style="color:'+(m.c||'var(--heading)')+'">'+m.v+'</div><div class="metric-label">'+m.l+'</div></div>';
+      html+='<div class="metric-box"><div class="metric-val" style="color:'+(m.c||'var(--heading)')+'">'+m.v+'</div><div class="metric-label">'+m.l+'</div></div>';
     });
-    html += '</div><div style="margin-top:16px;text-align:center"><button class="btn-back" onclick="drillEvent(\'\')">← Back to All Events</button></div></div>';
+    html+='</div><div style="margin-top:16px;text-align:center"><button class="btn-back" onclick="drillEvent(\'\')">← All Events</button></div></div>';
 
-    html += '<div class="card"><div class="card-t">Stakeholder Composition</div>';
-    if (data.stakeholders.length) {
-      html += '<div class="chart-wrap" style="height:180px"><canvas id="stakeChart"></canvas></div>';
-    } else { html += '<div class="empty-section">No profiles yet</div>'; }
-    html += '</div></div>';
+    html+='<div class="card"><div class="card-t">Stakeholder Composition</div>';
+    if(data.stakeholders.length){html+='<div class="chart-wrap" style="height:180px"><canvas id="stakeChart"></canvas></div>';}
+    else{html+='<div class="empty-section">No profiles yet</div>';}
+    html+='</div></div>';
 
-    html += '<div class="grid"><div class="card"><div class="card-t">Theme Distribution</div>';
-    if (data.themes.length) {
-      data.themes.forEach(function(t){
-        var mx=data.themes[0].count;
-        html += '<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px"><span style="font-size:12px;width:110px;text-align:right;color:var(--text3)">'+esc(t.theme)+'</span><div style="flex:1">'+barTrack(mx>0?t.count/mx*100:0,ACCENT)+'</div><span class="mono" style="width:25px;text-align:right">'+t.count+'</span></div>';
-      });
-    } else { html += '<div class="empty-section">No theme data yet</div>'; }
-    html += '</div>';
+    html+='<div class="grid"><div class="card"><div class="card-t">Theme Distribution</div>';
+    if(data.themes.length){data.themes.forEach(function(t){var mx=data.themes[0].count;html+='<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px"><span style="font-size:12px;width:100px;text-align:right;color:var(--text3)">'+esc(t.theme)+'</span><div style="flex:1">'+barTrack(mx>0?t.count/mx*100:0,ACCENT)+'</div><span class="mono" style="width:25px;text-align:right">'+t.count+'</span></div>';});}
+    else{html+='<div class="empty-section">No theme data</div>';}
+    html+='</div>';
 
-    html += '<div class="card"><div class="card-t">Funnel</div>';
+    html+='<div class="card"><div class="card-t">Funnel</div>';
     var fd=[{l:'Registrations',v:data.regs,c:'var(--text3)'},{l:'Matches',v:data.matches,c:BLUE},{l:'Accepted',v:data.accepted,c:AMBER},{l:'Revealed',v:data.revealed,c:GREEN}];
     var fM=data.regs||1;
-    fd.forEach(function(f){
-      html += '<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px"><span style="font-size:12px;width:100px;text-align:right;color:var(--text3)">'+f.l+'</span><div style="flex:1">'+barTrack(f.v/fM*100,f.c)+'</div><span class="mono" style="width:30px;text-align:right">'+f.v+'</span></div>';
-    });
-    html += '</div></div>';
-    drill.innerHTML = html;
+    fd.forEach(function(f){html+='<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px"><span style="font-size:12px;width:90px;text-align:right;color:var(--text3)">'+f.l+'</span><div style="flex:1">'+barTrack(f.v/fM*100,f.c)+'</div><span class="mono" style="width:28px;text-align:right">'+f.v+'</span></div>';});
+    html+='</div></div>';
 
-    if (data.stakeholders.length) {
-      var colors = data.stakeholders.map(function(s){return TC[s.type]||'#999'});
-      new Chart(document.getElementById('stakeChart'), {
-        type:'doughnut',
-        data:{labels:data.stakeholders.map(function(s){return s.type.charAt(0).toUpperCase()+s.type.slice(1)}),datasets:[{data:data.stakeholders.map(function(s){return s.count}),backgroundColor:colors,borderWidth:0,spacing:2}]},
-        options:{responsive:true,maintainAspectRatio:false,cutout:'55%',plugins:{legend:{display:true,position:'right',labels:{boxWidth:10,padding:12,font:{size:11}}}}}
-      });
+    drill.innerHTML=html;
+
+    if(data.stakeholders.length){
+      var colors=data.stakeholders.map(function(s){return TC[s.type]||'#999'});
+      new Chart(document.getElementById('stakeChart'),{type:'doughnut',data:{labels:data.stakeholders.map(function(s){return s.type.charAt(0).toUpperCase()+s.type.slice(1)}),datasets:[{data:data.stakeholders.map(function(s){return s.count}),backgroundColor:colors,borderWidth:0,spacing:2}]},options:{responsive:true,maintainAspectRatio:false,cutout:'55%',plugins:{legend:{display:true,position:'right',labels:{boxWidth:10,padding:12,font:{size:11}}}}}});
     }
-  } catch(e) {
-    console.error(e);
-    document.getElementById('eventDrill').innerHTML = '<div class="card"><div class="empty-section">Failed to load event details: '+esc(e.message)+'</div></div>';
-  }
+  }catch(e){console.error(e);document.getElementById('eventDrill').innerHTML='<div class="card"><div class="empty-section">Failed: '+esc(e.message)+'</div></div>';}
 }
 
 loadDashboard();
