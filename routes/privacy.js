@@ -13,6 +13,11 @@ router.get('/my-data', authenticateToken, async function(req, res) {
   try {
     var userId = req.user.id;
 
+    async function safeAll(sql, params) {
+      try { return await dbAll(sql, params); }
+      catch(e) { console.error('Export query skip:', e.message); return []; }
+    }
+
     // Core identity
     var user = await dbGet(
       'SELECT id, name, email, company, avatar_url, auth_provider, created_at FROM users WHERE id = $1',
@@ -21,13 +26,16 @@ router.get('/my-data', authenticateToken, async function(req, res) {
     if (!user) return res.status(404).json({ error: 'User not found' });
 
     // Canister / profile
-    var profile = await dbGet(
-      'SELECT stakeholder_type, themes, focus_text, geography, intent, offering, deal_details, created_at, updated_at FROM stakeholder_profiles WHERE user_id = $1',
-      [userId]
-    );
+    var profile = null;
+    try {
+      profile = await dbGet(
+        'SELECT stakeholder_type, themes, focus_text, geography, intent, offering, deal_details, created_at, updated_at FROM stakeholder_profiles WHERE user_id = $1',
+        [userId]
+      );
+    } catch(e) {}
 
     // Event registrations
-    var registrations = await dbAll(
+    var registrations = await safeAll(
       `SELECT er.event_id, e.name as event_name, e.event_date, er.status, er.created_at
        FROM event_registrations er
        LEFT JOIN events e ON e.id = er.event_id
@@ -37,7 +45,7 @@ router.get('/my-data', authenticateToken, async function(req, res) {
     );
 
     // Matches (as either side)
-    var matches = await dbAll(
+    var matches = await safeAll(
       `SELECT em.id, em.event_id, e.name as event_name,
               em.score_total, em.score_theme, em.score_intent, em.score_stakeholder,
               em.score_capital, em.score_signal_convergence,
@@ -53,7 +61,7 @@ router.get('/my-data', authenticateToken, async function(req, res) {
     );
 
     // Match feedback I gave
-    var feedback = await dbAll(
+    var feedback = await safeAll(
       `SELECT mf.match_id, mf.rating, mf.did_meet, mf.meeting_quality, mf.outcome_type, mf.created_at
        FROM match_feedback mf
        WHERE mf.user_id = $1
@@ -62,7 +70,7 @@ router.get('/my-data', authenticateToken, async function(req, res) {
     );
 
     // Feedback insights
-    var insights = await dbAll(
+    var insights = await safeAll(
       `SELECT fi.match_id, fi.insight_type, fi.insight_data, fi.confidence, fi.created_at
        FROM feedback_insights fi
        WHERE fi.user_id = $1
@@ -71,7 +79,7 @@ router.get('/my-data', authenticateToken, async function(req, res) {
     );
 
     // Nev conversations
-    var nevMessages = await dbAll(
+    var nevMessages = await safeAll(
       `SELECT ndm.match_id, ndm.role, ndm.content, ndm.created_at
        FROM nev_debrief_messages ndm
        WHERE ndm.user_id = $1
@@ -80,7 +88,7 @@ router.get('/my-data', authenticateToken, async function(req, res) {
     );
 
     // Notifications
-    var notifications = await dbAll(
+    var notifications = await safeAll(
       `SELECT type, title, body, link, read, created_at
        FROM notifications
        WHERE user_id = $1
@@ -89,7 +97,7 @@ router.get('/my-data', authenticateToken, async function(req, res) {
     );
 
     // Sessions (active)
-    var sessions = await dbAll(
+    var sessions = await safeAll(
       `SELECT created_at, expires_at FROM sessions WHERE user_id = $1`,
       [userId]
     );
@@ -133,13 +141,20 @@ router.get('/summary', authenticateToken, async function(req, res) {
   try {
     var userId = req.user.id;
 
+    async function safeCount(sql, params) {
+      try { var r = await dbGet(sql, params); return r ? (r.count || 0) : 0; }
+      catch(e) { return 0; }
+    }
+
     var user = await dbGet('SELECT name, email, auth_provider, created_at FROM users WHERE id = $1', [userId]);
-    var hasProfile = await dbGet('SELECT 1 FROM stakeholder_profiles WHERE user_id = $1', [userId]);
-    var regCount = await dbGet('SELECT COUNT(*)::int as count FROM event_registrations WHERE user_id = $1', [userId]);
-    var matchCount = await dbGet('SELECT COUNT(*)::int as count FROM event_matches WHERE user_a_id = $1 OR user_b_id = $1', [userId]);
-    var nevCount = await dbGet('SELECT COUNT(*)::int as count FROM nev_debrief_messages WHERE user_id = $1', [userId]);
-    var feedbackCount = await dbGet('SELECT COUNT(*)::int as count FROM match_feedback WHERE user_id = $1', [userId]);
-    var notifCount = await dbGet('SELECT COUNT(*)::int as count FROM notifications WHERE user_id = $1', [userId]);
+    var hasProfile = false;
+    try { var p = await dbGet('SELECT 1 FROM stakeholder_profiles WHERE user_id = $1', [userId]); hasProfile = !!p; } catch(e) {}
+
+    var regCount = await safeCount('SELECT COUNT(*)::int as count FROM event_registrations WHERE user_id = $1', [userId]);
+    var matchCount = await safeCount('SELECT COUNT(*)::int as count FROM event_matches WHERE user_a_id = $1 OR user_b_id = $1', [userId]);
+    var nevCount = await safeCount('SELECT COUNT(*)::int as count FROM nev_debrief_messages WHERE user_id = $1', [userId]);
+    var feedbackCount = await safeCount('SELECT COUNT(*)::int as count FROM match_feedback WHERE user_id = $1', [userId]);
+    var notifCount = await safeCount('SELECT COUNT(*)::int as count FROM notifications WHERE user_id = $1', [userId]);
 
     res.json({
       account: {
@@ -149,12 +164,12 @@ router.get('/summary', authenticateToken, async function(req, res) {
         member_since: user ? user.created_at : null
       },
       data_held: {
-        canister_profile: hasProfile ? true : false,
-        event_registrations: regCount ? regCount.count : 0,
-        matches: matchCount ? matchCount.count : 0,
-        nev_messages: nevCount ? nevCount.count : 0,
-        feedback_entries: feedbackCount ? feedbackCount.count : 0,
-        notifications: notifCount ? notifCount.count : 0
+        canister_profile: hasProfile,
+        event_registrations: regCount,
+        matches: matchCount,
+        nev_messages: nevCount,
+        feedback_entries: feedbackCount,
+        notifications: notifCount
       }
     });
   } catch (err) {
@@ -187,33 +202,37 @@ router.delete('/delete-account', authenticateToken, async function(req, res) {
     console.log('GDPR DELETION: Starting for user', userId, user.email);
 
     // ── Cascade delete in dependency order ──
+    async function safeDel(sql, params) {
+      try { await dbRun(sql, params); }
+      catch(e) { console.log('Delete skip (table may not exist):', e.message); }
+    }
 
     // 1. Nev debrief messages
-    await dbRun('DELETE FROM nev_debrief_messages WHERE user_id = $1', [userId]);
+    await safeDel('DELETE FROM nev_debrief_messages WHERE user_id = $1', [userId]);
 
     // 2. Feedback insights (linked to matches)
-    await dbRun('DELETE FROM feedback_insights WHERE user_id = $1', [userId]);
+    await safeDel('DELETE FROM feedback_insights WHERE user_id = $1', [userId]);
 
     // 3. Match feedback
-    await dbRun('DELETE FROM match_feedback WHERE user_id = $1', [userId]);
+    await safeDel('DELETE FROM match_feedback WHERE user_id = $1', [userId]);
 
     // 4. Notifications
-    await dbRun('DELETE FROM notifications WHERE user_id = $1', [userId]);
+    await safeDel('DELETE FROM notifications WHERE user_id = $1', [userId]);
 
     // 5. Event matches (either side) — delete the whole match record
-    await dbRun('DELETE FROM event_matches WHERE user_a_id = $1 OR user_b_id = $1', [userId]);
+    await safeDel('DELETE FROM event_matches WHERE user_a_id = $1 OR user_b_id = $1', [userId]);
 
     // 6. Event registrations
-    await dbRun('DELETE FROM event_registrations WHERE user_id = $1', [userId]);
+    await safeDel('DELETE FROM event_registrations WHERE user_id = $1', [userId]);
 
     // 7. Stakeholder profile (canister)
-    await dbRun('DELETE FROM stakeholder_profiles WHERE user_id = $1', [userId]);
+    await safeDel('DELETE FROM stakeholder_profiles WHERE user_id = $1', [userId]);
 
     // 8. Sessions
-    await dbRun('DELETE FROM sessions WHERE user_id = $1', [userId]);
+    await safeDel('DELETE FROM sessions WHERE user_id = $1', [userId]);
 
     // 9. Magic codes
-    await dbRun('DELETE FROM magic_codes WHERE email = $1', [user.email]);
+    await safeDel('DELETE FROM magic_codes WHERE email = $1', [user.email]);
 
     // 10. User record — last
     await dbRun('DELETE FROM users WHERE id = $1', [userId]);

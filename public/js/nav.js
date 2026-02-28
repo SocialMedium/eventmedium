@@ -37,25 +37,24 @@
     a.addEventListener('click', doLogout);
   });
 
-  // ── Add logout to desktop nav if logged in ──
+  // ── Wire up any existing logout elements (don't inject duplicates) ──
   if (token) {
-    var navLogout = document.getElementById('nav-logout');
-    if (navLogout) {
-      navLogout.href = '#';
-      navLogout.addEventListener('click', doLogout);
+    var existingLogouts = document.querySelectorAll('.nav-logout, #nav-logout, [onclick*="logout"]');
+    if (existingLogouts.length) {
+      existingLogouts.forEach(function(el) {
+        el.removeAttribute('onclick');
+        el.href = '#';
+        el.addEventListener('click', doLogout);
+      });
     } else {
-      // No logout link exists — inject one at end of nav
-      var existingLinks = nav.querySelectorAll('.nav-link, .nav-cta');
-      if (existingLinks.length > 0) {
-        var logoutLink = document.createElement('a');
-        logoutLink.href = '#';
-        logoutLink.className = 'nav-link';
-        logoutLink.textContent = 'Log out';
-        logoutLink.style.cssText = 'color:#999;font-size:13px';
-        logoutLink.addEventListener('click', doLogout);
-        // Insert before burger (which is last child)
-        nav.insertBefore(logoutLink, burger);
-      }
+      // No logout exists anywhere — inject one
+      var logoutLink = document.createElement('a');
+      logoutLink.href = '#';
+      logoutLink.className = 'nav-link';
+      logoutLink.textContent = 'Log out';
+      logoutLink.style.cssText = 'color:#999;font-size:13px';
+      logoutLink.addEventListener('click', doLogout);
+      nav.insertBefore(logoutLink, burger);
     }
   }
 
