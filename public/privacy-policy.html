@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Privacy Policy — Event Medium</title>
+<style>
+:root{--accent:#6366f1;--accent2:#4f46e5;--txt:#1a1a2e;--txtL:#555;--txtXL:#999;--bg:#f8f8fa;--bg2:#fff;--bdr:rgba(0,0,0,0.06);--sans:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--sans);color:var(--txt);background:var(--bg);-webkit-font-smoothing:antialiased}
+.nav{background:rgba(255,255,255,0.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--bdr);padding:0 24px}
+.nav-inner{max-width:900px;margin:0 auto;display:flex;align-items:center;height:60px}
+.nav-brand{display:flex;align-items:center;gap:8px;text-decoration:none;color:var(--txt);font-size:14px;font-weight:700}
+.nav-dot{width:24px;height:24px;border-radius:5px;background:linear-gradient(135deg,var(--accent),var(--accent2))}
+.container{max-width:680px;margin:0 auto;padding:48px 24px 80px}
+h1{font-size:28px;font-weight:700;margin-bottom:8px}
+.updated{font-size:13px;color:var(--txtXL);margin-bottom:40px}
+h2{font-size:18px;font-weight:700;margin:32px 0 12px;color:var(--txt)}
+h3{font-size:15px;font-weight:600;margin:20px 0 8px}
+p,li{font-size:14px;line-height:1.8;color:var(--txtL);margin-bottom:12px}
+ul{padding-left:20px;margin-bottom:16px}
+a{color:var(--accent)}
+.highlight{background:rgba(99,102,241,0.06);border-left:3px solid var(--accent);padding:12px 16px;border-radius:0 8px 8px 0;margin:16px 0;font-size:13px}
+table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13px}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--bdr)}
+th{font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--txtXL)}
+</style>
+</head>
+<body>
+<nav class="nav"><div class="nav-inner"><a href="/" class="nav-brand"><div class="nav-dot"></div>Event <span style="color:var(--accent)">Medium</span></a></div></nav>
+
+<div class="container">
+<h1>Privacy Policy</h1>
+<p class="updated">Last updated: 28 February 2026</p>
+
+<div class="highlight">
+  <strong>The short version:</strong> We collect only what we need to match you with the right people at events. We never sell your data, never show ads, and never build public profiles. You can export or delete everything at any time.
+</div>
+
+<h2>1. Who We Are</h2>
+<p>Event Medium ("we", "us") operates eventmedium.ai, an AI-powered networking platform that matches professionals at events using signal triangulation. Our data controller contact is <a href="mailto:privacy@eventmedium.ai">privacy@eventmedium.ai</a>.</p>
+
+<h2>2. What We Collect</h2>
+
+<table>
+<tr><th>Data</th><th>Source</th><th>Purpose</th></tr>
+<tr><td>Name, email</td><td>Sign-up (OAuth or email)</td><td>Account identity, communications</td></tr>
+<tr><td>Company, avatar</td><td>OAuth provider (if available)</td><td>Profile context</td></tr>
+<tr><td>Canister profile: stakeholder type, themes, intent, offering, geography, deal details, focus text</td><td>Your conversations with Nev (AI concierge)</td><td>Matching algorithm inputs</td></tr>
+<tr><td>Event registrations</td><td>Your selections</td><td>Scoping matches to events you attend</td></tr>
+<tr><td>Match decisions</td><td>Accept / decline actions</td><td>Double-blind matching flow</td></tr>
+<tr><td>Nev conversations</td><td>Chat messages</td><td>Building and refining your canister</td></tr>
+<tr><td>Post-meeting feedback</td><td>Debrief conversations with Nev</td><td>Improving match quality</td></tr>
+</table>
+
+<h2>3. How We Use Your Data</h2>
+<p>We process your data under GDPR Article 6(1)(b) — performance of a contract (providing the matching service you signed up for) and Article 6(1)(f) — legitimate interest (improving match quality). Specifically:</p>
+<ul>
+<li><strong>Matching:</strong> Your canister data is used to compute match scores with other users at the same event. This is done server-side — your raw profile is never shared with other users.</li>
+<li><strong>Anonymity:</strong> Matches are presented anonymously. Neither party sees the other's identity, company, or profile details until both explicitly opt in ("reveal").</li>
+<li><strong>AI processing:</strong> Nev (our AI concierge) uses Anthropic's Claude API to process your conversations. Your messages are sent to Anthropic's API for real-time response generation. Anthropic does not use API inputs for model training.</li>
+<li><strong>Analytics:</strong> We generate anonymized, aggregated analytics for event organisers (theme distribution, stakeholder mix, match rates). These never contain personal information.</li>
+</ul>
+
+<h2>4. What We Never Do</h2>
+<div class="highlight">
+  We <strong>never</strong> sell your data. We <strong>never</strong> show advertising. We <strong>never</strong> build public profiles or searchable directories. We <strong>never</strong> share your identity with other users without your explicit double-blind consent. We <strong>never</strong> use your data to train AI models.
+</div>
+
+<h2>5. Data Sharing</h2>
+<p>We share data only with:</p>
+<ul>
+<li><strong>Anthropic (Claude API):</strong> Your Nev conversation messages, for real-time AI responses. Governed by Anthropic's API data policy — inputs are not used for training.</li>
+<li><strong>Resend:</strong> Your email address, for transactional emails (sign-in codes, match notifications). No marketing emails without consent.</li>
+<li><strong>Railway:</strong> Infrastructure provider hosting our database and application. SOC 2 compliant.</li>
+</ul>
+<p>We do not share data with advertisers, data brokers, or any other third parties.</p>
+
+<h2>6. Data Retention</h2>
+<ul>
+<li><strong>Account data:</strong> Retained while your account is active. Deleted immediately upon account deletion.</li>
+<li><strong>Session tokens:</strong> Expire after 30 days.</li>
+<li><strong>Magic link codes:</strong> Expire after 10 minutes and are deleted on use.</li>
+<li><strong>Match data:</strong> Retained for match quality improvement while your account is active. Deleted on account deletion.</li>
+<li><strong>Nev conversations:</strong> Retained while your account is active for canister refinement. Deleted on account deletion.</li>
+</ul>
+
+<h2>7. Your Rights</h2>
+<p>Under GDPR and applicable data protection laws, you have the right to:</p>
+<ul>
+<li><strong>Access</strong> — See all data we hold on you. Available at <a href="/privacy.html">Your Data</a>.</li>
+<li><strong>Portability</strong> — Export your complete data as a machine-readable JSON file.</li>
+<li><strong>Erasure</strong> — Permanently delete your account and all associated data. Immediate, irreversible, no questions asked.</li>
+<li><strong>Rectification</strong> — Update your canister by talking to Nev or contact us for account corrections.</li>
+<li><strong>Object</strong> — Contact us to object to specific processing activities.</li>
+<li><strong>Withdraw consent</strong> — Where processing is based on consent, withdraw at any time.</li>
+</ul>
+<p>Exercise any right at <a href="/privacy.html">eventmedium.ai/privacy.html</a> or email <a href="mailto:privacy@eventmedium.ai">privacy@eventmedium.ai</a>.</p>
+
+<h2>8. Security</h2>
+<ul>
+<li>Passwords hashed with bcrypt (12 rounds)</li>
+<li>Session tokens: cryptographically random 256-bit</li>
+<li>Database connections encrypted with TLS</li>
+<li>Infrastructure hosted on Railway (SOC 2 compliant)</li>
+<li>No public APIs expose user profile data</li>
+<li>Admin dashboard uses only anonymized, aggregated data</li>
+</ul>
+
+<h2>9. Cookies</h2>
+<p>We use a single <code>localStorage</code> entry (<code>auth_token</code>) for session management. We do not use tracking cookies, analytics cookies, or any third-party cookies.</p>
+
+<h2>10. International Transfers</h2>
+<p>Our infrastructure is hosted on Railway, which may process data in the United States. Anthropic's Claude API processes conversation data in the United States. These transfers are governed by the respective providers' data processing agreements and standard contractual clauses.</p>
+
+<h2>11. Children</h2>
+<p>Event Medium is designed for professional networking and is not intended for use by anyone under 16. We do not knowingly collect data from children.</p>
+
+<h2>12. Changes</h2>
+<p>We may update this policy to reflect changes in our practices. We will notify active users by email of material changes. The "last updated" date at the top indicates the most recent revision.</p>
+
+<h2>13. Contact</h2>
+<p>For any privacy questions, data requests, or complaints:</p>
+<p>
+  <strong>Email:</strong> <a href="mailto:privacy@eventmedium.ai">privacy@eventmedium.ai</a><br>
+  <strong>Data settings:</strong> <a href="/privacy.html">eventmedium.ai/privacy.html</a>
+</p>
+<p>You also have the right to lodge a complaint with your local data protection authority.</p>
+
+</div>
+</body>
+</html>

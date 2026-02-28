@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Your Data — Event Medium</title>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+:root {
+  --accent:#6366f1;--accent2:#4f46e5;--accent-light:rgba(99,102,241,0.08);
+  --bg:#f8f8fa;--bg2:#ffffff;--bg3:#f0f0f4;
+  --txt:#1a1a2e;--txtL:#555;--txtXL:#999;
+  --bdr:rgba(0,0,0,0.06);--bdr2:rgba(0,0,0,0.1);
+  --red:#dc2626;--redL:rgba(220,38,38,0.06);
+  --green:#059669;--greenL:rgba(5,150,105,0.06);
+  --amber:#d97706;
+  --sans:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--sans);color:var(--txt);background:var(--bg);min-height:100vh;-webkit-font-smoothing:antialiased}
+
+.nav{background:rgba(255,255,255,0.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--bdr);padding:0 24px}
+.nav-inner{max-width:900px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:60px}
+.nav-brand{display:flex;align-items:center;gap:8px;text-decoration:none;color:var(--txt);font-size:14px;font-weight:700}
+.nav-dot{width:24px;height:24px;border-radius:5px;background:linear-gradient(135deg,var(--accent),var(--accent2))}
+.nav-links{display:flex;gap:24px;align-items:center}
+.nav-link{font-size:13px;color:var(--txtL);text-decoration:none;font-weight:500}
+.nav-link:hover{color:var(--accent)}
+
+.container{max-width:700px;margin:0 auto;padding:40px 24px}
+.page-title{font-size:24px;font-weight:700;margin-bottom:4px}
+.page-sub{font-size:14px;color:var(--txtL);margin-bottom:32px;line-height:1.6}
+
+.card{background:var(--bg2);border:1px solid var(--bdr);border-radius:12px;padding:24px;margin-bottom:16px}
+.card-t{font-size:11px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:var(--txtXL);margin-bottom:16px}
+
+.data-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--bdr)}
+.data-row:last-child{border-bottom:none}
+.data-label{font-size:13px;color:var(--txtL)}
+.data-val{font-size:13px;font-weight:600;font-family:var(--mono)}
+
+.btn{display:inline-flex;align-items:center;gap:8px;padding:12px 24px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;border:none;font-family:var(--sans);transition:all 0.2s}
+.btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:white}
+.btn-primary:hover{opacity:0.9}
+.btn-outline{background:transparent;border:1px solid var(--bdr2);color:var(--txt)}
+.btn-outline:hover{border-color:var(--accent);color:var(--accent)}
+.btn-danger{background:transparent;border:2px solid var(--red);color:var(--red)}
+.btn-danger:hover{background:var(--redL)}
+.btn-danger-solid{background:var(--red);color:white;border:none}
+.btn-danger-solid:hover{background:#b91c1c}
+.btn:disabled{opacity:0.4;cursor:not-allowed}
+
+.info-box{padding:14px 16px;border-radius:8px;font-size:13px;line-height:1.6}
+.info-green{background:var(--greenL);border-left:3px solid var(--green);color:var(--green)}
+.info-amber{background:rgba(217,119,6,0.06);border-left:3px solid var(--amber);color:var(--amber)}
+.info-red{background:var(--redL);border-left:3px solid var(--red);color:#991b1b}
+
+.rights{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+.right-card{background:var(--bg);border-radius:8px;padding:14px;border:1px solid var(--bdr)}
+.right-icon{font-size:18px;margin-bottom:6px}
+.right-title{font-size:12px;font-weight:700;margin-bottom:4px}
+.right-text{font-size:11px;color:var(--txtL);line-height:1.5}
+
+/* Delete confirmation */
+.delete-zone{display:none;margin-top:20px;padding:20px;background:var(--redL);border:2px solid var(--red);border-radius:12px}
+.delete-zone.active{display:block}
+.delete-input{width:100%;padding:12px;border:2px solid var(--bdr2);border-radius:8px;font-size:14px;font-family:var(--mono);margin:12px 0;text-align:center}
+.delete-input:focus{outline:none;border-color:var(--red)}
+.delete-input.matched{border-color:var(--red);background:rgba(220,38,38,0.04)}
+
+.loading{text-align:center;padding:60px;color:var(--txtXL)}
+
+@media(max-width:640px){
+  .rights{grid-template-columns:1fr}
+  .container{padding:24px 16px}
+}
+</style>
+<link rel="stylesheet" href="/css/nav.css">
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-brand">
+      <div class="nav-dot"></div>
+      Event <span style="color:var(--accent)">Medium</span>
+    </a>
+    <div class="nav-links">
+      <a href="/canister.html" class="nav-link">← Back to Canister</a>
+    </div>
+  </div>
+</nav>
+
+<div class="container">
+  <h1 class="page-title">Your Data</h1>
+  <p class="page-sub">You own your data. Everything Event Medium holds on you is listed here. You can export it all or delete your account permanently — no questions asked.</p>
+
+  <!-- Rights -->
+  <div class="rights">
+    <div class="right-card">
+      <div class="right-icon">📋</div>
+      <div class="right-title">Right of Access</div>
+      <div class="right-text">See everything we store about you — account, canister, matches, conversations.</div>
+    </div>
+    <div class="right-card">
+      <div class="right-icon">📦</div>
+      <div class="right-title">Data Portability</div>
+      <div class="right-text">Export your complete data as a JSON file you can take anywhere.</div>
+    </div>
+    <div class="right-card">
+      <div class="right-icon">🗑️</div>
+      <div class="right-title">Right to Erasure</div>
+      <div class="right-text">Delete your account and all associated data permanently and immediately.</div>
+    </div>
+    <div class="right-card">
+      <div class="right-icon">🔒</div>
+      <div class="right-title">Privacy by Design</div>
+      <div class="right-text">All matching is anonymous and double-blind. No public directory. No ads. No data sales.</div>
+    </div>
+  </div>
+
+  <!-- Data Summary -->
+  <div class="card" id="summaryCard">
+    <div class="card-t">What We Hold</div>
+    <div class="loading" id="summaryLoading">Loading your data summary...</div>
+    <div id="summaryContent" style="display:none"></div>
+  </div>
+
+  <!-- Export -->
+  <div class="card">
+    <div class="card-t">Export Your Data</div>
+    <p style="font-size:13px;color:var(--txtL);margin-bottom:16px;line-height:1.6">
+      Download a complete copy of everything we hold — your account details, canister profile, event registrations, match history, Nev conversations, and feedback. Delivered as a single JSON file.
+    </p>
+    <button class="btn btn-primary" onclick="exportData()" id="exportBtn">
+      <i data-lucide="download" style="width:16px;height:16px"></i>
+      Download My Data
+    </button>
+  </div>
+
+  <!-- Security -->
+  <div class="card">
+    <div class="card-t">Security</div>
+    <div class="info-box info-green" style="margin-bottom:12px">
+      <strong>How we protect your data</strong>
+    </div>
+    <div style="font-size:13px;color:var(--txtL);line-height:1.8">
+      <strong>Authentication:</strong> Passwords are hashed with bcrypt (12 rounds). Sessions use cryptographically random 256-bit tokens. Magic link codes expire in 10 minutes.<br><br>
+      <strong>Matching:</strong> All matching is anonymous and double-blind. Neither party sees the other's identity until both opt in. Match scores are computed server-side — raw profile data is never shared between users.<br><br>
+      <strong>Infrastructure:</strong> Hosted on Railway (SOC 2 compliant). Database encrypted in transit (TLS). No data is sold, shared with advertisers, or used for training AI models.<br><br>
+      <strong>Nev conversations:</strong> Stored server-side for canister building. Not shared externally. Deleted when you delete your account.
+    </div>
+  </div>
+
+  <!-- Delete Account -->
+  <div class="card" style="border-color:rgba(220,38,38,0.2)">
+    <div class="card-t" style="color:var(--red)">Delete Account</div>
+    <div class="info-box info-red" style="margin-bottom:16px">
+      <strong>This is permanent and irreversible.</strong> All your data will be immediately and permanently deleted — your account, canister, match history, conversations, and feedback. We cannot recover it.
+    </div>
+
+    <button class="btn btn-danger" id="deleteStartBtn" onclick="showDeleteConfirm()">
+      <i data-lucide="trash-2" style="width:16px;height:16px"></i>
+      I want to delete my account
+    </button>
+
+    <div class="delete-zone" id="deleteZone">
+      <p style="font-size:14px;font-weight:600;margin-bottom:8px;color:#991b1b">Confirm deletion</p>
+      <p style="font-size:13px;color:#991b1b;margin-bottom:12px">
+        Type <strong style="font-family:var(--mono)">DELETE</strong> below to confirm you want to permanently erase all your data.
+      </p>
+      <input type="text" class="delete-input" id="deleteInput" placeholder="Type DELETE to confirm" autocomplete="off" spellcheck="false" oninput="checkDeleteInput()">
+      <div style="display:flex;gap:12px">
+        <button class="btn btn-danger-solid" id="deleteConfirmBtn" disabled onclick="deleteAccount()">
+          Permanently Delete Everything
+        </button>
+        <button class="btn btn-outline" onclick="hideDeleteConfirm()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contact -->
+  <div style="text-align:center;padding:32px 0;font-size:13px;color:var(--txtXL);line-height:1.8">
+    Questions about your data? Contact <a href="mailto:privacy@eventmedium.ai" style="color:var(--accent)">privacy@eventmedium.ai</a><br>
+    <a href="/privacy-policy.html" style="color:var(--accent)">Read our full Privacy Policy</a>
+  </div>
+</div>
+
+<script>
+var token = localStorage.getItem('auth_token');
+if (!token) window.location.href = '/auth.html';
+
+// ── Load summary ──
+async function loadSummary() {
+  try {
+    var resp = await fetch('/api/privacy/summary', {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    if (!resp.ok) throw new Error('Failed');
+    var data = await resp.json();
+
+    var html = '';
+    html += row('Name', data.account.name || '—');
+    html += row('Email', data.account.email || '—');
+    html += row('Sign-in method', formatProvider(data.account.auth_provider));
+    html += row('Member since', formatDate(data.account.member_since));
+    html += '<div style="height:8px;border-bottom:2px solid var(--bdr);margin-bottom:8px"></div>';
+    html += row('Canister profile', data.data_held.canister_profile ? '<span style="color:var(--green)">✓ Built</span>' : '<span style="color:var(--txtXL)">Not yet</span>');
+    html += row('Event registrations', data.data_held.event_registrations);
+    html += row('Matches', data.data_held.matches);
+    html += row('Nev messages', data.data_held.nev_messages);
+    html += row('Feedback entries', data.data_held.feedback_entries);
+    html += row('Notifications', data.data_held.notifications);
+
+    document.getElementById('summaryLoading').style.display = 'none';
+    document.getElementById('summaryContent').style.display = 'block';
+    document.getElementById('summaryContent').innerHTML = html;
+  } catch (err) {
+    document.getElementById('summaryLoading').textContent = 'Failed to load — please refresh.';
+  }
+}
+
+function row(label, val) {
+  return '<div class="data-row"><span class="data-label">' + label + '</span><span class="data-val">' + val + '</span></div>';
+}
+
+function formatProvider(p) {
+  if (!p) return '—';
+  var map = { google: 'Google OAuth', linkedin: 'LinkedIn OAuth', email: 'Email + Password', magic: 'Email Code' };
+  return map[p] || p;
+}
+
+function formatDate(d) {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+// ── Export ──
+async function exportData() {
+  var btn = document.getElementById('exportBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<i data-lucide="loader" style="width:16px;height:16px"></i> Preparing...';
+
+  try {
+    var resp = await fetch('/api/privacy/my-data', {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    if (!resp.ok) throw new Error('Export failed');
+
+    var blob = await resp.blob();
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'eventmedium-my-data.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    btn.innerHTML = '<i data-lucide="check" style="width:16px;height:16px"></i> Downloaded';
+    setTimeout(function() {
+      btn.disabled = false;
+      btn.innerHTML = '<i data-lucide="download" style="width:16px;height:16px"></i> Download My Data';
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+    }, 3000);
+  } catch (err) {
+    btn.disabled = false;
+    btn.innerHTML = '<i data-lucide="alert-circle" style="width:16px;height:16px"></i> Failed — try again';
+  }
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+// ── Delete flow ──
+function showDeleteConfirm() {
+  document.getElementById('deleteZone').classList.add('active');
+  document.getElementById('deleteStartBtn').style.display = 'none';
+  document.getElementById('deleteInput').value = '';
+  document.getElementById('deleteConfirmBtn').disabled = true;
+  document.getElementById('deleteInput').focus();
+}
+
+function hideDeleteConfirm() {
+  document.getElementById('deleteZone').classList.remove('active');
+  document.getElementById('deleteStartBtn').style.display = '';
+}
+
+function checkDeleteInput() {
+  var val = document.getElementById('deleteInput').value.trim();
+  var btn = document.getElementById('deleteConfirmBtn');
+  var input = document.getElementById('deleteInput');
+  if (val === 'DELETE') {
+    btn.disabled = false;
+    input.classList.add('matched');
+  } else {
+    btn.disabled = true;
+    input.classList.remove('matched');
+  }
+}
+
+async function deleteAccount() {
+  var btn = document.getElementById('deleteConfirmBtn');
+  btn.disabled = true;
+  btn.textContent = 'Deleting...';
+
+  try {
+    var resp = await fetch('/api/privacy/delete-account', {
+      method: 'DELETE',
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ confirmation: 'DELETE_MY_ACCOUNT' })
+    });
+
+    var data = await resp.json();
+
+    if (!resp.ok) {
+      alert('Deletion failed: ' + (data.error || 'Unknown error') + '. Contact privacy@eventmedium.ai');
+      btn.disabled = false;
+      btn.textContent = 'Permanently Delete Everything';
+      return;
+    }
+
+    // Clear local state
+    localStorage.removeItem('auth_token');
+
+    // Show goodbye
+    document.querySelector('.container').innerHTML =
+      '<div style="text-align:center;padding:80px 24px">' +
+        '<div style="font-size:48px;margin-bottom:16px">👋</div>' +
+        '<h1 style="font-size:22px;font-weight:700;margin-bottom:8px">Account deleted</h1>' +
+        '<p style="font-size:14px;color:var(--txtL);margin-bottom:24px;line-height:1.6">All your data has been permanently erased.<br>We hope Event Medium was useful — you\'re always welcome back.</p>' +
+        '<a href="/" style="color:var(--accent);font-weight:600;font-size:14px">Return to homepage</a>' +
+      '</div>';
+
+  } catch (err) {
+    alert('Connection error. Please try again or contact privacy@eventmedium.ai');
+    btn.disabled = false;
+    btn.textContent = 'Permanently Delete Everything';
+  }
+}
+
+loadSummary();
+lucide.createIcons();
+</script>
+<script src="/js/nav.js"></script>
+</body>
+</html>

@@ -72,6 +72,7 @@ app.use('/api/messages', require('./routes/messages').router);
 app.use('/api/notifications', require('./routes/notifications').router);
 
 app.use('/api/admin', require('./routes/dashboard'));
+app.use('/api/privacy', require('./routes/privacy'));
 
 // ── Landing page ──
 app.get('/', function(req, res) {
