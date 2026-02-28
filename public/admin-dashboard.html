@@ -4,79 +4,116 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Command — EventMedium</title>
-<script src="https://unpkg.com/lucide@latest"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
-<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@400;600;700&family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#faf8f5;--surface:#ffffff;--border:#e8e4de;--borderL:#f0ede8;
-  --txt:#2c2416;--mid:#6b6054;--dim:#9c9488;--mute:#c8c2b8;
-  --accent:#1a6b4e;--accentL:#e8f5ee;--blue:#2a5ea8;--blueL:#eaf0f9;
-  --amber:#a8762a;--amberL:#faf3e6;--red:#a83a3a;--redL:#faeaea;
-  --purple:#6b4ea8;--orange:#a85e2a;
-  --serif:'Source Serif 4',Georgia,serif;--sans:'DM Sans','Helvetica Neue',sans-serif;--mono:'DM Mono',Menlo,monospace;
+  --bg:#ffffff;--bg2:#f8f8fa;--bg3:#f0f0f4;
+  --heading:#1a1a2e;--accent:#6366f1;--accent2:#4f46e5;--accent-light:rgba(99,102,241,0.08);
+  --text:#1a1a2e;--text2:#555;--text3:#999;
+  --border:rgba(0,0,0,0.06);--border2:rgba(0,0,0,0.1);
+  --green:#059669;--greenL:rgba(5,150,105,0.08);
+  --amber:#d97706;--amberL:rgba(217,119,6,0.08);
+  --red:#dc2626;--redL:rgba(220,38,38,0.08);
+  --blue:#2563eb;--blueL:rgba(37,99,235,0.08);
+  --purple:#7c3aed;--orange:#ea580c;
+  --sans:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+  --max:1400px;
 }
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:var(--sans);background:var(--bg);color:var(--txt);min-height:100vh}
-.header{background:var(--surface);border-bottom:1px solid var(--border);padding:28px 36px 24px}
-.header-row{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px}
-.title{font-size:24px;font-weight:700;font-family:var(--serif);letter-spacing:-0.3px}
-.subtitle{font-size:13px;color:var(--dim);margin-top:4px}
+body{font-family:var(--sans);background:var(--bg2);color:var(--text);min-height:100vh}
+
+/* ── Header ── */
+.header{background:linear-gradient(135deg,var(--bg) 0%,var(--bg2) 100%);border-bottom:1px solid var(--border);padding:28px 36px 24px}
+.header-row{max-width:var(--max);margin:0 auto;display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px}
+.logo{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;color:var(--heading);text-decoration:none;margin-bottom:8px}
+.logo .dot{width:20px;height:20px;border-radius:5px;background:linear-gradient(135deg,var(--accent),var(--accent2))}
+.logo span{color:var(--accent)}
+.title{font-size:22px;font-weight:700;letter-spacing:-0.03em;color:var(--heading)}
+.subtitle{font-size:13px;color:var(--text3);margin-top:2px}
 .pill{display:inline-block;padding:3px 12px;border-radius:20px;font-size:11px;font-weight:600}
-.pill-green{background:var(--accentL);color:var(--accent)}
+.pill-green{background:var(--greenL);color:var(--green)}
 .pill-amber{background:var(--amberL);color:var(--amber)}
 .pill-red{background:var(--redL);color:var(--red)}
-.pill-blue{background:var(--blueL);color:var(--blue)}
-.kpi-row{display:flex;gap:28px;flex-wrap:wrap;margin-top:20px}
-.kpi{display:flex;flex-direction:column}
-.kpi-val{font-size:28px;font-weight:700;font-family:var(--serif);line-height:1}
-.kpi-label{font-size:10px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:var(--dim);margin-top:5px}
-.body{padding:28px 36px;max-width:1440px}
-.tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:28px}
-.tab{padding:10px 22px 12px;font-size:14px;font-weight:500;cursor:pointer;border:none;background:transparent;color:var(--dim);font-family:var(--sans);border-bottom:2px solid transparent;margin-bottom:-2px;transition:all 0.15s}
+.kpi-row{max-width:var(--max);margin:20px auto 0;display:flex;gap:28px;flex-wrap:wrap}
+.kpi-val{font-size:26px;font-weight:700;line-height:1;color:var(--heading)}
+.kpi-label{font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-top:5px}
+
+/* ── Body ── */
+.body{max-width:var(--max);margin:0 auto;padding:28px 36px}
+.tabs{display:flex;gap:0;border-bottom:2px solid var(--border2);margin-bottom:28px}
+.tab{padding:10px 22px 12px;font-size:14px;font-weight:500;cursor:pointer;border:none;background:transparent;color:var(--text3);font-family:var(--sans);border-bottom:2px solid transparent;margin-bottom:-2px;transition:all 0.15s}
 .tab.active{font-weight:700;color:var(--accent);border-bottom-color:var(--accent)}
-.tab:hover{color:var(--txt)}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(400px,1fr));gap:20px;margin-bottom:20px}
-.grid-full{margin-bottom:20px}
-.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:24px}
-.card-t{font-size:12px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:var(--dim);margin-bottom:18px}
-.insight{padding:14px 16px;background:var(--accentL);border-radius:8px;border-left:3px solid var(--accent);margin-top:16px}
-.insight-label{font-size:11px;font-weight:700;color:var(--accent);margin-bottom:4px;letter-spacing:0.3px}
-.insight-text{font-size:13px;color:var(--mid);line-height:1.6;font-family:var(--serif)}
-.tbl-head{display:grid;padding:0 0 10px;border-bottom:2px solid var(--border);margin-bottom:4px;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--mute)}
-.tbl-row{display:grid;padding:10px 0;border-bottom:1px solid var(--borderL);align-items:center;font-size:13px}
-.tbl-row:hover{background:var(--bg)}
+.tab:hover{color:var(--heading)}
+
+/* ── Cards ── */
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(400px,1fr));gap:16px;margin-bottom:16px}
+.grid-full{margin-bottom:16px}
+.card{background:linear-gradient(160deg,var(--bg) 0%,var(--bg2) 100%);border:1px solid var(--border);border-radius:12px;padding:24px;transition:border-color 0.2s}
+.card:hover{border-color:rgba(99,102,241,0.12)}
+.card-t{font-size:11px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:var(--text3);margin-bottom:18px}
+
+/* ── Signal boxes ── */
+.insight{padding:14px 16px;background:linear-gradient(135deg,var(--accent-light),rgba(79,70,229,0.06));border-radius:8px;border-left:3px solid var(--accent);margin-top:16px}
+.insight-label{font-size:10px;font-weight:700;color:var(--accent);margin-bottom:4px;letter-spacing:0.5px;text-transform:uppercase}
+.insight-text{font-size:13px;color:var(--text2);line-height:1.6}
+
+/* ── Tables ── */
+.tbl-head{display:grid;padding:0 0 10px;border-bottom:2px solid var(--border2);margin-bottom:4px;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3)}
+.tbl-row{display:grid;padding:10px 0;border-bottom:1px solid var(--border);align-items:center;font-size:13px}
+.tbl-row:hover{background:var(--bg2)}
 .tbl-row.clickable{cursor:pointer}
-.bar-track{position:relative;height:6px;background:var(--borderL);border-radius:3px;overflow:hidden}
+.tbl-row.clickable:hover{background:var(--accent-light)}
+
+/* ── Bars ── */
+.bar-track{position:relative;height:6px;background:var(--bg3);border-radius:3px;overflow:hidden}
 .bar-fill{position:absolute;left:0;top:0;height:100%;border-radius:3px}
 .dot{width:8px;height:8px;border-radius:50%;display:inline-block;vertical-align:middle}
 .r{text-align:right}
 .mono{font-family:var(--mono);font-size:12px}
 .chart-wrap{position:relative;height:220px;margin-bottom:8px}
-.select{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 16px;color:var(--txt);font-size:13px;font-family:var(--sans);cursor:pointer;outline:none}
-.footer{border-top:1px solid var(--border);padding-top:18px;margin-top:40px;display:flex;justify-content:space-between;font-size:12px;color:var(--dim)}
-.loading{text-align:center;padding:80px;color:var(--dim);font-size:15px}
-.empty-section{text-align:center;padding:40px;color:var(--dim);font-size:14px}
+
+/* ── Metrics ── */
 .metric-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.metric-box{background:var(--bg);border-radius:8px;padding:14px;border:1px solid var(--borderL)}
-.metric-val{font-family:var(--serif);font-size:24px;font-weight:700}
-.metric-label{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:0.5px;margin-top:4px}
-.stacked-bar{display:flex;gap:3px;height:20px;border-radius:4px;overflow:hidden;margin-bottom:6px}
-.stacked-bar div{display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff}
+.metric-box{background:linear-gradient(135deg,var(--bg2),var(--bg));border-radius:8px;padding:14px;border:1px solid var(--border)}
+.metric-val{font-size:24px;font-weight:700;color:var(--heading)}
+.metric-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-top:4px}
+
+/* ── Select ── */
+.select{background:var(--bg);border:1px solid var(--border2);border-radius:8px;padding:8px 16px;color:var(--text);font-size:13px;font-family:var(--sans);cursor:pointer;outline:none}
+.select:focus{border-color:var(--accent)}
+
+/* ── States ── */
+.loading{text-align:center;padding:80px;color:var(--text3);font-size:15px}
+.empty-section{text-align:center;padding:40px;color:var(--text3);font-size:14px}
 .tab-content{display:none}.tab-content.active{display:block}
-@media(max-width:900px){.grid{grid-template-columns:1fr}.kpi-row{gap:16px}.header{padding:20px 16px 16px}.body{padding:20px 16px}}
+
+/* ── Footer ── */
+.footer{border-top:1px solid var(--border);padding-top:18px;margin-top:40px;display:flex;justify-content:space-between;font-size:12px;color:var(--text3)}
+
+/* ── Back button ── */
+.btn-back{display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(99,102,241,0.3);background:linear-gradient(135deg,rgba(99,102,241,0.04),rgba(79,70,229,0.08));border-radius:8px;padding:10px 24px;cursor:pointer;color:var(--accent);font-size:13px;font-weight:600;font-family:var(--sans);transition:all 0.2s}
+.btn-back:hover{background:linear-gradient(135deg,rgba(99,102,241,0.08),rgba(79,70,229,0.14));border-color:var(--accent)}
+
+@media(max-width:900px){
+  .grid{grid-template-columns:1fr}
+  .kpi-row{gap:16px}
+  .header{padding:20px 16px 16px}
+  .body{padding:20px 16px}
+}
 </style>
 </head>
 <body>
 <div class="header">
   <div class="header-row">
     <div>
-      <h1 class="title">EventMedium · Command</h1>
+      <a href="/" class="logo"><span class="dot"></span>Event <span>Medium</span></a>
+      <h1 class="title">Command</h1>
       <div class="subtitle">Internal network intelligence · All data anonymized</div>
     </div>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="pill pill-green">Live</span>
-      <span style="font-size:12px;color:var(--dim);font-family:var(--mono)" id="dateLabel"></span>
+      <span style="font-size:12px;color:var(--text3);font-family:var(--mono)" id="dateLabel"></span>
     </div>
   </div>
   <div class="kpi-row" id="kpiRow"><div class="loading">Loading...</div></div>
@@ -115,40 +152,36 @@ document.querySelectorAll('.tab').forEach(function(t) {
 
 // ── COLORS ──
 var TC = {
-  founder:'#1a6b4e',investor:'#a8762a',corporate:'#2a5ea8',
-  researcher:'#a83a3a',advisor:'#6b4ea8',operator:'#a85e2a'
+  founder:'#ea580c',investor:'#6366f1',corporate:'#2563eb',
+  researcher:'#059669',advisor:'#7c3aed',operator:'#be185d'
 };
-var ACCENT='#1a6b4e',BLUE='#2a5ea8',AMBER='#a8762a',RED='#a83a3a',PURPLE='#6b4ea8',ORANGE='#a85e2a';
+var ACCENT='#6366f1',BLUE='#2563eb',AMBER='#d97706',RED='#dc2626',GREEN='#059669',PURPLE='#7c3aed';
 
 // ── HELPERS ──
 function esc(s){if(!s)return '';var d=document.createElement('div');d.textContent=s;return d.innerHTML}
 function pct(v){return(v*100).toFixed(0)+'%'}
-function pill(text,color){
-  var bg=color+'18';
-  return '<span class="pill" style="background:'+bg+';color:'+color+'">'+esc(text)+'</span>';
-}
-function insight(text){
-  return '<div class="insight"><div class="insight-label">Signal</div><div class="insight-text">'+text+'</div></div>';
-}
-function barTrack(pctVal,color){
-  return '<div class="bar-track"><div class="bar-fill" style="width:'+pctVal+'%;background:'+color+'"></div></div>';
-}
+function pill(text,color){return '<span class="pill" style="background:'+color+'14;color:'+color+'">'+esc(text)+'</span>'}
+function insight(text){return '<div class="insight"><div class="insight-label">Signal</div><div class="insight-text">'+text+'</div></div>'}
+function barTrack(pctVal,color){return '<div class="bar-track"><div class="bar-fill" style="width:'+pctVal+'%;background:linear-gradient(90deg,'+color+','+color+'cc)"></div></div>'}
 function dot(color){return '<span class="dot" style="background:'+color+'"></span>'}
 
 // ── CHART DEFAULTS ──
-Chart.defaults.font.family = "'DM Sans','Helvetica Neue',sans-serif";
+Chart.defaults.font.family = "system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif";
 Chart.defaults.font.size = 11;
-Chart.defaults.color = '#9c9488';
+Chart.defaults.color = '#999';
 Chart.defaults.plugins.legend.display = false;
-Chart.defaults.scale.grid = { color: '#f0ede8' };
-Chart.defaults.scale.ticks = { color: '#9c9488' };
+Chart.defaults.scale.grid = { color: '#f0f0f4' };
+Chart.defaults.scale.ticks = { color: '#999' };
 
 // ── LOAD DATA ──
 var D = null;
 async function loadDashboard() {
   try {
     var resp = await fetch('/api/admin/dashboard', { headers: { 'Authorization': 'Bearer ' + token } });
-    if (!resp.ok) throw new Error('Failed');
+    if (!resp.ok) {
+      var err = await resp.json().catch(function(){return {error:'Unknown'}});
+      throw new Error(err.error || 'Failed: ' + resp.status);
+    }
     D = await resp.json();
     renderKPIs();
     renderMatching();
@@ -157,22 +190,22 @@ async function loadDashboard() {
     renderEvents();
   } catch (e) {
     console.error(e);
-    document.getElementById('kpiRow').innerHTML = '<div class="loading">Failed to load dashboard. <a href="/auth.html" style="color:var(--accent)">Sign in again</a></div>';
+    document.getElementById('kpiRow').innerHTML = '<div class="loading">Failed to load: ' + esc(e.message) + '. <a href="/auth.html" style="color:var(--accent)">Sign in again</a></div>';
   }
 }
 
 function renderKPIs() {
   var n = D.network;
   var html = [
-    {v:n.totalUsers,l:'Total Users',c:''},
-    {v:n.completeCanisters,l:'Canisters',c:''},
-    {v:n.activeEvents,l:'Active Events',c:''},
+    {v:n.totalUsers,l:'Users'},
+    {v:n.completeCanisters,l:'Canisters'},
+    {v:n.activeEvents,l:'Active Events'},
     {v:n.totalMatches.toLocaleString(),l:'Matches',c:ACCENT},
     {v:n.revealedMatches,l:'Reveals',c:AMBER},
-    {v:n.meetingsConfirmed,l:'Meetings',c:ACCENT},
-    {v:n.avgMatchScore > 0 ? pct(n.avgMatchScore) : '—',l:'Avg Score',c:''}
+    {v:n.meetingsConfirmed,l:'Meetings',c:GREEN},
+    {v:n.avgMatchScore > 0 ? pct(n.avgMatchScore) : '—',l:'Avg Score'}
   ].map(function(k){
-    return '<div class="kpi"><span class="kpi-val" style="color:'+(k.c||'var(--txt)')+'">'+k.v+'</span><span class="kpi-label">'+k.l+'</span></div>';
+    return '<div class="kpi"><span class="kpi-val" style="color:'+(k.c||'var(--heading)')+'">'+k.v+'</span><span class="kpi-label">'+k.l+'</span></div>';
   }).join('');
   document.getElementById('kpiRow').innerHTML = html;
 }
@@ -182,72 +215,52 @@ function renderMatching() {
   var el = document.getElementById('matching');
   var html = '<div class="grid">';
 
-  // Score → Acceptance chart
+  // Score chart
   html += '<div class="card"><div class="card-t">Match Score → Acceptance Rate</div><div class="chart-wrap"><canvas id="scoreChart"></canvas></div>';
-  html += insight('Correlation between match score and acceptance rate. Higher scores should produce higher acceptance — if flat, the algorithm isn\'t discriminating.');
+  html += insight('Correlation between match score and acceptance. Higher scores should produce higher acceptance — flat means the algorithm isn\'t discriminating.');
   html += '</div>';
 
-  // Archetype pairs table
+  // Archetype pairs
   html += '<div class="card"><div class="card-t">Archetype Pair Performance</div>';
   if (D.archetypePairs.length) {
-    html += '<div class="tbl-head" style="grid-template-columns:180px 50px 65px 65px 65px"><span>Pair</span><span class="r">#</span><span class="r">Accept</span><span class="r">Reveal</span><span class="r">Avg ★</span></div>';
+    html += '<div class="tbl-head" style="grid-template-columns:180px 50px 65px 65px 65px"><span>Pair</span><span class="r">#</span><span class="r">Accept</span><span class="r">Reveal</span><span class="r">Avg</span></div>';
     D.archetypePairs.forEach(function(a) {
       html += '<div class="tbl-row" style="grid-template-columns:180px 50px 65px 65px 65px">' +
         '<span style="font-weight:600;font-size:12px">'+esc(a.pair)+'</span>' +
         '<span class="r mono">'+a.matches+'</span>' +
-        '<span class="r mono" style="color:'+(a.acceptRate>0.35?ACCENT:a.acceptRate>0.25?AMBER:RED)+'">'+pct(a.acceptRate)+'</span>' +
+        '<span class="r mono" style="color:'+(a.acceptRate>0.35?GREEN:a.acceptRate>0.25?AMBER:RED)+'">'+pct(a.acceptRate)+'</span>' +
         '<span class="r mono">'+pct(a.revealRate)+'</span>' +
         '<span class="r mono">'+pct(a.avgScore)+'</span></div>';
     });
-    html += insight('Compare acceptance and reveal rates across archetype pairs. High acceptance but low reveal suggests one-sided interest.');
-  } else {
-    html += '<div class="empty-section">No match data yet</div>';
-  }
+    html += insight('High acceptance + low reveal = one-sided interest. Cross-type pairs often outperform same-type.');
+  } else { html += '<div class="empty-section">No match data yet</div>'; }
   html += '</div></div>';
 
-  // Acceptance by type
+  // Acceptance by type + canister depth
   html += '<div class="grid"><div class="card"><div class="card-t">Acceptance by Archetype</div>';
   if (D.acceptanceByType.length) {
     D.acceptanceByType.forEach(function(a) {
       var c = TC[a.type.toLowerCase().replace(/s$/,'')] || ACCENT;
-      html += '<div style="margin-bottom:14px">' +
-        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">' +
-          '<div style="display:flex;align-items:center;gap:8px">'+dot(c)+'<span style="font-size:13px;font-weight:600">'+esc(a.type)+'</span></div>' +
-          '<span class="mono" style="color:'+(a.rate>0.4?ACCENT:a.rate>0.3?AMBER:RED)+'">'+pct(a.rate)+'</span></div>' +
-        barTrack(a.rate*100,c)+'</div>';
+      html += '<div style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><div style="display:flex;align-items:center;gap:8px">'+dot(c)+'<span style="font-size:13px;font-weight:600">'+esc(a.type)+'</span></div><span class="mono" style="color:'+(a.rate>0.4?GREEN:a.rate>0.3?AMBER:RED)+'">'+pct(a.rate)+'</span></div>'+barTrack(a.rate*100,c)+'</div>';
     });
-  } else {
-    html += '<div class="empty-section">No acceptance data yet</div>';
-  }
+  } else { html += '<div class="empty-section">No acceptance data yet</div>'; }
   html += '</div>';
 
-  // Canister depth
   html += '<div class="card"><div class="card-t">Canister Completion Depth</div>';
   D.canisterDepth.forEach(function(f) {
-    var c = f.pct>75?ACCENT:f.pct>50?AMBER:RED;
-    html += '<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">' +
-      '<span style="font-size:12px;width:110px;text-align:right;color:var(--dim)">'+esc(f.field)+'</span>' +
-      '<div style="flex:1">'+barTrack(f.pct,c)+'</div>' +
-      '<span class="mono" style="width:35px;text-align:right;color:'+c+'">'+f.pct+'%</span></div>';
+    var c = f.pct>75?GREEN:f.pct>50?AMBER:RED;
+    html += '<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px"><span style="font-size:12px;width:110px;text-align:right;color:var(--text3)">'+esc(f.field)+'</span><div style="flex:1">'+barTrack(f.pct,c)+'</div><span class="mono" style="width:35px;text-align:right;color:'+c+'">'+f.pct+'%</span></div>';
   });
-  html += insight('Fields below 50% completion indicate Nev\'s off-ramps are being taken early. Check whether deeper canisters produce better match outcomes.');
+  html += insight('Fields below 50% = Nev off-ramps taken early. Do deeper canisters produce better matches?');
   html += '</div></div>';
 
   el.innerHTML = html;
 
-  // Render score chart
   if (D.scoreAcceptance.length) {
     new Chart(document.getElementById('scoreChart'), {
-      type: 'bar',
-      data: {
-        labels: D.scoreAcceptance.map(function(s){return s.band}),
-        datasets: [{ data: D.scoreAcceptance.map(function(s){return s.rate}), backgroundColor: ACCENT, borderRadius: 3, barPercentage: 0.6 }]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        scales: { y: { beginAtZero: true, max: 1, ticks: { callback: function(v){return(v*100)+'%'} }, border:{display:false} }, x: { border:{display:false} } },
-        plugins: { tooltip: { callbacks: { label: function(ctx){return pct(ctx.raw)} } } }
-      }
+      type:'bar',
+      data:{labels:D.scoreAcceptance.map(function(s){return s.band}),datasets:[{data:D.scoreAcceptance.map(function(s){return s.rate}),backgroundColor:ACCENT+'cc',borderRadius:4,barPercentage:0.6}]},
+      options:{responsive:true,maintainAspectRatio:false,scales:{y:{beginAtZero:true,max:1,ticks:{callback:function(v){return(v*100)+'%'}},border:{display:false}},x:{border:{display:false}}},plugins:{tooltip:{callbacks:{label:function(ctx){return pct(ctx.raw)}}}}}
     });
   }
 }
@@ -257,62 +270,38 @@ function renderSupplyDemand() {
   var el = document.getElementById('supply');
   var html = '';
 
-  // Theme × Archetype matrix
   html += '<div class="grid-full"><div class="card"><div class="card-t">Theme × Archetype Supply-Demand</div>';
   if (D.supplyDemand.length) {
-    html += '<div style="overflow-x:auto"><div class="tbl-head" style="grid-template-columns:120px 70px 70px 70px 70px 70px;min-width:480px">' +
-      '<span>Theme</span><span class="r">Founders</span><span class="r">Investors</span><span class="r">Corporates</span><span class="r">Research</span><span class="r">F:I</span></div>';
+    html += '<div style="overflow-x:auto"><div class="tbl-head" style="grid-template-columns:120px 70px 70px 70px 70px 70px;min-width:480px"><span>Theme</span><span class="r">Founders</span><span class="r">Investors</span><span class="r">Corp</span><span class="r">Research</span><span class="r">F:I</span></div>';
     D.supplyDemand.forEach(function(s) {
-      var ratioNum = parseFloat(s.ratio);
-      var rc = ratioNum>3?RED:ratioNum<1?ACCENT:'var(--mid)';
-      html += '<div class="tbl-row" style="grid-template-columns:120px 70px 70px 70px 70px 70px;min-width:480px">' +
-        '<span style="font-weight:600;font-size:13px">'+esc(s.theme)+'</span>' +
-        '<span class="r mono" style="color:'+ACCENT+'">'+s.founders+'</span>' +
-        '<span class="r mono" style="color:'+AMBER+'">'+s.investors+'</span>' +
-        '<span class="r mono" style="color:'+BLUE+'">'+s.corporates+'</span>' +
-        '<span class="r mono" style="color:'+RED+'">'+s.researchers+'</span>' +
-        '<span class="r mono" style="font-weight:600;color:'+rc+'">'+s.ratio+'x</span></div>';
+      var rn=parseFloat(s.ratio);var rc=rn>3?RED:rn<1?GREEN:'var(--text2)';
+      html += '<div class="tbl-row" style="grid-template-columns:120px 70px 70px 70px 70px 70px;min-width:480px"><span style="font-weight:600;font-size:13px">'+esc(s.theme)+'</span><span class="r mono" style="color:#ea580c">'+s.founders+'</span><span class="r mono" style="color:'+ACCENT+'">'+s.investors+'</span><span class="r mono" style="color:'+BLUE+'">'+s.corporates+'</span><span class="r mono" style="color:'+GREEN+'">'+s.researchers+'</span><span class="r mono" style="font-weight:600;color:'+rc+'">'+s.ratio+'x</span></div>';
     });
     html += '</div>';
-    html += insight('Themes with high founder-to-investor ratios (>3x) indicate oversupply — founders competing for limited investor attention. Themes below 1x indicate investor surplus — a seeding opportunity for founders.');
-  } else {
-    html += '<div class="empty-section">No profile data yet</div>';
-  }
+    html += insight('F:I > 3x = founders competing for limited investor attention. Below 1x = investor surplus — seeding opportunity.');
+  } else { html += '<div class="empty-section">No profile data yet</div>'; }
   html += '</div></div>';
 
-  // Intent gaps chart
   html += '<div class="grid"><div class="card"><div class="card-t">Intent vs Offering — Network Gaps</div>';
   if (D.intentGaps.length) {
     html += '<div class="chart-wrap" style="height:240px"><canvas id="gapChart"></canvas></div>';
-    html += '<div style="display:flex;gap:16px;font-size:11px;color:var(--dim)">'+dot(RED)+' Seeking &nbsp;'+dot(ACCENT)+' Offering</div>';
-    html += insight('Large gaps between seeking and offering represent structural friction in the network. The biggest gaps point to high-value user types to recruit.');
-  } else {
-    html += '<div class="empty-section">No intent/offering data yet</div>';
-  }
+    html += '<div style="display:flex;gap:16px;font-size:11px;color:var(--text3)">'+dot(RED)+' Seeking &nbsp;'+dot(GREEN)+' Offering</div>';
+    html += insight('Large gaps = structural friction. The biggest gaps show which user types to recruit.');
+  } else { html += '<div class="empty-section">No intent/offering data yet</div>'; }
   html += '</div>';
 
-  // Placeholder for geo corridors (needs real data)
-  html += '<div class="card"><div class="card-t">Geographic Corridors</div>' +
-    '<div class="empty-section">Geographic corridor analysis will activate when users from multiple regions register for overlapping events.</div></div>';
-  html += '</div>';
+  html += '<div class="card"><div class="card-t">Geographic Corridors</div><div class="empty-section">Activates when users from multiple regions register for overlapping events.</div></div></div>';
 
   el.innerHTML = html;
 
-  // Render gap chart
   if (D.intentGaps.length) {
     new Chart(document.getElementById('gapChart'), {
-      type: 'bar',
-      data: {
-        labels: D.intentGaps.map(function(g){return g.intent}),
-        datasets: [
-          { label: 'Seeking', data: D.intentGaps.map(function(g){return g.seeking}), backgroundColor: RED, borderRadius: 3, barPercentage: 0.4 },
-          { label: 'Offering', data: D.intentGaps.map(function(g){return g.offering}), backgroundColor: ACCENT, borderRadius: 3, barPercentage: 0.4 }
-        ]
-      },
-      options: {
-        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-        scales: { x: { display: false }, y: { border:{display:false} } }
-      }
+      type:'bar',
+      data:{labels:D.intentGaps.map(function(g){return g.intent}),datasets:[
+        {label:'Seeking',data:D.intentGaps.map(function(g){return g.seeking}),backgroundColor:RED+'cc',borderRadius:3,barPercentage:0.4},
+        {label:'Offering',data:D.intentGaps.map(function(g){return g.offering}),backgroundColor:GREEN+'cc',borderRadius:3,barPercentage:0.4}
+      ]},
+      options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,scales:{x:{display:false},y:{border:{display:false}}}}
     });
   }
 }
@@ -324,89 +313,89 @@ function renderNetwork() {
 
   // Funnel
   html += '<div class="card"><div class="card-t">Conversion Funnel</div>';
-  var maxCount = D.funnel[0] ? D.funnel[0].count : 1;
-  D.funnel.forEach(function(f, i) {
-    var pctVal = maxCount > 0 ? (f.count / maxCount * 100) : 0;
-    var dropoff = i > 0 && D.funnel[i-1].count > 0 ? ((D.funnel[i-1].count - f.count) / D.funnel[i-1].count * 100).toFixed(0) : null;
-    html += '<div style="display:flex;align-items:center;gap:12px;margin-bottom:5px">' +
-      '<span style="font-size:11px;color:var(--dim);width:120px;text-align:right">'+esc(f.stage)+'</span>' +
-      '<div style="flex:1">'+barTrack(pctVal,ACCENT)+'</div>' +
-      '<span class="mono" style="width:30px;text-align:right">'+f.count+'</span>' +
-      (dropoff ? '<span class="mono" style="width:36px;font-size:10px;color:'+(parseInt(dropoff)>40?RED:'var(--dim)')+'">-'+dropoff+'%</span>' : '<span style="width:36px"></span>') +
-    '</div>';
+  var maxC=D.funnel[0]?D.funnel[0].count:1;
+  D.funnel.forEach(function(f,i){
+    var pv=maxC>0?(f.count/maxC*100):0;
+    var dr=i>0&&D.funnel[i-1].count>0?((D.funnel[i-1].count-f.count)/D.funnel[i-1].count*100).toFixed(0):null;
+    html += '<div style="display:flex;align-items:center;gap:12px;margin-bottom:5px"><span style="font-size:11px;color:var(--text3);width:120px;text-align:right">'+esc(f.stage)+'</span><div style="flex:1">'+barTrack(pv,ACCENT)+'</div><span class="mono" style="width:30px;text-align:right">'+f.count+'</span>'+(dr?'<span class="mono" style="width:36px;font-size:10px;color:'+(parseInt(dr)>40?RED:'var(--text3)')+'">-'+dr+'%</span>':'<span style="width:36px"></span>')+'</div>';
   });
-  html += insight('The steepest drop-offs indicate where the user journey needs the most attention. Asymmetric match acceptance (one side accepts, the other doesn\'t) is typically the biggest bottleneck.');
+  html += insight('Steepest drops = biggest UX opportunities. One-sided acceptance is typically the main bottleneck.');
   html += '</div>';
 
   // Growth
   html += '<div class="card"><div class="card-t">Weekly Growth</div>';
   if (D.growth.length > 1) {
     html += '<div class="chart-wrap"><canvas id="growthChart"></canvas></div>';
-    html += '<div style="display:flex;gap:16px;font-size:11px;color:var(--dim)">'+dot(ACCENT)+' Users &nbsp;'+dot(BLUE)+' Registrations</div>';
-  } else {
-    html += '<div class="empty-section">Growth data will appear after the first few weeks of activity.</div>';
-  }
+    html += '<div style="display:flex;gap:16px;font-size:11px;color:var(--text3)">'+dot(ACCENT)+' Users &nbsp;'+dot(BLUE)+' Registrations</div>';
+  } else { html += '<div class="empty-section">Growth data appears after first weeks of activity.</div>'; }
+  html += '</div></div>';
+
+  // Daily signups
+  html += '<div class="grid"><div class="card"><div class="card-t">Daily Signups — Last 30 Days</div>';
+  if (D.dailySignups && D.dailySignups.length > 1) {
+    html += '<div class="chart-wrap"><canvas id="dailyChart"></canvas></div>';
+  } else { html += '<div class="empty-section">Daily signup data appears as users register.</div>'; }
+  html += '</div>';
+
+  html += '<div class="card"><div class="card-t">Key Ratios</div>';
+  var n = D.network;
+  var ratios = [
+    {l:'Canister rate', v: n.totalUsers > 0 ? pct(n.completeCanisters / n.totalUsers) : '—', c: n.completeCanisters/n.totalUsers > 0.7 ? GREEN : AMBER},
+    {l:'Match acceptance', v: n.totalMatches > 0 ? pct(n.acceptedMatches / n.totalMatches) : '—', c: n.acceptedMatches/n.totalMatches > 0.3 ? GREEN : AMBER},
+    {l:'Reveal rate', v: n.totalMatches > 0 ? pct(n.revealedMatches / n.totalMatches) : '—', c: n.revealedMatches/n.totalMatches > 0.15 ? GREEN : RED},
+    {l:'Meeting rate', v: n.revealedMatches > 0 ? pct(n.meetingsConfirmed / n.revealedMatches) : '—', c: GREEN}
+  ];
+  html += '<div class="metric-grid">';
+  ratios.forEach(function(r){
+    html += '<div class="metric-box"><div class="metric-val" style="color:'+r.c+'">'+r.v+'</div><div class="metric-label">'+r.l+'</div></div>';
+  });
+  html += '</div>';
+  html += insight('Canister rate > 70% = Nev onboarding is effective. Reveal rate below 15% = acceptance is one-sided or hesitant.');
   html += '</div></div>';
 
   el.innerHTML = html;
 
-  // Render growth chart
   if (D.growth.length > 1) {
     new Chart(document.getElementById('growthChart'), {
-      type: 'line',
-      data: {
-        labels: D.growth.map(function(g){return g.week}),
-        datasets: [
-          { label: 'Users', data: D.growth.map(function(g){return g.users}), borderColor: ACCENT, backgroundColor: ACCENT+'22', fill: true, tension: 0.3, borderWidth: 2, pointRadius: 3 },
-          { label: 'Registrations', data: D.growth.map(function(g){return g.regs}), borderColor: BLUE, backgroundColor: BLUE+'22', fill: true, tension: 0.3, borderWidth: 2, pointRadius: 3 }
-        ]
-      },
-      options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, border:{display:false} }, x: { border:{display:false} } } }
+      type:'line',
+      data:{labels:D.growth.map(function(g){return g.week}),datasets:[
+        {label:'Users',data:D.growth.map(function(g){return g.users}),borderColor:ACCENT,backgroundColor:ACCENT+'22',fill:true,tension:0.3,borderWidth:2,pointRadius:3},
+        {label:'Regs',data:D.growth.map(function(g){return g.regs}),borderColor:BLUE,backgroundColor:BLUE+'22',fill:true,tension:0.3,borderWidth:2,pointRadius:3}
+      ]},
+      options:{responsive:true,maintainAspectRatio:false,scales:{y:{beginAtZero:true,border:{display:false}},x:{border:{display:false}}}}
+    });
+  }
+
+  if (D.dailySignups && D.dailySignups.length > 1) {
+    new Chart(document.getElementById('dailyChart'), {
+      type:'bar',
+      data:{labels:D.dailySignups.map(function(d){return d.day}),datasets:[{data:D.dailySignups.map(function(d){return d.signups}),backgroundColor:ACCENT+'88',borderRadius:3,barPercentage:0.7}]},
+      options:{responsive:true,maintainAspectRatio:false,scales:{y:{beginAtZero:true,border:{display:false},ticks:{stepSize:1}},x:{border:{display:false}}},plugins:{tooltip:{callbacks:{label:function(ctx){return ctx.raw+' signups'}}}}}
     });
   }
 }
 
 // ── EVENTS TAB ──
-var selectedEventId = null;
-
 function renderEvents() {
   var el = document.getElementById('events');
   var html = '';
 
-  // Event selector
-  html += '<div style="display:flex;align-items:center;gap:16px;margin-bottom:20px">' +
-    '<select class="select" id="eventSelect" onchange="drillEvent(this.value)">' +
-    '<option value="">All Events — Scorecard View</option>';
-  D.eventScorecard.forEach(function(e) {
-    html += '<option value="'+e.id+'">'+esc(e.name)+'</option>';
-  });
+  html += '<div style="display:flex;align-items:center;gap:16px;margin-bottom:20px"><select class="select" id="eventSelect" onchange="drillEvent(this.value)"><option value="">All Events — Scorecard View</option>';
+  D.eventScorecard.forEach(function(e) { html += '<option value="'+e.id+'">'+esc(e.name)+'</option>'; });
   html += '</select></div>';
 
-  // Scorecard table
   html += '<div class="card" id="eventTable"><div class="card-t">Event Health Scorecards</div>';
   if (D.eventScorecard.length) {
-    html += '<div style="overflow-x:auto"><div class="tbl-head" style="grid-template-columns:180px 60px 50px 60px 60px 60px 60px;min-width:540px">' +
-      '<span>Event</span><span class="r">Date</span><span class="r">Regs</span><span class="r">Matches</span><span class="r">Accept</span><span class="r">Reveal</span><span class="r">Avg ★</span></div>';
+    html += '<div style="overflow-x:auto"><div class="tbl-head" style="grid-template-columns:200px 60px 50px 60px 60px 60px 60px;min-width:560px"><span>Event</span><span class="r">Date</span><span class="r">Regs</span><span class="r">Matches</span><span class="r">Accept</span><span class="r">Reveal</span><span class="r">Avg</span></div>';
     D.eventScorecard.forEach(function(e) {
-      html += '<div class="tbl-row clickable" style="grid-template-columns:180px 60px 50px 60px 60px 60px 60px;min-width:540px" onclick="drillEvent('+e.id+')">' +
-        '<span style="font-weight:700;font-size:13px;color:var(--accent)">'+esc(e.name)+'</span>' +
-        '<span class="r mono" style="color:var(--dim);font-size:11px">'+esc(e.date)+'</span>' +
-        '<span class="r mono">'+e.regs+'</span>' +
-        '<span class="r mono">'+e.matches+'</span>' +
-        '<span class="r mono" style="color:'+(e.acceptRate>0.35?ACCENT:e.acceptRate>0.25?AMBER:RED)+'">'+pct(e.acceptRate)+'</span>' +
-        '<span class="r mono">'+pct(e.revealRate)+'</span>' +
-        '<span class="r mono">'+pct(e.avgScore)+'</span></div>';
+      html += '<div class="tbl-row clickable" style="grid-template-columns:200px 60px 50px 60px 60px 60px 60px;min-width:560px" onclick="drillEvent('+e.id+')"><span style="font-weight:700;font-size:13px;color:var(--accent)">'+esc(e.name)+'</span><span class="r mono" style="color:var(--text3);font-size:11px">'+esc(e.date)+'</span><span class="r mono">'+e.regs+'</span><span class="r mono">'+e.matches+'</span><span class="r mono" style="color:'+(e.acceptRate>0.35?GREEN:e.acceptRate>0.25?AMBER:RED)+'">'+pct(e.acceptRate)+'</span><span class="r mono">'+pct(e.revealRate)+'</span><span class="r mono">'+pct(e.avgScore)+'</span></div>';
     });
     html += '</div>';
-    html += insight('Click any event to drill into its composition. Small focused events often outperform large broad ones on acceptance and meeting rates.');
-  } else {
-    html += '<div class="empty-section">No events with registrations yet</div>';
-  }
+    html += insight('Click any event to drill in. Small focused events often outperform large broad ones on acceptance.');
+  } else { html += '<div class="empty-section">No events with registrations yet</div>'; }
   html += '</div>';
 
-  // Drill-down container
   html += '<div id="eventDrill" style="display:none"></div>';
-
   el.innerHTML = html;
 }
 
@@ -421,79 +410,52 @@ async function drillEvent(id) {
   try {
     var resp = await fetch('/api/admin/dashboard/event/' + id, { headers: { 'Authorization': 'Bearer ' + token } });
     var data = await resp.json();
-
     document.getElementById('eventTable').style.display = 'none';
     var drill = document.getElementById('eventDrill');
     drill.style.display = '';
-
     var html = '<div class="grid">';
 
-    // Key metrics
-    html += '<div class="card"><div class="card-t">' + esc(data.event.name) + ' — Key Metrics</div>' +
-      '<div class="metric-grid">';
-    [{l:'Registrations',v:data.regs,c:''},{l:'Matches',v:data.matches,c:BLUE},{l:'Accepted',v:data.accepted,c:AMBER},{l:'Revealed',v:data.revealed,c:ACCENT},{l:'Avg Score',v:data.avgScore>0?pct(data.avgScore):'—',c:''}].forEach(function(m){
-      html += '<div class="metric-box"><div class="metric-val" style="color:'+(m.c||'var(--txt)')+'">'+m.v+'</div><div class="metric-label">'+m.l+'</div></div>';
+    html += '<div class="card"><div class="card-t">' + esc(data.event.name) + ' — Key Metrics</div><div class="metric-grid">';
+    [{l:'Registrations',v:data.regs},{l:'Matches',v:data.matches,c:BLUE},{l:'Accepted',v:data.accepted,c:AMBER},{l:'Revealed',v:data.revealed,c:GREEN},{l:'Avg Score',v:data.avgScore>0?pct(data.avgScore):'—'}].forEach(function(m){
+      html += '<div class="metric-box"><div class="metric-val" style="color:'+(m.c||'var(--heading)')+'">'+m.v+'</div><div class="metric-label">'+m.l+'</div></div>';
     });
-    html += '</div><div style="margin-top:16px;text-align:center"><button class="tab active" style="border:none;background:var(--accentL);border-radius:8px;padding:10px 24px;cursor:pointer" onclick="drillEvent(\'\')">← Back to All Events</button></div></div>';
+    html += '</div><div style="margin-top:16px;text-align:center"><button class="btn-back" onclick="drillEvent(\'\')">← Back to All Events</button></div></div>';
 
-    // Stakeholder breakdown
     html += '<div class="card"><div class="card-t">Stakeholder Composition</div>';
     if (data.stakeholders.length) {
       html += '<div class="chart-wrap" style="height:180px"><canvas id="stakeChart"></canvas></div>';
-    } else {
-      html += '<div class="empty-section">No profiles registered yet</div>';
-    }
-    html += '</div>';
-
-    // Theme breakdown
-    html += '</div><div class="grid"><div class="card"><div class="card-t">Theme Distribution</div>';
-    if (data.themes.length) {
-      data.themes.forEach(function(t) {
-        var maxT = data.themes[0].count;
-        html += '<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">' +
-          '<span style="font-size:12px;width:110px;text-align:right;color:var(--dim)">'+esc(t.theme)+'</span>' +
-          '<div style="flex:1">'+barTrack(maxT>0?t.count/maxT*100:0,ACCENT)+'</div>' +
-          '<span class="mono" style="width:25px;text-align:right">'+t.count+'</span></div>';
-      });
-    } else {
-      html += '<div class="empty-section">No theme data yet</div>';
-    }
-    html += '</div>';
-
-    // Funnel
-    html += '<div class="card"><div class="card-t">Funnel</div>';
-    var funnelData = [
-      {l:'Registrations',v:data.regs,c:'var(--mute)'},
-      {l:'Matches',v:data.matches,c:BLUE},
-      {l:'Accepted',v:data.accepted,c:AMBER},
-      {l:'Revealed',v:data.revealed,c:ACCENT}
-    ];
-    var fMax = data.regs || 1;
-    funnelData.forEach(function(f) {
-      html += '<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">' +
-        '<span style="font-size:12px;width:100px;text-align:right;color:var(--dim)">'+f.l+'</span>' +
-        '<div style="flex:1">'+barTrack(f.v/fMax*100,f.c)+'</div>' +
-        '<span class="mono" style="width:30px;text-align:right">'+f.v+'</span></div>';
-    });
+    } else { html += '<div class="empty-section">No profiles yet</div>'; }
     html += '</div></div>';
 
+    html += '<div class="grid"><div class="card"><div class="card-t">Theme Distribution</div>';
+    if (data.themes.length) {
+      data.themes.forEach(function(t){
+        var mx=data.themes[0].count;
+        html += '<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px"><span style="font-size:12px;width:110px;text-align:right;color:var(--text3)">'+esc(t.theme)+'</span><div style="flex:1">'+barTrack(mx>0?t.count/mx*100:0,ACCENT)+'</div><span class="mono" style="width:25px;text-align:right">'+t.count+'</span></div>';
+      });
+    } else { html += '<div class="empty-section">No theme data yet</div>'; }
+    html += '</div>';
+
+    html += '<div class="card"><div class="card-t">Funnel</div>';
+    var fd=[{l:'Registrations',v:data.regs,c:'var(--text3)'},{l:'Matches',v:data.matches,c:BLUE},{l:'Accepted',v:data.accepted,c:AMBER},{l:'Revealed',v:data.revealed,c:GREEN}];
+    var fM=data.regs||1;
+    fd.forEach(function(f){
+      html += '<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px"><span style="font-size:12px;width:100px;text-align:right;color:var(--text3)">'+f.l+'</span><div style="flex:1">'+barTrack(f.v/fM*100,f.c)+'</div><span class="mono" style="width:30px;text-align:right">'+f.v+'</span></div>';
+    });
+    html += '</div></div>';
     drill.innerHTML = html;
 
-    // Render stakeholder pie
     if (data.stakeholders.length) {
       var colors = data.stakeholders.map(function(s){return TC[s.type]||'#999'});
       new Chart(document.getElementById('stakeChart'), {
-        type: 'doughnut',
-        data: {
-          labels: data.stakeholders.map(function(s){return s.type.charAt(0).toUpperCase()+s.type.slice(1)}),
-          datasets: [{ data: data.stakeholders.map(function(s){return s.count}), backgroundColor: colors, borderWidth: 0, spacing: 2 }]
-        },
-        options: { responsive: true, maintainAspectRatio: false, cutout: '55%', plugins: { legend: { display: true, position: 'right', labels: { boxWidth: 10, padding: 12, font:{size:11} } } } }
+        type:'doughnut',
+        data:{labels:data.stakeholders.map(function(s){return s.type.charAt(0).toUpperCase()+s.type.slice(1)}),datasets:[{data:data.stakeholders.map(function(s){return s.count}),backgroundColor:colors,borderWidth:0,spacing:2}]},
+        options:{responsive:true,maintainAspectRatio:false,cutout:'55%',plugins:{legend:{display:true,position:'right',labels:{boxWidth:10,padding:12,font:{size:11}}}}}
       });
     }
   } catch(e) {
     console.error(e);
-    document.getElementById('eventDrill').innerHTML = '<div class="card"><div class="empty-section">Failed to load event details</div></div>';
+    document.getElementById('eventDrill').innerHTML = '<div class="card"><div class="empty-section">Failed to load event details: '+esc(e.message)+'</div></div>';
   }
 }
 
