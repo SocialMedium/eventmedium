@@ -35,13 +35,13 @@ img{max-width:100%;display:block}
 .nav.scrolled{background:rgba(255,255,255,0.92);backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
 .nav-inner{max-width:var(--max);margin:0 auto;padding:0 32px;display:flex;align-items:center;justify-content:space-between}
 .nav-logo{font-family:var(--sans);font-size:20px;font-weight:700;color:var(--heading);letter-spacing:-0.02em;display:flex;align-items:center;gap:8px}
-.nav-logo .logo-dot{width:24px;height:24px;border-radius:50%;background:var(--accent);flex-shrink:0}
-.nav-logo span{color:#22c55e}
+.nav-logo .logo-dot{width:24px;height:24px;border-radius:6px;background:linear-gradient(135deg,var(--accent) 0%,var(--accent2) 100%);flex-shrink:0}
+.nav-logo span{color:var(--accent)}
 .nav-links{display:flex;align-items:center;gap:32px}
 .nav-links a{font-size:13px;font-weight:500;color:var(--text2);letter-spacing:0.02em;transition:color 0.2s}
 .nav-links a:hover{color:var(--heading)}
-.nav-cta{background:var(--accent);color:#fff!important;padding:8px 20px;border-radius:6px;font-size:13px;font-weight:600;transition:all 0.2s}
-.nav-cta:hover{background:var(--accent2);transform:translateY(-1px);color:#fff!important}
+.nav-cta{background:linear-gradient(135deg,var(--accent) 0%,var(--accent2) 100%);color:#fff!important;padding:8px 20px;border-radius:6px;font-size:13px;font-weight:600;transition:all 0.2s}
+.nav-cta:hover{background:linear-gradient(135deg,var(--accent2) 0%,#4338ca 100%);transform:translateY(-1px);color:#fff!important}
 .nav-hamburger{display:none;background:none;border:none;color:var(--heading);cursor:pointer;padding:4px}
 .nav-hamburger svg{width:24px;height:24px}
 
@@ -49,7 +49,7 @@ img{max-width:100%;display:block}
 .hero{min-height:100vh;display:flex;align-items:center;position:relative;overflow:hidden;padding:120px 0 80px}
 .hero::before{
   content:'';position:absolute;top:-20%;right:-10%;width:600px;height:600px;
-  background:radial-gradient(circle,var(--accent-light) 0%,transparent 70%);
+  background:radial-gradient(circle,rgba(99,102,241,0.06) 0%,rgba(79,70,229,0.03) 40%,transparent 70%);
   pointer-events:none;
 }
 .hero::after{
@@ -67,55 +67,55 @@ img{max-width:100%;display:block}
   font-family:var(--sans);font-size:clamp(40px,5vw,64px);line-height:1.08;
   color:var(--heading);margin-bottom:24px;font-weight:700;letter-spacing:-0.03em;
 }
-.hero h1 em{font-style:italic;font-weight:400;color:var(--accent)}
+.hero h1 em{font-style:italic;font-weight:400;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .hero-sub{font-size:17px;color:var(--text2);line-height:1.7;max-width:480px;margin-bottom:36px}
 .hero-actions{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
 .btn-primary{
   display:inline-flex;align-items:center;gap:8px;
-  background:var(--accent);color:#fff;padding:14px 28px;border-radius:8px;
+  background:linear-gradient(135deg,var(--accent) 0%,var(--accent2) 100%);color:#fff;padding:14px 28px;border-radius:8px;
   font-size:14px;font-weight:600;letter-spacing:0.01em;
   transition:all 0.25s var(--ease);border:none;cursor:pointer;
 }
-.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(99,102,241,0.2);background:var(--accent2)}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(99,102,241,0.25);background:linear-gradient(135deg,var(--accent2) 0%,#4338ca 100%)}
 .btn-secondary-link{font-size:14px;color:var(--text2);font-weight:500;transition:color 0.2s;display:inline-flex;align-items:center;gap:6px}
 .btn-secondary-link:hover{color:var(--heading)}
 .btn-secondary-link svg{width:16px;height:16px;transition:transform 0.2s}
 .btn-secondary-link:hover svg{transform:translateX(3px)}
 
 /* ── Match Cards (Hero right) ── */
-.hero-cards{position:relative;height:520px;width:100%}
+.hero-cards{position:relative;height:560px;width:100%}
 .match-card{
-  position:absolute;width:260px;
-  background:var(--bg);border:1px solid var(--border);
-  border-radius:14px;padding:18px 20px;
+  position:absolute;width:220px;
+  background:linear-gradient(160deg,#fff 0%,var(--bg2) 100%);border:1px solid var(--border);
+  border-radius:12px;padding:16px 18px;
   box-shadow:0 8px 32px rgba(99,102,241,0.06),0 2px 8px rgba(0,0,0,0.04);
   transition:transform 0.4s var(--ease),opacity 0.6s ease;
 }
 .match-card.hidden{opacity:0;pointer-events:none}
-.match-card:nth-child(1){top:0;right:80px;z-index:3;animation:cardFloat1 6s ease-in-out infinite}
-.match-card:nth-child(2){top:190px;right:20px;z-index:2;animation:cardFloat2 7s ease-in-out infinite}
-.match-card:nth-child(3){top:360px;right:100px;z-index:1;animation:cardFloat3 8s ease-in-out infinite}
-.match-card:nth-child(n+4){top:0;right:80px;z-index:3}
-.match-card:nth-child(5){top:190px;right:20px;z-index:2}
-.match-card:nth-child(6){top:360px;right:100px;z-index:1}
+.match-card:nth-child(1){top:0;right:60px;z-index:3;animation:cardFloat1 6s ease-in-out infinite}
+.match-card:nth-child(2){top:200px;right:0;z-index:2;animation:cardFloat2 7s ease-in-out infinite}
+.match-card:nth-child(3){top:380px;right:80px;z-index:1;animation:cardFloat3 8s ease-in-out infinite}
+.match-card:nth-child(n+4){top:0;right:60px;z-index:3}
+.match-card:nth-child(5){top:200px;right:0;z-index:2}
+.match-card:nth-child(6){top:380px;right:80px;z-index:1}
 @keyframes cardFloat1{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-10px) rotate(0.5deg)}}
 @keyframes cardFloat2{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(8px) rotate(-0.5deg)}}
 @keyframes cardFloat3{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-6px) rotate(0.3deg)}}
-.mc-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px}
-.mc-type{font-size:12px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase}
+.mc-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
+.mc-type{font-size:11px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase}
 .mc-type.investor{color:#6366f1}
 .mc-type.researcher{color:#059669}
 .mc-type.founder{color:#ea580c}
 .mc-type.corporate{color:#0284c7}
 .mc-type.advisor{color:#7c3aed}
 .mc-type.operator{color:#be185d}
-.mc-lock{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text3);letter-spacing:0.08em;text-transform:uppercase}
-.mc-lock svg{width:12px;height:12px;opacity:0.5}
-.mc-score{font-family:var(--sans);font-size:32px;font-weight:700;color:var(--heading);margin-bottom:4px}
-.mc-score span{font-size:14px;color:var(--text3);font-weight:400}
-.mc-desc{font-size:13px;color:var(--text2);line-height:1.5;margin-bottom:12px}
-.mc-tags{display:flex;flex-wrap:wrap;gap:6px}
-.mc-tag{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500;background:var(--bg2);color:var(--text2);border:1px solid var(--border)}
+.mc-lock{display:flex;align-items:center;gap:3px;font-size:9px;color:var(--text3);letter-spacing:0.08em;text-transform:uppercase}
+.mc-lock svg{width:10px;height:10px;opacity:0.5}
+.mc-score{font-family:var(--sans);font-size:28px;font-weight:700;color:var(--heading);margin-bottom:2px}
+.mc-score span{font-size:12px;color:var(--text3);font-weight:400}
+.mc-desc{font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:10px}
+.mc-tags{display:flex;flex-wrap:wrap;gap:4px}
+.mc-tag{padding:2px 8px;border-radius:20px;font-size:10px;font-weight:500;background:linear-gradient(135deg,var(--bg2),var(--bg3));color:var(--text2);border:1px solid var(--border)}
 
 /* ── Section base ── */
 .section{padding:120px 0;position:relative}
@@ -145,7 +145,7 @@ img{max-width:100%;display:block}
 .step:first-child{border-radius:14px 0 0 14px}
 .step:last-child{border-radius:0 14px 14px 0}
 .step:hover{background:linear-gradient(135deg,var(--bg3) 0%,var(--bg2) 100%);border-color:rgba(99,102,241,0.12)}
-.step-num{font-family:var(--sans);font-size:48px;font-weight:800;color:rgba(99,102,241,0.1);line-height:1;margin-bottom:16px}
+.step-num{font-family:var(--sans);font-size:48px;font-weight:800;background:linear-gradient(135deg,rgba(99,102,241,0.12),rgba(79,70,229,0.06));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1;margin-bottom:16px}
 .step h3{font-size:16px;font-weight:600;color:var(--heading);margin-bottom:8px}
 .step p{font-size:14px;color:var(--text2);line-height:1.6}
 
@@ -171,24 +171,24 @@ img{max-width:100%;display:block}
   transition:all 0.3s;
 }
 .flow-step:hover{border-left-color:var(--accent)}
-.flow-step:hover::before{background:var(--accent);border-color:var(--accent)}
+.flow-step:hover::before{background:linear-gradient(135deg,var(--accent),var(--accent2));border-color:var(--accent)}
 .flow-step h4{font-size:14px;font-weight:600;color:var(--heading);margin-bottom:4px}
 .flow-step p{font-size:13px;color:var(--text2)}
 
 /* ── Who it's for ── */
 .types-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px}
 .type-card{
-  background:var(--bg2);border:1px solid var(--border);
+  background:linear-gradient(135deg,var(--bg2) 0%,#fff 100%);border:1px solid var(--border);
   padding:32px 28px;transition:all 0.3s ease;position:relative;overflow:hidden;
 }
 .type-card:nth-child(1){border-radius:14px 0 0 0}
 .type-card:nth-child(3){border-radius:0 14px 0 0}
 .type-card:nth-child(4){border-radius:0 0 0 14px}
 .type-card:nth-child(6){border-radius:0 0 14px 0}
-.type-card:hover{background:var(--bg3);border-color:rgba(0,0,0,0.1)}
+.type-card:hover{background:linear-gradient(135deg,var(--bg3) 0%,var(--bg2) 100%);border-color:rgba(99,102,241,0.12)}
 .type-card::after{
   content:'';position:absolute;top:0;left:0;right:0;height:2px;
-  background:var(--accent);transform:scaleX(0);transform-origin:left;transition:transform 0.3s var(--ease);
+  background:linear-gradient(90deg,var(--accent),var(--accent2));transform:scaleX(0);transform-origin:left;transition:transform 0.3s var(--ease);
 }
 .type-card:hover::after{transform:scaleX(1)}
 .type-icon{font-size:28px;margin-bottom:14px;color:var(--accent)}
@@ -207,8 +207,8 @@ img{max-width:100%;display:block}
   display:inline-flex;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:600;
   letter-spacing:0.08em;text-transform:uppercase;margin-bottom:20px;
 }
-.mode-label.event{background:var(--accent-light);color:var(--accent)}
-.mode-label.always{background:rgba(5,150,105,0.08);color:#059669}
+.mode-label.event{background:linear-gradient(135deg,rgba(99,102,241,0.08) 0%,rgba(79,70,229,0.12) 100%);color:var(--accent)}
+.mode-label.always{background:linear-gradient(135deg,rgba(5,150,105,0.06) 0%,rgba(5,150,105,0.12) 100%);color:#059669}
 .mode-card h3{font-size:18px;font-weight:600;color:var(--heading);margin-bottom:0}
 .mode-features{list-style:none;display:flex;flex-direction:column;gap:12px}
 .mode-features li{font-size:14px;color:var(--text2);display:flex;align-items:flex-start;gap:10px;line-height:1.5}
@@ -235,10 +235,10 @@ img{max-width:100%;display:block}
 .org-footer p{font-size:14px;color:var(--text2);margin-bottom:20px}
 .btn-email{
   display:inline-flex;align-items:center;gap:8px;
-  background:var(--accent);color:#fff;padding:14px 32px;border-radius:8px;
+  background:linear-gradient(135deg,var(--accent) 0%,var(--accent2) 100%);color:#fff;padding:14px 32px;border-radius:8px;
   font-size:14px;font-weight:600;transition:all 0.25s var(--ease);border:none;cursor:pointer;
 }
-.btn-email:hover{background:var(--accent2);transform:translateY(-2px);box-shadow:0 8px 32px rgba(99,102,241,0.2)}
+.btn-email:hover{background:linear-gradient(135deg,var(--accent2) 0%,#4338ca 100%);transform:translateY(-2px);box-shadow:0 8px 32px rgba(99,102,241,0.25)}
 
 /* ── Footer ── */
 .footer{border-top:1px solid var(--border);padding:48px 0}
@@ -249,6 +249,24 @@ img{max-width:100%;display:block}
 .footer-links{display:flex;gap:24px}
 .footer-links a{font-size:13px;color:var(--text2);transition:color 0.2s}
 .footer-links a:hover{color:var(--heading)}
+
+/* ── Section CTAs ── */
+.section-cta-wrap{text-align:center;margin-top:40px}
+.btn-section{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:12px 28px;border:1px solid rgba(99,102,241,0.3);border-radius:8px;
+  color:var(--accent);font-size:14px;font-weight:600;
+  background:linear-gradient(135deg,rgba(99,102,241,0.04) 0%,rgba(79,70,229,0.08) 100%);
+  transition:all 0.25s var(--ease);cursor:pointer;
+}
+.btn-section:hover{
+  background:linear-gradient(135deg,rgba(99,102,241,0.08) 0%,rgba(79,70,229,0.14) 100%);
+  border-color:var(--accent);transform:translateY(-2px);
+  box-shadow:0 6px 24px rgba(99,102,241,0.12);
+}
+.btn-section svg{width:16px;height:16px;transition:transform 0.2s}
+.btn-section:hover svg{transform:translateX(3px)}
+.hero-btn-sub{display:block;font-size:11px;font-weight:400;opacity:0.8;margin-top:2px;letter-spacing:0.02em}
 
 /* ── Animations ── */
 .reveal{opacity:0;transform:translateY(24px);transition:opacity 0.6s ease,transform 0.6s var(--ease)}
@@ -335,7 +353,7 @@ img{max-width:100%;display:block}
       <p class="hero-sub">A two-minute conversation builds your private intelligence layer. From there, the system surfaces high-value connections anonymously — before you arrive.</p>
       <div class="hero-actions">
         <a href="/onboard.html" class="btn-primary">
-          Start your canister — 2 minutes
+          <span>Start your canister<span class="hero-btn-sub">2-minute setup</span></span>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
         </a>
         <a href="/events.html" class="btn-secondary-link">
@@ -428,6 +446,12 @@ img{max-width:100%;display:block}
       </div>
     </div>
     <p class="section-closer reveal">No browsing. No cold approaches. No badge-and-hope networking.</p>
+    <div class="section-cta-wrap reveal">
+      <a href="/onboard.html" class="btn-section">
+        Start your private canister
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+      </a>
+    </div>
   </div>
 </section>
 
@@ -442,6 +466,12 @@ img{max-width:100%;display:block}
         <h2 class="section-title">Invisible until mutual.</h2>
         <p>There is no public directory. No one can browse you, search for you, or see that you're attending.</p>
         <p>Your canister works on your behalf without exposing you. Identities unlock only when both sides independently choose to connect.</p>
+        <div style="margin-top:32px">
+          <a href="/onboard.html" class="btn-section">
+            Try it anonymously
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+          </a>
+        </div>
       </div>
       <div class="privacy-flow reveal reveal-delay-1">
         <div class="flow-step">
@@ -477,6 +507,12 @@ img{max-width:100%;display:block}
       <p>Investors meet founders. Researchers meet commercial partners. Operators meet acquisition targets. Institutions meet industry.</p>
       <p>EventMedium matches across roles — not within them.</p>
     </div>
+    <div class="section-cta-wrap reveal">
+      <a href="/events.html" class="btn-section">
+        See who's already aligned at your event
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+      </a>
+    </div>
   </div>
 </section>
 
@@ -500,6 +536,12 @@ img{max-width:100%;display:block}
         <span class="mode-label always">Always On</span>
         <h3>Continuous alignment beyond the room</h3>
       </div>
+    </div>
+    <div class="section-cta-wrap reveal">
+      <a href="/onboard.html" class="btn-section">
+        Activate Always-On matching
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+      </a>
     </div>
   </div>
 </section>
@@ -534,7 +576,7 @@ img{max-width:100%;display:block}
     <div class="org-footer reveal">
       <p>No public directory. No cold messaging. Just mutual, high-signal introductions.</p>
       <a href="mailto:jt@socialmedium.ai" class="btn-email">
-        Bring EventMedium to your event
+        Upgrade your event with private matching
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
       </a>
     </div>
@@ -545,7 +587,7 @@ img{max-width:100%;display:block}
 <footer class="footer">
   <div class="footer-inner">
     <div class="footer-left">
-      <div class="footer-logo">Event <span style="color:#22c55e">Medium</span></div>
+      <div class="footer-logo">Event <span style="color:var(--accent)">Medium</span></div>
       <div class="footer-powered">Powered by <a href="https://socialmedium.ai">Social Medium AI</a></div>
     </div>
     <div class="footer-links">
