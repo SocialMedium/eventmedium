@@ -15,9 +15,49 @@
   // ── Determine current page ──
   var path = window.location.pathname;
   var page = path.split('/').pop().replace('.html', '') || 'index';
-
-  // ── Detect if this is the landing page ──
   var isLanding = (page === 'index' || path === '/');
+
+  // ── Logout handler ──
+  function doLogout(e) {
+    if (e) e.preventDefault();
+    var t = localStorage.getItem('auth_token');
+    localStorage.removeItem('auth_token');
+    if (t) {
+      fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + t }
+      }).catch(function() {});
+    }
+    window.location.href = '/auth.html';
+  }
+
+  // ── Fix any existing logout links in the page ──
+  document.querySelectorAll('a[href*="logout"], a[href*="eventmedium.html"]').forEach(function(a) {
+    a.href = '#';
+    a.addEventListener('click', doLogout);
+  });
+
+  // ── Add logout to desktop nav if logged in ──
+  if (token) {
+    var navLogout = document.getElementById('nav-logout');
+    if (navLogout) {
+      navLogout.href = '#';
+      navLogout.addEventListener('click', doLogout);
+    } else {
+      // No logout link exists — inject one at end of nav
+      var existingLinks = nav.querySelectorAll('.nav-link, .nav-cta');
+      if (existingLinks.length > 0) {
+        var logoutLink = document.createElement('a');
+        logoutLink.href = '#';
+        logoutLink.className = 'nav-link';
+        logoutLink.textContent = 'Log out';
+        logoutLink.style.cssText = 'color:#999;font-size:13px';
+        logoutLink.addEventListener('click', doLogout);
+        // Insert before burger (which is last child)
+        nav.insertBefore(logoutLink, burger);
+      }
+    }
+  }
 
   // ── Build mobile drawer ──
   var overlay = document.createElement('div');
@@ -30,7 +70,7 @@
   // Drawer header
   drawer.innerHTML = '<div class="nav-drawer-header">' +
     '<a href="/" class="nav-drawer-brand">' +
-      '<span style="font-weight:800;font-size:1.05rem">Event <span style="color:var(--p)">Medium</span></span>' +
+      '<span style="font-weight:800;font-size:1.05rem">Event <span style="color:var(--p,#6366f1)">Medium</span></span>' +
     '</a>' +
     '<button class="nav-drawer-close" aria-label="Close">' +
       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>' +
@@ -41,22 +81,21 @@
   var linksHTML = '<div class="nav-drawer-links">';
 
   if (isLanding) {
-    // Landing page links
     linksHTML += '<a href="#how"><i data-lucide="zap"></i> How it works</a>';
     linksHTML += '<a href="#types"><i data-lucide="users"></i> Who it\'s for</a>';
     linksHTML += '<a href="#organisers"><i data-lucide="building-2"></i> Organisers</a>';
     linksHTML += '<a href="/events.html"><i data-lucide="calendar"></i> Browse Events</a>';
   } else {
-    // App page links
     linksHTML += '<a href="/events.html"' + (page === 'events' ? ' class="active"' : '') + '><i data-lucide="calendar"></i> Events</a>';
   }
 
-  // Auth-dependent links
   if (token) {
     linksHTML += '<div class="nav-drawer-divider"></div>';
     linksHTML += '<a href="/matches.html"' + (page === 'matches' ? ' class="active"' : '') + '><i data-lucide="heart-handshake"></i> Matches</a>';
     linksHTML += '<a href="/inbox.html"' + (page === 'inbox' ? ' class="active"' : '') + '><i data-lucide="inbox"></i> Inbox</a>';
     linksHTML += '<a href="/canister.html"' + (page === 'canister' ? ' class="active"' : '') + '><i data-lucide="user"></i> My Canister</a>';
+    linksHTML += '<div class="nav-drawer-divider"></div>';
+    linksHTML += '<a href="#" class="nav-logout-mobile"><i data-lucide="log-out"></i> Log out</a>';
   }
 
   linksHTML += '</div>';
@@ -70,6 +109,12 @@
   }
 
   document.body.appendChild(drawer);
+
+  // ── Attach logout to mobile drawer link ──
+  var mobileLogout = drawer.querySelector('.nav-logout-mobile');
+  if (mobileLogout) {
+    mobileLogout.addEventListener('click', doLogout);
+  }
 
   // ── Desktop nav auth state ──
   var navMatches = document.getElementById('nav-matches');
@@ -95,7 +140,6 @@
     overlay.classList.add('open');
     drawer.classList.add('open');
     document.body.style.overflow = 'hidden';
-    // Re-render icons in drawer
     if (typeof lucide !== 'undefined') lucide.createIcons();
   }
 
@@ -109,12 +153,10 @@
   overlay.addEventListener('click', closeDrawer);
   drawer.querySelector('.nav-drawer-close').addEventListener('click', closeDrawer);
 
-  // Close on link click (for anchor links on landing page)
-  drawer.querySelectorAll('a').forEach(function(a) {
+  drawer.querySelectorAll('a:not(.nav-logout-mobile)').forEach(function(a) {
     a.addEventListener('click', closeDrawer);
   });
 
-  // Close on escape key
   document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') closeDrawer();
   });
