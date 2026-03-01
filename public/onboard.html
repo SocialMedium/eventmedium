@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Talk to Nev — Event Medium</title>
 <script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <style>
 :root {
   --p: #0066ff;--pL: #e8f0fe;--pD: #0052cc;--s: #6c63ff;--ok: #00d084;
@@ -49,6 +50,19 @@ body{font-family:var(--font);color:var(--txt);background:var(--bg);-webkit-font-
 .typing-dots span:nth-child(3){animation-delay:0.4s}
 @keyframes dot{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-4px)}}
 
+/* ── Markdown in Nev bubbles ── */
+.msg.nev p{margin:0 0 6px;line-height:1.6}
+.msg.nev p:last-child{margin-bottom:0}
+.msg.nev strong{font-weight:700;color:var(--txt)}
+.msg.nev em{font-style:italic;color:var(--txtL)}
+.msg.nev ul,.msg.nev ol{margin:4px 0 6px 16px;padding:0}
+.msg.nev li{margin-bottom:2px;line-height:1.5;font-size:13px}
+.msg.nev h1,.msg.nev h2,.msg.nev h3,.msg.nev h4{font-size:14px;font-weight:700;margin:6px 0 4px;color:var(--txt)}
+.msg.nev h1:first-child,.msg.nev h2:first-child,.msg.nev h3:first-child{margin-top:0}
+.msg.nev code{background:var(--bg);padding:1px 5px;border-radius:4px;font-size:12px;font-family:ui-monospace,monospace}
+.msg.nev blockquote{border-left:3px solid var(--p);padding-left:10px;margin:4px 0;color:var(--txtL);font-style:italic}
+.msg.nev a{color:var(--p);text-decoration:underline}
+
 /* Input bar */
 .input-wrap{padding:12px 24px 20px;flex-shrink:0;display:flex;gap:8px;align-items:flex-end}
 .chat-input{flex:1;padding:10px 14px;border:1px solid var(--bdr);border-radius:12px;font-size:14px;font-family:var(--font);background:var(--card);color:var(--txt);transition:all 0.2s;resize:none;min-height:42px;max-height:120px;line-height:1.4}
@@ -71,7 +85,7 @@ body{font-family:var(--font);color:var(--txt);background:var(--bg);-webkit-font-
 .voice-status.processing{color:var(--warn)}
 
 /* Done bar */
-.done-bar{padding:0 24px;flex-shrink:0;animation:msgIn 0.3s ease-out}
+.done-bar{padding:0 24px 8px;flex-shrink:0;animation:msgIn 0.3s ease-out}
 .done-bar-inner{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--okL);border:1px solid #a7f3d0;border-radius:12px;font-size:13px;font-weight:600;color:#065f46}
 .done-bar-actions{display:flex;gap:8px}
 .done-btn{padding:7px 16px;border-radius:8px;font-size:12px;font-weight:600;text-decoration:none;transition:all 0.2s}
@@ -84,12 +98,30 @@ body{font-family:var(--font);color:var(--txt);background:var(--bg);-webkit-font-
 .canister-pane{width:320px;flex-shrink:0;overflow-y:auto;padding:20px;background:var(--bg)}
 
 .canister-preview{background:var(--card);border:1px solid var(--bdr);border-radius:16px;padding:24px;position:sticky;top:0}
-.canister-title{display:flex;align-items:center;gap:8px;margin-bottom:16px;font-size:14px;font-weight:700;color:var(--txt)}
+.canister-title{display:flex;align-items:center;gap:8px;margin-bottom:14px;font-size:14px;font-weight:700;color:var(--txt)}
 .canister-title i{width:16px;height:16px;color:var(--p)}
 .canister-live-dot{width:8px;height:8px;border-radius:50%;background:var(--ok);margin-left:auto;animation:livePulse 2s ease-in-out infinite}
 @keyframes livePulse{0%,100%{opacity:1}50%{opacity:0.3}}
 
-.cp-section{margin-bottom:16px}
+/* ── Progress steps ── */
+.progress-steps{margin-bottom:16px}
+.progress-step{display:flex;align-items:center;gap:10px;padding:6px 0;font-size:12px;color:var(--txtXL);transition:all 0.3s}
+.progress-step.done{color:var(--ok)}
+.progress-step.done .step-icon{background:var(--ok);border-color:var(--ok);color:white}
+.progress-step.active{color:var(--p);font-weight:600}
+.progress-step.active .step-icon{background:var(--pL);border-color:var(--p)}
+.step-icon{width:20px;height:20px;border-radius:50%;border:2px solid var(--bdr);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:9px;font-weight:700;transition:all 0.3s}
+.step-label{flex:1}
+.step-val{font-size:10px;font-weight:600;color:var(--p);max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* Completeness bar */
+.completeness{margin-bottom:16px}
+.completeness-bar{height:5px;background:var(--bdr);border-radius:3px;overflow:hidden;margin-top:5px}
+.completeness-fill{height:100%;border-radius:3px;transition:width 0.6s ease,background 0.6s ease}
+.completeness-label{display:flex;justify-content:space-between;font-size:11px;color:var(--txtXL)}
+.completeness-pct{font-weight:700}
+
+.cp-section{margin-bottom:14px}
 .cp-label{font-size:10px;font-weight:600;color:var(--txtXL);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
 .cp-value{font-size:13px;color:var(--txt);line-height:1.5}
 .cp-empty{font-size:12px;color:var(--bdr);font-style:italic}
@@ -116,13 +148,6 @@ body{font-family:var(--font);color:var(--txt);background:var(--bg);-webkit-font-
 .cp-deal-item{padding:8px 10px;background:var(--bg);border-radius:8px}
 .cp-deal-label{font-size:9px;font-weight:600;color:var(--txtXL);text-transform:uppercase;letter-spacing:0.5px}
 .cp-deal-val{font-size:12px;font-weight:600;color:var(--txt);margin-top:2px}
-
-/* Completeness meter */
-.completeness{margin-bottom:20px}
-.completeness-bar{height:6px;background:var(--bdr);border-radius:3px;overflow:hidden;margin-top:6px}
-.completeness-fill{height:100%;border-radius:3px;transition:width 0.6s ease,background 0.6s ease}
-.completeness-label{display:flex;justify-content:space-between;font-size:11px;color:var(--txtXL)}
-.completeness-pct{font-weight:700}
 
 /* Canister saved state */
 .canister-saved{background:var(--okL);border:1px solid #a7f3d0;border-radius:12px;padding:16px;margin-top:16px;text-align:center;display:none;animation:msgIn 0.3s ease-out}
@@ -181,10 +206,10 @@ body{font-family:var(--font);color:var(--txt);background:var(--bg);-webkit-font-
 
     <div class="done-bar" id="doneBar" style="display:none">
       <div class="done-bar-inner">
-        <span><i data-lucide="check-circle" style="width:16px;height:16px;color:var(--ok);vertical-align:-3px"></i> Private Canister saved</span>
+        <span><i data-lucide="check-circle" style="width:16px;height:16px;color:var(--ok);vertical-align:-3px"></i> Canister saved — matching is active</span>
         <div class="done-bar-actions">
-          <a href="/canister.html" class="done-btn primary">View canister</a>
-          <a href="/events.html" class="done-btn secondary">Browse events</a>
+          <a href="/events.html" class="done-btn primary">Find my people</a>
+          <a href="/canister.html" class="done-btn secondary">View canister</a>
         </div>
       </div>
     </div>
@@ -211,11 +236,46 @@ body{font-family:var(--font);color:var(--txt);background:var(--bg);-webkit-font-
         <i data-lucide="shield-check"></i> Private Canister
         <div class="canister-live-dot" id="liveDot" style="display:none"></div>
       </div>
-      <div style="font-size:11px;color:var(--txtXL);margin-bottom:14px;line-height:1.5"><i data-lucide="lock" style="width:11px;height:11px;display:inline;vertical-align:-1px"></i> Your data is never publicly visible. Matching is anonymous and double-blind — identities only revealed with mutual consent.</div>
+      <div style="font-size:11px;color:var(--txtXL);margin-bottom:14px;line-height:1.5"><i data-lucide="lock" style="width:11px;height:11px;display:inline;vertical-align:-1px"></i> Never public. Matching is anonymous and double-blind.</div>
 
+      <!-- Progress steps -->
+      <div class="progress-steps" id="progressSteps">
+        <div class="progress-step active" id="step-type">
+          <div class="step-icon" id="icon-type"></div>
+          <span class="step-label">Who you are</span>
+          <span class="step-val" id="val-type"></span>
+        </div>
+        <div class="progress-step" id="step-themes">
+          <div class="step-icon" id="icon-themes"></div>
+          <span class="step-label">Your themes</span>
+          <span class="step-val" id="val-themes"></span>
+        </div>
+        <div class="progress-step" id="step-intent">
+          <div class="step-icon" id="icon-intent"></div>
+          <span class="step-label">What you need</span>
+          <span class="step-val" id="val-intent"></span>
+        </div>
+        <div class="progress-step" id="step-offering">
+          <div class="step-icon" id="icon-offering"></div>
+          <span class="step-label">What you bring</span>
+          <span class="step-val" id="val-offering"></span>
+        </div>
+        <div class="progress-step" id="step-context">
+          <div class="step-icon" id="icon-context"></div>
+          <span class="step-label">Context + geo</span>
+          <span class="step-val" id="val-context"></span>
+        </div>
+        <div class="progress-step" id="step-deal">
+          <div class="step-icon" id="icon-deal"></div>
+          <span class="step-label">Deal details</span>
+          <span class="step-val" id="val-deal"></span>
+        </div>
+      </div>
+
+      <!-- Completeness bar -->
       <div class="completeness" id="completeness">
         <div class="completeness-label">
-          <span>Profile completeness</span>
+          <span>Match quality</span>
           <span class="completeness-pct" id="completePct">0%</span>
         </div>
         <div class="completeness-bar">
@@ -262,10 +322,10 @@ body{font-family:var(--font);color:var(--txt);background:var(--bg);-webkit-font-
       </div>
 
       <div class="canister-saved" id="canisterSaved">
-        <h4>Private Canister saved!</h4>
-        <p>Your data is never publicly visible. All matching is anonymous until both parties consent.</p>
-        <a href="/canister.html" class="saved-primary"><i data-lucide="fingerprint"></i> View my canister</a>
-        <a href="/events.html" class="saved-secondary"><i data-lucide="calendar"></i> Browse events</a>
+        <h4>Canister saved!</h4>
+        <p>Matching is now active. Register for events to see who's aligned with you.</p>
+        <a href="/events.html" class="saved-primary"><i data-lucide="calendar"></i> Find my people</a>
+        <a href="/canister.html" class="saved-secondary"><i data-lucide="fingerprint"></i> View canister</a>
       </div>
     </div>
   </div>
@@ -274,6 +334,9 @@ body{font-family:var(--font);color:var(--txt);background:var(--bg);-webkit-font-
 <script>
 var token = localStorage.getItem('auth_token');
 if (!token) window.location.href = '/auth.html';
+
+// Configure marked for safe, clean rendering
+marked.setOptions({ breaks: true, gfm: true });
 
 var conversation = [];
 var canisterSaved = false;
@@ -321,7 +384,6 @@ if (SpeechRecognition) {
         interimTranscript += e.results[i][0].transcript;
       }
     }
-    // Show live transcript in input
     chatInput.value = finalTranscript + interimTranscript;
     chatInput.style.height = 'auto';
     chatInput.style.height = Math.min(chatInput.scrollHeight, 120) + 'px';
@@ -342,7 +404,6 @@ if (SpeechRecognition) {
 
   recognition.onend = function() {
     if (isRecording) {
-      // Auto-stopped — finalize
       stopRecording();
       if (chatInput.value.trim()) {
         voiceStatus.textContent = 'Captured. Press send or keep editing.';
@@ -352,17 +413,11 @@ if (SpeechRecognition) {
     }
   };
 
-  // Toggle mic
   micBtn.addEventListener('click', function() {
-    if (isRecording) {
-      recognition.stop();
-      stopRecording();
-    } else {
-      recognition.start();
-    }
+    if (isRecording) { recognition.stop(); stopRecording(); }
+    else { recognition.start(); }
   });
 } else {
-  // No speech API — hide mic
   micBtn.style.display = 'none';
 }
 
@@ -401,7 +456,18 @@ function addMessage(text, type) {
   var el = document.getElementById('messages');
   var div = document.createElement('div');
   div.className = 'msg ' + type;
-  div.textContent = text;
+
+  if (type === 'nev') {
+    // Render markdown for Nev messages
+    try {
+      div.innerHTML = marked.parse(text);
+    } catch(e) {
+      div.textContent = text;
+    }
+  } else {
+    div.textContent = text;
+  }
+
   el.appendChild(div);
   el.scrollTop = el.scrollHeight;
 }
@@ -424,9 +490,8 @@ function hideTyping() {
 // ── Send message ──
 async function sendMessage() {
   var text = chatInput.value.trim();
-  if (!text || canisterSaved) return;
+  if (!text) return;
 
-  // Stop recording if active
   if (isRecording && recognition) { recognition.stop(); stopRecording(); }
 
   addMessage(text, 'user');
@@ -437,7 +502,6 @@ async function sendMessage() {
   voiceStatus.textContent = '';
   showTyping();
 
-  // Pulse live dot
   document.getElementById('liveDot').style.display = 'block';
 
   try {
@@ -458,12 +522,11 @@ async function sendMessage() {
     addMessage(data.reply, 'nev');
     conversation.push({ role: 'assistant', content: data.reply });
 
-    // Update live canister with any extracted data
     if (data.canister_data) {
       updateLiveCanister(data.canister_data);
     }
 
-    // If canister is complete, save it
+    // Auto-save when we have minimum viable canister
     if (data.canister_data && data.canister_data.stakeholder_type && (data.canister_data.themes || []).length >= 1) {
       saveCanister(data.canister_data);
     }
@@ -473,6 +536,44 @@ async function sendMessage() {
   }
 
   document.getElementById('liveDot').style.display = 'none';
+}
+
+// ── Progress steps update ──
+function updateProgressSteps() {
+  var steps = [
+    { id: 'type', done: !!liveCanister.stakeholder_type, val: liveCanister.stakeholder_type ? capitalize(liveCanister.stakeholder_type) : '' },
+    { id: 'themes', done: liveCanister.themes.length > 0, val: liveCanister.themes.slice(0, 2).join(', ') },
+    { id: 'intent', done: liveCanister.intent.length > 0, val: liveCanister.intent.slice(0, 2).join(', ') },
+    { id: 'offering', done: liveCanister.offering.length > 0, val: liveCanister.offering.slice(0, 2).join(', ') },
+    { id: 'context', done: !!(liveCanister.context || liveCanister.geography), val: liveCanister.geography || (liveCanister.context ? '✓' : '') },
+    { id: 'deal', done: Object.keys(liveCanister.deal_details).length > 0, val: liveCanister.deal_details.stage || (Object.keys(liveCanister.deal_details).length > 0 ? '✓' : '') }
+  ];
+
+  var foundActive = false;
+  steps.forEach(function(s) {
+    var stepEl = document.getElementById('step-' + s.id);
+    var iconEl = document.getElementById('icon-' + s.id);
+    var valEl = document.getElementById('val-' + s.id);
+    if (!stepEl || !iconEl || !valEl) return;
+
+    stepEl.className = 'progress-step';
+    iconEl.className = 'step-icon';
+
+    if (s.done) {
+      stepEl.classList.add('done');
+      iconEl.classList.add('done-check');
+      iconEl.innerHTML = '✓';
+      valEl.textContent = s.val;
+    } else if (!foundActive) {
+      stepEl.classList.add('active');
+      foundActive = true;
+      iconEl.innerHTML = '';
+      valEl.textContent = '';
+    } else {
+      iconEl.innerHTML = '';
+      valEl.textContent = '';
+    }
+  });
 }
 
 // ── Live canister update ──
@@ -546,25 +647,26 @@ function updateLiveCanister(data) {
     }
   }
 
-  // Update completeness
+  updateProgressSteps();
   updateCompleteness();
 }
 
 function updateCompleteness() {
   var fields = [
-    liveCanister.stakeholder_type,
-    liveCanister.themes.length > 0,
-    liveCanister.intent.length > 0,
-    liveCanister.offering.length > 0,
-    liveCanister.context,
-    liveCanister.geography
+    { w: 25, v: !!liveCanister.stakeholder_type },
+    { w: 25, v: liveCanister.themes.length > 0 },
+    { w: 20, v: liveCanister.intent.length > 0 },
+    { w: 15, v: liveCanister.offering.length > 0 },
+    { w: 10, v: !!(liveCanister.context || liveCanister.geography) },
+    { w: 5, v: Object.keys(liveCanister.deal_details).length > 0 }
   ];
-  var filled = fields.filter(Boolean).length;
-  var pct = Math.round((filled / fields.length) * 100);
+  var pct = 0;
+  fields.forEach(function(f) { if (f.v) pct += f.w; });
+  pct = Math.min(pct, 100);
   document.getElementById('completePct').textContent = pct + '%';
   var fill = document.getElementById('completeFill');
   fill.style.width = pct + '%';
-  fill.style.background = pct >= 80 ? 'var(--ok)' : pct >= 50 ? 'var(--p)' : pct >= 25 ? 'var(--warn)' : 'var(--txtXL)';
+  fill.style.background = pct >= 70 ? 'var(--ok)' : pct >= 40 ? 'var(--p)' : pct >= 20 ? 'var(--warn)' : 'var(--txtXL)';
 }
 
 // ── Save canister ──
@@ -586,19 +688,19 @@ async function saveCanister(data) {
       })
     });
 
-    if (resp.ok) {
+    if (resp.ok && !canisterSaved) {
       canisterSaved = true;
       document.getElementById('canisterSaved').style.display = 'block';
       document.getElementById('doneBar').style.display = 'block';
       lucide.createIcons();
-      // Don't hide input — let them keep chatting to refine
+      // Don't block input — they can keep chatting to refine
     }
   } catch (err) {
     console.error('Canister save error:', err);
   }
 }
 
-// ── Load existing profile into canister preview ──
+// ── Load existing profile ──
 async function loadExisting() {
   try {
     var resp = await fetch('/api/stakeholder/profile', {
@@ -636,11 +738,11 @@ async function loadOpening() {
       addMessage(data.reply, 'nev');
       conversation.push({ role: 'assistant', content: data.reply });
     } else {
-      addMessage("Hey! I'm Nev, your networking concierge. Tell me about yourself — what do you do and what are you working on right now?", 'nev');
+      addMessage("Hey! I'm Nev. I match you with the right people at events based on what you're actually working on — not your job title. Tell me what you do and who you want to meet.", 'nev');
     }
   } catch (err) {
     hideTyping();
-    addMessage("Hey! I'm Nev, your networking concierge. Tell me about yourself — what do you do and what are you working on?", 'nev');
+    addMessage("Hey! I'm Nev. I match you with the right people at events based on what you're actually working on. Tell me what you do and who you want to meet.", 'nev');
   }
 }
 
