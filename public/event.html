@@ -598,7 +598,7 @@ function openSidecarForm() {
   // Build tag chips
   var tagsHtml = '';
   allSidecarTags.forEach(function(t) {
-    tagsHtml += '<span class="sf-tag-chip" onclick="toggleSfTag(this,'' + t + '')">' + t + '</span>';
+    tagsHtml += '<span class="sf-tag-chip" onclick="toggleSfTag(this,\'' + t + '\')">' + t + '</span>';
   });
   document.getElementById('sf-tags').innerHTML = tagsHtml;
 
