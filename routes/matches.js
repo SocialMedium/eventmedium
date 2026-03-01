@@ -277,6 +277,105 @@ async function scoreSignalAlignment(profileA, profileB) {
 }
 
 // ══════════════════════════════════════════════════════
+// NETWORK PROXIMITY SCORING
+// ══════════════════════════════════════════════════════
+
+async function scoreNetworkProximity(userA, userB) {
+  var score = 0;
+  var reasons = [];
+
+  try {
+    // 1. Shared event registrations (both registered for same events)
+    var sharedEvents = await dbGet(
+      `SELECT COUNT(*)::int as count FROM event_registrations a
+       JOIN event_registrations b ON a.event_id = b.event_id
+       WHERE a.user_id = $1 AND b.user_id = $2 AND a.status = 'active' AND b.status = 'active'`,
+      [userA, userB]
+    );
+    var eventOverlap = sharedEvents ? sharedEvents.count : 0;
+    if (eventOverlap >= 3) {
+      score += 0.4;
+      reasons.push('Co-registered at ' + eventOverlap + ' events');
+    } else if (eventOverlap >= 2) {
+      score += 0.25;
+      reasons.push('Co-registered at ' + eventOverlap + ' events');
+    } else if (eventOverlap >= 1) {
+      score += 0.1;
+    }
+
+    // 2. Shared revealed matches (both independently matched with same third person)
+    var mutualReveals = await dbGet(
+      `SELECT COUNT(DISTINCT a_matches.su)::int as count FROM (
+         SELECT CASE WHEN user_a_id = $1 THEN user_b_id ELSE user_a_id END as su
+         FROM event_matches WHERE (user_a_id = $1 OR user_b_id = $1) AND status = 'revealed'
+       ) a_matches
+       JOIN (
+         SELECT CASE WHEN user_a_id = $2 THEN user_b_id ELSE user_a_id END as su
+         FROM event_matches WHERE (user_a_id = $2 OR user_b_id = $2) AND status = 'revealed'
+       ) b_matches ON a_matches.su = b_matches.su`,
+      [userA, userB]
+    );
+
+    var mutualCount = mutualReveals ? mutualReveals.count : 0;
+    if (mutualCount >= 2) {
+      score += 0.35;
+      reasons.push(mutualCount + ' mutual revealed connections');
+    } else if (mutualCount >= 1) {
+      score += 0.2;
+      reasons.push('1 mutual revealed connection');
+    }
+
+    // 3. Theme cluster density — do they share niche theme combos (not just "AI")
+    var profileA = await dbGet('SELECT themes FROM stakeholder_profiles WHERE user_id = $1', [userA]);
+    var profileB = await dbGet('SELECT themes FROM stakeholder_profiles WHERE user_id = $1', [userB]);
+
+    if (profileA && profileB) {
+      var themesA = [];
+      var themesB = [];
+      try { themesA = typeof profileA.themes === 'string' ? JSON.parse(profileA.themes) : (profileA.themes || []); } catch(e) {}
+      try { themesB = typeof profileB.themes === 'string' ? JSON.parse(profileB.themes) : (profileB.themes || []); } catch(e) {}
+
+      // Only count non-generic themes as cluster signal
+      var genericThemes = ['AI', 'Enterprise SaaS', 'FinTech'];
+      var nicheA = themesA.filter(function(t) { return genericThemes.indexOf(t) === -1; });
+      var nicheB = themesB.filter(function(t) { return genericThemes.indexOf(t) === -1; });
+      var nicheOverlap = nicheA.filter(function(t) { return nicheB.indexOf(t) !== -1; });
+
+      if (nicheOverlap.length >= 2) {
+        score += 0.25;
+        reasons.push('Niche theme cluster: ' + nicheOverlap.join(', '));
+      } else if (nicheOverlap.length === 1) {
+        score += 0.1;
+      }
+    }
+
+    // 4. Positive feedback pattern — has either user had high-quality matches with similar archetypes?
+    var otherProfile = await dbGet('SELECT stakeholder_type FROM stakeholder_profiles WHERE user_id = $1', [userB]);
+    if (otherProfile && otherProfile.stakeholder_type) {
+      var positivePattern = await dbGet(
+        `SELECT COUNT(*)::int as count FROM match_feedback mf
+         JOIN event_matches em ON em.id = mf.match_id
+         JOIN stakeholder_profiles sp ON sp.user_id = CASE WHEN em.user_a_id = $1 THEN em.user_b_id ELSE em.user_a_id END
+         WHERE mf.user_id = $1 AND mf.rating = 'valuable' AND sp.stakeholder_type = $2`,
+        [userA, otherProfile.stakeholder_type]
+      );
+      if (positivePattern && positivePattern.count >= 2) {
+        score += 0.15;
+        reasons.push('User has valued ' + otherProfile.stakeholder_type + ' matches before');
+      }
+    }
+
+  } catch (err) {
+    console.error('Network proximity scoring error:', err);
+  }
+
+  return {
+    score: Math.min(1.0, score),
+    reasons: reasons.map(function(r) { return '[Network] ' + r; })
+  };
+}
+
+// ══════════════════════════════════════════════════════
 // MAIN SCORING FUNCTION
 // ══════════════════════════════════════════════════════
 
@@ -335,6 +434,14 @@ async function scoreMatch(userA, userB, eventId, options) {
   // 5. Capital fit
   var capitalResult = scoreCapitalFit(profileA, profileB);
 
+  // 6. Network proximity (Tier 2)
+  var networkResult = { score: 0, reasons: [] };
+  try {
+    networkResult = await scoreNetworkProximity(userA, userB);
+  } catch(e) {
+    console.error('Network proximity error:', e);
+  }
+
   // 6. Signal enrichment (Tier 2)
   var signalScores = { total: 0, convergence: 0, timing: 0, constraint: 0, reasons: [], context: [] };
   if (options.enrichWithSignals !== false) {
@@ -362,16 +469,29 @@ async function scoreMatch(userA, userB, eventId, options) {
 
   // Weighted composite
   var hasSignals = signalScores.total > 0;
+  var hasNetwork = networkResult.score > 0;
   var weights;
   if (hasSignals) {
-    // Tier 2: signals contribute
+    // Tier 2: signals + network contribute
     weights = {
-      semantic: 0.35,
-      theme: 0.10,
+      semantic: 0.30,
+      theme: 0.08,
       intent: 0.10,
+      stakeholder: 0.07,
+      capital: capitalResult.applicable ? 0.05 : 0,
+      signals: 0.25,
+      network: 0.15
+    };
+  } else if (hasNetwork) {
+    // Tier 1.5: no signals but network data exists
+    weights = {
+      semantic: 0.40,
+      theme: 0.12,
+      intent: 0.13,
       stakeholder: 0.08,
       capital: capitalResult.applicable ? 0.07 : 0,
-      signals: 0.30
+      signals: 0,
+      network: 0.20
     };
   } else {
     // Tier 1: profile only
@@ -381,7 +501,8 @@ async function scoreMatch(userA, userB, eventId, options) {
       intent: 0.15,
       stakeholder: 0.10,
       capital: capitalResult.applicable ? 0.10 : 0,
-      signals: 0
+      signals: 0,
+      network: 0
     };
   }
 
@@ -397,7 +518,24 @@ async function scoreMatch(userA, userB, eventId, options) {
     (intentResult.score * weights.intent) +
     (scoreStakeholder * weights.stakeholder) +
     (capitalResult.score * weights.capital) +
-    (signalScores.total * weights.signals);
+    (signalScores.total * weights.signals) +
+    (networkResult.score * weights.network);
+
+    // Build reasons array
+  var reasons = [];
+  if (themeResult.shared.length) {
+    reasons.push('Shared themes: ' + themeResult.shared.join(', '));
+  }
+  reasons = reasons.concat(intentResult.reasons);
+  if (capitalResult.applicable && capitalResult.reasons.length) {
+    reasons = reasons.concat(capitalResult.reasons);
+  }
+  reasons = reasons.concat(signalScores.reasons);
+  reasons = reasons.concat(networkResult.reasons);
+
+  if (scoreStakeholder >= 0.7) {
+    reasons.push('Strong archetype fit: ' + profileA.stakeholder_type + ' ↔ ' + profileB.stakeholder_type);
+  }
 
   return {
     user_a_id: userA,
@@ -412,6 +550,7 @@ async function scoreMatch(userA, userB, eventId, options) {
     score_signal_convergence: Math.round(signalScores.convergence * 1000) / 1000,
     score_timing: Math.round(signalScores.timing * 1000) / 1000,
     score_constraint_complementarity: Math.round(signalScores.constraint * 1000) / 1000,
+    score_network_proximity: Math.round(networkResult.score * 1000) / 1000,
     match_reasons: reasons,
     signal_context: signalScores.context
   };

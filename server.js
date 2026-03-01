@@ -9,6 +9,7 @@ var { pool } = require('./db');
 var { initCollections } = require('./lib/vector_search');
 
 var app = express();
+app.set('trust proxy', 1);
 var PORT = process.env.PORT || 3000;
 
 // ── Security ──
