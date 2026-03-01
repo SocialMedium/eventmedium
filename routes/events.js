@@ -152,7 +152,7 @@ router.get('/recommended', authenticateToken, async function(req, res) {
       // 3. Composite score
       var total = (themeScore * 0.6) + (geoScore * 0.4);
       if (total > 0.1) {
-        scored.push({ event: ev, score: Math.round(total * 100) / 100, themeScore: themeScore, geoScore: geoScore });
+        scored.push({ id: ev.id, name: ev.name, event_date: ev.event_date, city: ev.city, country: ev.country, slug: ev.slug, score: Math.round(total * 100), reasons: [], themeScore: themeScore, geoScore: geoScore });
       }
     }
     scored.sort(function(a, b) { return b.score - a.score; });
