@@ -626,7 +626,7 @@ function cosineSimilarity(a, b) {
 async function generateMatchesForUser(userId, eventId, options) {
   options = options || {};
   var threshold = options.threshold || 0.45;
-  var maxMatches = options.maxMatches || 8;
+  var maxMatches = options.maxMatches || (registrantIds.length > 1000 ? 20 : registrantIds.length > 200 ? 12 : 8);
   var candidateLimit = options.candidateLimit || 50;
 
   // ── Stage 1: Candidate selection via Qdrant ANN ──
@@ -698,8 +698,10 @@ async function generateMatchesForUser(userId, eventId, options) {
   }
 
   // Sort by score and cap at top N per user
+  // Sort by score descending
   matches.sort(function(a, b) { return b.result.score_total - a.result.score_total; });
-  matches = matches.slice(0, maxMatches);
+
+  // Insert ALL above-threshold matches into DB (frontend caps display)
 
   // Insert top matches into DB
   for (var m = 0; m < matches.length; m++) {
@@ -726,6 +728,22 @@ async function generateMatchesForUser(userId, eventId, options) {
 // ── GET /api/matches/mine ── all matches for current user
 router.get('/mine', authenticateToken, async function(req, res) {
   try {
+    var limit = Math.min(parseInt(req.query.limit) || 8, 50);
+    var offset = parseInt(req.query.offset) || 0;
+    var eventId = req.query.event_id ? parseInt(req.query.event_id) : null;
+
+    var whereClause = '(em.user_a_id = $1 OR em.user_b_id = $1)';
+    var params = [req.user.id];
+    if (eventId) {
+      whereClause += ' AND em.event_id = $' + (params.length + 1);
+      params.push(eventId);
+    }
+
+    var countResult = await dbGet(
+      'SELECT COUNT(*) as total FROM event_matches em WHERE ' + whereClause, params
+    );
+
+    params.push(limit, offset);
     var matches = await dbAll(
       `SELECT em.*,
         CASE WHEN em.user_a_id = $1 THEN em.user_b_id ELSE em.user_a_id END as other_user_id,
@@ -734,9 +752,10 @@ router.get('/mine', authenticateToken, async function(req, res) {
         e.name as event_name, e.event_date
        FROM event_matches em
        JOIN events e ON e.id = em.event_id
-       WHERE (em.user_a_id = $1 OR em.user_b_id = $1)
-       ORDER BY em.score_total DESC`,
-      [req.user.id]
+       WHERE ` + whereClause + `
+       ORDER BY em.score_total DESC
+       LIMIT $` + (params.length - 1) + ` OFFSET $` + params.length,
+      params
     );
 
     // For revealed matches, include other user's info
@@ -750,7 +769,14 @@ router.get('/mine', authenticateToken, async function(req, res) {
       }
     }
 
-    res.json({ matches: matches });
+    res.json({
+      matches: matches,
+      total: parseInt(countResult.total),
+      limit: limit,
+      offset: offset,
+      has_more: (offset + limit) < parseInt(countResult.total)
+    });
+    
   } catch (err) {
     console.error('Get matches error:', err);
     res.status(500).json({ error: 'Failed to load matches' });
