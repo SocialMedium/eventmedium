@@ -117,6 +117,42 @@ img{max-width:100%;display:block}
 .mc-tags{display:flex;flex-wrap:wrap;gap:4px}
 .mc-tag{padding:2px 8px;border-radius:20px;font-size:10px;font-weight:500;background:linear-gradient(135deg,var(--bg2),var(--bg3));color:var(--text2);border:1px solid var(--border)}
 
+/* ── Event Carousel ── */
+.event-carousel-section{padding:56px 0 48px;position:relative;overflow:hidden}
+.event-carousel-section::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--border) 50%,transparent)}
+.carousel-header{text-align:center;margin-bottom:28px;padding:0 32px}
+.carousel-header h2{font-family:var(--sans);font-size:clamp(20px,3vw,26px);color:var(--heading);font-weight:700;letter-spacing:-0.02em;margin-bottom:6px}
+.carousel-header p{font-size:12px;color:var(--text3);letter-spacing:0.02em}
+.carousel-track-wrapper{position:relative}
+.carousel-track-wrapper::before,.carousel-track-wrapper::after{content:'';position:absolute;top:0;bottom:0;width:100px;z-index:2;pointer-events:none}
+.carousel-track-wrapper::before{left:0;background:linear-gradient(90deg,var(--bg),transparent)}
+.carousel-track-wrapper::after{right:0;background:linear-gradient(270deg,var(--bg),transparent)}
+.carousel-track{display:flex;gap:20px;animation:carouselScroll 50s linear infinite;width:max-content;padding:8px 0}
+.carousel-track:hover{animation-play-state:paused}
+.event-tile{
+  flex-shrink:0;display:flex;align-items:center;gap:12px;
+  padding:10px 20px 10px 12px;border-radius:10px;
+  background:linear-gradient(135deg,var(--bg2) 0%,#fff 100%);
+  border:1px solid var(--border);
+  cursor:pointer;transition:all 0.25s ease;
+  text-decoration:none;white-space:nowrap;
+}
+.event-tile:hover{border-color:rgba(99,102,241,0.25);background:linear-gradient(135deg,rgba(99,102,241,0.04),#fff);transform:translateY(-2px);box-shadow:0 4px 16px rgba(99,102,241,0.08)}
+.event-tile img{width:36px;height:36px;border-radius:8px;object-fit:cover;filter:grayscale(30%);transition:filter 0.3s}
+.event-tile:hover img{filter:grayscale(0%)}
+.event-tile .et-info{display:flex;flex-direction:column;gap:1px}
+.event-tile .et-name{font-size:13px;font-weight:600;color:var(--heading);letter-spacing:-0.01em;line-height:1.2}
+.event-tile .et-city{font-size:11px;color:var(--text3);font-weight:400;line-height:1.2}
+.event-tile .et-date{font-size:10px;color:var(--accent);font-weight:500;line-height:1.2;opacity:0.7}
+@keyframes carouselScroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+@media(max-width:768px){
+  .event-carousel-section{padding:40px 0 32px}
+  .carousel-header h2{font-size:20px}
+  .event-tile{padding:8px 14px 8px 10px;gap:10px}
+  .event-tile img{width:30px;height:30px}
+  .event-tile .et-name{font-size:12px}
+}
+
 /* ── Section base ── */
 .section{padding:120px 0;position:relative}
 .section-inner{max-width:var(--max);margin:0 auto;padding:0 32px}
@@ -417,6 +453,37 @@ img{max-width:100%;display:block}
         <p class="mc-desc">VP Ops at Series C robotics company. Exploring hardware partnerships.</p>
         <div class="mc-tags"><span class="mc-tag">robotics</span><span class="mc-tag">hardware</span><span class="mc-tag">ops</span></div>
       </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Event Carousel ── -->
+<section class="event-carousel-section">
+  <div class="carousel-header">
+    <h2>Upcoming events — let's find your people</h2>
+    <p>Public events indexed on EventMedium</p>
+  </div>
+  <div class="carousel-track-wrapper">
+    <div class="carousel-track" id="event-carousel">
+      <a href="/event.html?id=50" class="event-tile"><img src="/img/events/mwc.jpeg" alt="MWC"><div class="et-info"><span class="et-name">MWC Barcelona</span><span class="et-city">Barcelona</span><span class="et-date">Mar 2–5, 2026</span></div></a>
+      <a href="/event.html?id=49" class="event-tile"><img src="/img/events/sxsw.jpeg" alt="SXSW"><div class="et-info"><span class="et-name">SXSW</span><span class="et-city">Austin</span><span class="et-date">Mar 12–21, 2026</span></div></a>
+      <a href="/event.html?id=25" class="event-tile"><img src="/img/events/satellite.jpeg" alt="Satellite"><div class="et-info"><span class="et-name">Satellite Conference</span><span class="et-city">Washington DC</span><span class="et-date">Mar 15–18, 2026</span></div></a>
+      <a href="/event.html?id=30" class="event-tile"><img src="/img/events/rsa.jpeg" alt="RSA"><div class="et-info"><span class="et-name">RSA Conference</span><span class="et-city">San Francisco</span><span class="et-date">Mar 23–26, 2026</span></div></a>
+      <a href="/event.html?id=69" class="event-tile"><img src="/img/events/ethcc.jpeg" alt="EthCC"><div class="et-info"><span class="et-name">EthCC [9]</span><span class="et-city">Cannes</span><span class="et-date">Mar 30 – Apr 2, 2026</span></div></a>
+      <a href="/event.html?id=68" class="event-tile"><img src="/img/events/token2049.jpeg" alt="Token2049"><div class="et-info"><span class="et-name">TOKEN2049 Dubai</span><span class="et-city">Dubai</span><span class="et-date">Apr 29 – May 1, 2026</span></div></a>
+      <a href="/event.html?id=15" class="event-tile"><img src="/img/events/consensus.jpeg" alt="Consensus"><div class="et-info"><span class="et-name">Consensus</span><span class="et-city">Miami</span><span class="et-date">May 5–7, 2026</span></div></a>
+      <a href="/event.html?id=1" class="event-tile"><img src="/img/events/aisummit.jpeg" alt="AI Summit"><div class="et-info"><span class="et-name">AI Summit London</span><span class="et-city">London</span><span class="et-date">Jun 10–11, 2026</span></div></a>
+      <a href="/event.html?id=4" class="event-tile"><img src="/img/events/icml.jpeg" alt="ICML"><div class="et-info"><span class="et-name">ICML</span><span class="et-city">Seoul</span><span class="et-date">Jul 6–12, 2026</span></div></a>
+      <a href="/event.html?id=29" class="event-tile"><img src="/img/events/blackhat.jpeg" alt="Black Hat"><div class="et-info"><span class="et-name">Black Hat USA</span><span class="et-city">Las Vegas</span><span class="et-date">Aug 1–6, 2026</span></div></a>
+      <a href="/event.html?id=20" class="event-tile"><img src="/img/events/climateweek.jpeg" alt="Climate Week"><div class="et-info"><span class="et-name">Climate Week NYC</span><span class="et-city">New York</span><span class="et-date">Sep 20–26, 2026</span></div></a>
+      <a href="/event.html?id=13" class="event-tile"><img src="/img/events/sibos.jpeg" alt="Sibos"><div class="et-info"><span class="et-name">Sibos</span><span class="et-city">Miami</span><span class="et-date">Sep 28 – Oct 1, 2026</span></div></a>
+      <a href="/event.html?id=19" class="event-tile"><img src="/img/events/kbw.jpeg" alt="KBW"><div class="et-info"><span class="et-name">Korea Blockchain Week</span><span class="et-city">Seoul</span><span class="et-date">Sep 29 – Oct 3, 2026</span></div></a>
+      <a href="/event.html?id=16" class="event-tile"><img src="/img/events/token2049.jpeg" alt="Token2049"><div class="et-info"><span class="et-name">Token2049 Singapore</span><span class="et-city">Singapore</span><span class="et-date">Oct 7–9, 2026</span></div></a>
+      <a href="/event.html?id=8" class="event-tile"><img src="/img/events/money2020.jpeg" alt="Money20/20"><div class="et-info"><span class="et-name">Money20/20 USA</span><span class="et-city">Las Vegas</span><span class="et-date">Oct 18–21, 2026</span></div></a>
+      <a href="/event.html?id=43" class="event-tile"><img src="/img/events/websummit.jpeg" alt="Web Summit"><div class="et-info"><span class="et-name">Web Summit</span><span class="et-city">Lisbon</span><span class="et-date">Nov 9–12, 2026</span></div></a>
+      <a href="/event.html?id=33" class="event-tile"><img src="/img/events/hlth.jpeg" alt="HLTH"><div class="et-info"><span class="et-name">HLTH</span><span class="et-city">Las Vegas</span><span class="et-date">Nov 15–18, 2026</span></div></a>
+      <a href="/event.html?id=11" class="event-tile"><img src="/img/events/sff.jpeg" alt="SFF"><div class="et-info"><span class="et-name">Singapore Fintech Festival</span><span class="et-city">Singapore</span><span class="et-date">Nov 18–20, 2026</span></div></a>
+      <a href="/event.html?id=3" class="event-tile"><img src="/img/events/neurips.jpeg" alt="NeurIPS"><div class="et-info"><span class="et-name">NeurIPS</span><span class="et-city">Sydney</span><span class="et-date">Dec 6–12, 2026</span></div></a>
     </div>
   </div>
 </section>
