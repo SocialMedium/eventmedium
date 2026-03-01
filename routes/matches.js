@@ -432,17 +432,15 @@ async function scoreNetworkProximity(userA, userB) {
 
 async function scoreMatch(userA, userB, eventId, options) {
   options = options || {};
-
-  // Load profiles with user info
-  var profileA = await dbGet(
+  // Use pre-loaded profiles if available, otherwise fetch from DB
+  var profileA = (options.profileCache && options.profileCache[userA]) || await dbGet(
     'SELECT sp.*, u.name as name, u.company as company FROM stakeholder_profiles sp JOIN users u ON u.id = sp.user_id WHERE sp.user_id = $1',
     [userA]
   );
-  var profileB = await dbGet(
+  var profileB = (options.profileCache && options.profileCache[userB]) || await dbGet(
     'SELECT sp.*, u.name as name, u.company as company FROM stakeholder_profiles sp JOIN users u ON u.id = sp.user_id WHERE sp.user_id = $1',
     [userB]
   );
-
   if (!profileA || !profileB) return null;
 
   // 1. Semantic similarity — use stored Qdrant vectors (no API calls)
@@ -484,12 +482,14 @@ async function scoreMatch(userA, userB, eventId, options) {
   // 5. Capital fit
   var capitalResult = scoreCapitalFit(profileA, profileB);
 
-  // 6. Network proximity (Tier 2)
+ // 6. Network proximity (Tier 2)
   var networkResult = { score: 0, reasons: [] };
-  try {
-    networkResult = await scoreNetworkProximity(userA, userB);
-  } catch(e) {
-    console.error('Network proximity error:', e);
+  if (options.skipNetworkProximity !== true) {
+    try {
+      networkResult = await scoreNetworkProximity(userA, userB);
+    } catch(e) {
+      console.error('Network proximity error:', e);
+    }
   }
 
   // 6. Signal enrichment (Tier 2)
@@ -625,7 +625,8 @@ function cosineSimilarity(a, b) {
 
 async function generateMatchesForUser(userId, eventId, options) {
   options = options || {};
-  var threshold = options.threshold || 0.4;
+  var threshold = options.threshold || 0.45;
+  var maxMatches = options.maxMatches || 8;
   var candidateLimit = options.candidateLimit || 50;
 
   // ── Stage 1: Candidate selection via Qdrant ANN ──
@@ -693,21 +694,29 @@ async function generateMatchesForUser(userId, eventId, options) {
     var result = await scoreMatch(userId, otherId, eventId, scoreOptions);
     if (!result || result.score_total < threshold) continue;
 
-    // Insert match
+    matches.push({ result: result, otherId: otherId });
+  }
+
+  // Sort by score and cap at top N per user
+  matches.sort(function(a, b) { return b.result.score_total - a.result.score_total; });
+  matches = matches.slice(0, maxMatches);
+
+  // Insert top matches into DB
+  for (var m = 0; m < matches.length; m++) {
+    var mr = matches[m].result;
     await dbRun(
       "INSERT INTO event_matches (event_id, user_a_id, user_b_id, score_total, score_semantic, score_theme, score_intent, score_stakeholder, score_capital, score_signal_convergence, score_timing, score_constraint_complementarity, match_reasons, signal_context, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) ON CONFLICT (event_id, user_a_id, user_b_id) DO NOTHING",
       [
-        eventId, userId, otherId,
-        result.score_total, result.score_semantic, result.score_theme, result.score_intent,
-        result.score_stakeholder, result.score_capital,
-        result.score_signal_convergence, result.score_timing, result.score_constraint_complementarity,
-        JSON.stringify(result.match_reasons), JSON.stringify(result.signal_context),
+        eventId, userId, matches[m].otherId,
+        mr.score_total, mr.score_semantic, mr.score_theme, mr.score_intent,
+        mr.score_stakeholder, mr.score_capital,
+        mr.score_signal_convergence, mr.score_timing, mr.score_constraint_complementarity,
+        JSON.stringify(mr.match_reasons), JSON.stringify(mr.signal_context),
         'pending'
       ]
     );
-    matches.push(result);
   }
-  return matches;
+  return matches.map(function(m) { return m.result; });
 }
 
 // ══════════════════════════════════════════════════════
