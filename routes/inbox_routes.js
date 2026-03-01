@@ -1,19 +1,7 @@
-// ══════════════════════════════════════════════════════
-// EventMedium.ai — Inbox & Feedback Routes
-// Add to matches.js or mount as separate router
-//
-// New endpoints:
-//   GET  /api/matches/mutual             ← inbox.html primary data
-//   POST /api/matches/:id/context        ← inline message notes
-//   POST /api/matches/:id/feedback       ← quick rating buttons
-//   POST /api/matches/:id/debrief        ← post-meeting structured feedback
-//   GET  /api/matches/:id/debrief        ← get debrief state + chat
-//   POST /api/matches/:id/debrief/chat   ← Nev debrief conversation
-// ══════════════════════════════════════════════════════
-
-// ──────────────────────────────────────────
-// PASTE THESE ROUTES INTO matches.js
-// (before the module.exports line)
+var express = require('express');
+var router = express.Router();
+var { dbGet, dbRun, dbAll } = require('../db');
+var { authenticateToken } = require('./auth');
 // ──────────────────────────────────────────
 
 
@@ -553,14 +541,4 @@ async function extractDebriefInsights(matchId, userId, feedback, match) {
   }
 }
 
-
-// ══════════════════════════════════════════════════════
-// UPDATE module.exports to include new helpers
-// ══════════════════════════════════════════════════════
-// Replace the existing module.exports in matches.js with:
-//
-// module.exports = {
-//   router, scoreMatch, generateMatchesForUser,
-//   createNotification, notifyMatchReveal,
-//   extractDebriefInsights, getNevResponse
-// };
+module.exports = { router: router };
