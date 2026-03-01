@@ -145,6 +145,23 @@ router.get('/recommended', authenticateToken, async function(req, res) {
               if (userGeo.indexOf(c) !== -1) userRegion = r[0];
               if (evCountry.indexOf(c) !== -1 || evCity.indexOf(c) !== -1) evRegion = r[0];
             });
+          });
+          if (userRegion && userRegion === evRegion) geoScore = 0.3;
+        }
+      }
+      // 3. Composite score
+      var total = (themeScore * 0.6) + (geoScore * 0.4);
+      if (total > 0.1) {
+        scored.push({ event: ev, score: Math.round(total * 100) / 100, themeScore: themeScore, geoScore: geoScore });
+      }
+    }
+    scored.sort(function(a, b) { return b.score - a.score; });
+    res.json({ recommendations: scored.slice(0, 10) });
+  } catch (err) {
+    console.error('Recommendations error:', err);
+    res.status(500).json({ error: 'Failed to load recommendations' });
+  }
+});
 
 // ── GET /api/events/:id ── (single event)
 router.get('/:id', optionalAuth, async function(req, res) {
@@ -485,112 +502,6 @@ function icsEscape(s) {
   if (!s) return '';
   return s.replace(/[\\;,]/g, function(c) { return '\\' + c; });
 }
-
-
-          });
-          if (userRegion && userRegion === evRegion) geoScore = 0.3;
-        }
-      }
-
-      // 3. Stakeholder density — are there registered users who'd be good matches?
-      var densityScore = 0;
-      if (ev.reg_count > 0) {
-        // Check for complementary archetypes
-        var complementMap = {
-          founder: ['investor', 'corporate', 'advisor'],
-          investor: ['founder'],
-          researcher: ['corporate', 'founder'],
-          corporate: ['founder', 'researcher'],
-          advisor: ['founder'],
-          operator: ['founder', 'corporate']
-        };
-        var targetTypes = complementMap[userType] || [];
-        if (targetTypes.length > 0) {
-          var densityResult = await dbGet(
-            `SELECT COUNT(DISTINCT sp.user_id) as match_count 
-             FROM event_registrations er 
-             JOIN stakeholder_profiles sp ON sp.user_id = er.user_id 
-             WHERE er.event_id = $1 AND er.status = 'active' 
-             AND sp.stakeholder_type = ANY($2::text[])`,
-            [ev.id, targetTypes]
-          );
-          var matchCount = parseInt(densityResult.match_count) || 0;
-          densityScore = Math.min(matchCount / 10, 1); // caps at 10 complementary users
-        }
-
-        // Bonus: check for theme-aligned registered users
-        if (userThemes.length > 0) {
-          var themeAligned = await dbGet(
-            `SELECT COUNT(DISTINCT sp.user_id) as aligned 
-             FROM event_registrations er 
-             JOIN stakeholder_profiles sp ON sp.user_id = er.user_id 
-             WHERE er.event_id = $1 AND er.status = 'active' 
-             AND sp.themes::text ILIKE ANY($2::text[])`,
-            [ev.id, userThemes.map(function(t) { return '%' + t + '%'; })]
-          );
-          var alignedCount = parseInt(themeAligned.aligned) || 0;
-          densityScore = Math.max(densityScore, Math.min(alignedCount / 8, 1));
-        }
-      }
-
-      // 4. Intent fit — does this event attract people who match user intent?
-      var intentScore = 0;
-      if (userIntent.length > 0 && ev.reg_count > 0) {
-        var intentResult = await dbGet(
-          `SELECT COUNT(DISTINCT sp.user_id) as intent_match 
-           FROM event_registrations er 
-           JOIN stakeholder_profiles sp ON sp.user_id = er.user_id 
-           WHERE er.event_id = $1 AND er.status = 'active' 
-           AND sp.offering::text ILIKE ANY($2::text[])`,
-          [ev.id, userIntent.map(function(t) { return '%' + t + '%'; })]
-        );
-        intentScore = Math.min((parseInt(intentResult.intent_match) || 0) / 5, 1);
-      }
-
-      // Weighted total
-      var total = (themeScore * 0.40) + (geoScore * 0.15) + (densityScore * 0.30) + (intentScore * 0.15);
-
-      // Build match reasons
-      var reasons = [];
-      if (themeScore > 0) {
-        var overlapping = userThemes.filter(function(t) {
-          return evThemes.some(function(et) { return et.toLowerCase() === t.toLowerCase(); });
-        });
-        if (overlapping.length) reasons.push(overlapping.join(', ') + ' overlap');
-      }
-      if (densityScore > 0) reasons.push('Relevant attendees registered');
-      if (geoScore >= 0.6) reasons.push('Near your geography');
-      if (intentScore > 0) reasons.push('People offering what you seek');
-
-      if (total > 0.05) {
-        scored.push({
-          id: ev.id,
-          name: ev.name,
-          event_date: ev.event_date,
-          city: ev.city,
-          country: ev.country,
-          themes: evThemes,
-          slug: ev.slug,
-          score: Math.round(total * 100),
-          reasons: reasons,
-          reg_count: parseInt(ev.reg_count),
-          theme_score: Math.round(themeScore * 100),
-          density_score: Math.round(densityScore * 100),
-          geo_score: Math.round(geoScore * 100),
-          intent_score: Math.round(intentScore * 100)
-        });
-      }
-    }
-
-    // Sort by score descending, limit to top 6
-    scored.sort(function(a, b) { return b.score - a.score; });
-    res.json({ recommendations: scored.slice(0, 6) });
-  } catch (err) {
-    console.error('Recommended events error:', err);
-    res.status(500).json({ error: 'Failed to generate recommendations' });
-  }
-});
-
 // ── SIDECAR EVENTS ───────────────────────────────────────
 
 // GET /api/events/:id/sidecars
