@@ -2,8 +2,7 @@ var express = require('express');
 var { dbGet, dbRun, dbAll } = require('../db');
 var { authenticateToken } = require('../middleware/auth');
 var { normalizeThemes, normalizeTheme } = require('../lib/theme_taxonomy');
-var { getEmbedding, searchByVector, COLLECTIONS } = require('../lib/vector_search');
-
+var { getEmbedding, getEmbeddings, getPointVector, getPointVectors, findCandidates, searchByVector, buildProfileText, COLLECTIONS } = require('../lib/vector_search');
 var router = express.Router();
 
 // ══════════════════════════════════════════════════════
@@ -24,12 +23,64 @@ function parseJsonSafe(val, fallback) {
 // ══════════════════════════════════════════════════════
 
 var ARCHETYPE_COMPATIBILITY = {
-  'founder':    { 'investor': 0.95, 'advisor': 0.8, 'operator': 0.7, 'corporate': 0.6, 'researcher': 0.5, 'founder': 0.4 },
-  'investor':   { 'founder': 0.95, 'investor': 0.5, 'corporate': 0.6, 'advisor': 0.5, 'researcher': 0.4, 'operator': 0.4 },
-  'researcher': { 'corporate': 0.8, 'founder': 0.7, 'investor': 0.5, 'researcher': 0.6, 'advisor': 0.4, 'operator': 0.3 },
-  'corporate':  { 'founder': 0.7, 'researcher': 0.8, 'corporate': 0.4, 'investor': 0.6, 'advisor': 0.5, 'operator': 0.5 },
-  'advisor':    { 'founder': 0.8, 'investor': 0.5, 'corporate': 0.5, 'researcher': 0.4, 'advisor': 0.3, 'operator': 0.4 },
-  'operator':   { 'founder': 0.7, 'corporate': 0.5, 'investor': 0.4, 'advisor': 0.4, 'researcher': 0.3, 'operator': 0.3 }
+  // ── Core ecosystem ──
+  'founder': {
+    'investor': 0.95, 'advisor': 0.85, 'buyer': 0.85, 'corporate': 0.75,
+    'partner': 0.80, 'hirer': 0.50, 'operator': 0.70, 'seller': 0.55,
+    'researcher': 0.60, 'talent': 0.65, 'founder': 0.40
+  },
+  'investor': {
+    'founder': 0.95, 'researcher': 0.55, 'corporate': 0.60, 'advisor': 0.55,
+    'seller': 0.45, 'partner': 0.50, 'operator': 0.45, 'buyer': 0.40,
+    'investor': 0.50, 'talent': 0.25, 'hirer': 0.30
+  },
+  'corporate': {
+    'founder': 0.75, 'researcher': 0.80, 'seller': 0.80, 'partner': 0.75,
+    'advisor': 0.55, 'investor': 0.60, 'operator': 0.55, 'buyer': 0.50,
+    'talent': 0.55, 'hirer': 0.50, 'corporate': 0.40
+  },
+  'researcher': {
+    'corporate': 0.80, 'founder': 0.70, 'investor': 0.55, 'partner': 0.60,
+    'advisor': 0.45, 'buyer': 0.50, 'researcher': 0.60, 'operator': 0.35,
+    'seller': 0.30, 'talent': 0.55, 'hirer': 0.50
+  },
+  'advisor': {
+    'founder': 0.85, 'corporate': 0.55, 'investor': 0.55, 'operator': 0.50,
+    'hirer': 0.55, 'partner': 0.45, 'researcher': 0.45, 'buyer': 0.40,
+    'talent': 0.40, 'seller': 0.35, 'advisor': 0.30
+  },
+  'operator': {
+    'founder': 0.70, 'corporate': 0.55, 'seller': 0.65, 'partner': 0.55,
+    'advisor': 0.50, 'investor': 0.45, 'buyer': 0.50, 'hirer': 0.60,
+    'talent': 0.60, 'researcher': 0.35, 'operator': 0.35
+  },
+  // ── Commercial exchange ──
+  'buyer': {
+    'seller': 0.95, 'founder': 0.85, 'corporate': 0.70, 'partner': 0.60,
+    'researcher': 0.50, 'operator': 0.50, 'advisor': 0.40, 'investor': 0.35,
+    'buyer': 0.30, 'talent': 0.20, 'hirer': 0.20
+  },
+  'seller': {
+    'buyer': 0.95, 'corporate': 0.80, 'operator': 0.65, 'founder': 0.55,
+    'partner': 0.70, 'investor': 0.45, 'advisor': 0.35, 'researcher': 0.30,
+    'hirer': 0.25, 'talent': 0.20, 'seller': 0.25
+  },
+  'partner': {
+    'founder': 0.80, 'corporate': 0.75, 'seller': 0.70, 'partner': 0.50,
+    'researcher': 0.60, 'operator': 0.55, 'buyer': 0.60, 'investor': 0.50,
+    'advisor': 0.45, 'hirer': 0.35, 'talent': 0.30
+  },
+  // ── Talent market ──
+  'talent': {
+    'hirer': 0.95, 'founder': 0.65, 'corporate': 0.60, 'operator': 0.60,
+    'researcher': 0.55, 'advisor': 0.40, 'investor': 0.25, 'partner': 0.30,
+    'buyer': 0.20, 'seller': 0.20, 'talent': 0.20
+  },
+  'hirer': {
+    'talent': 0.95, 'operator': 0.60, 'advisor': 0.55, 'founder': 0.50,
+    'corporate': 0.50, 'researcher': 0.50, 'investor': 0.30, 'partner': 0.35,
+    'buyer': 0.20, 'seller': 0.25, 'hirer': 0.25
+  }
 };
 
 function scoreStakeholderFit(typeA, typeB) {
@@ -394,32 +445,31 @@ async function scoreMatch(userA, userB, eventId, options) {
 
   if (!profileA || !profileB) return null;
 
-  // 1. Semantic similarity (Qdrant cosine)
+  // 1. Semantic similarity — use stored Qdrant vectors (no API calls)
   var scoreSemantic = 0;
   try {
-    if (profileA.qdrant_vector_id && profileB.qdrant_vector_id) {
-      // Get A's vector and search for B's proximity
-      var searchResult = await searchByVector(
-        COLLECTIONS.profiles,
-        null, // we'll use a different approach
-        1,
-        { must: [{ key: 'user_id', match: { value: userB } }] }
-      );
-      // Alternative: compute from stored embeddings directly
-      // For now, use a text-based embedding comparison
+    // Check if pre-computed similarity was passed in (from Stage 1 ANN)
+    if (options && options.precomputedSimilarity && options.precomputedSimilarity[userB] !== undefined) {
+      scoreSemantic = options.precomputedSimilarity[userB];
+    } else {
+      // Retrieve stored vectors from Qdrant
+      var vectors = await getPointVectors(COLLECTIONS.profiles, [userA, userB]);
+      if (vectors[userA] && vectors[userB]) {
+        scoreSemantic = cosineSimilarity(vectors[userA], vectors[userB]);
+      } else {
+        // Last resort: embed on the fly (slow path for users without stored vectors)
+        var textA = buildProfileText(profileA, { name: profileA.name, company: profileA.company });
+        var textB = buildProfileText(profileB, { name: profileB.name, company: profileB.company });
+        if (textA && textB) {
+          var embeddings = await getEmbeddings([textA, textB]);
+          if (embeddings.length === 2) {
+            scoreSemantic = cosineSimilarity(embeddings[0], embeddings[1]);
+          }
+        }
+      }
     }
-  } catch(e) {}
-
-  // Fallback: embed both profile texts and compute cosine
-  var { buildProfileText } = require('../lib/vector_search');
-  var textA = buildProfileText(profileA, { name: profileA.name, company: profileA.company });
-  var textB = buildProfileText(profileB, { name: profileB.name, company: profileB.company });
-
-  if (textA && textB) {
-    var embeddings = await require('../lib/vector_search').getEmbeddings([textA, textB]);
-    if (embeddings.length === 2) {
-      scoreSemantic = cosineSimilarity(embeddings[0], embeddings[1]);
-    }
+  } catch(e) {
+    console.error('Semantic scoring error:', e.message);
   }
 
   // 2. Theme overlap
@@ -576,38 +626,76 @@ function cosineSimilarity(a, b) {
 async function generateMatchesForUser(userId, eventId, options) {
   options = options || {};
   var threshold = options.threshold || 0.4;
+  var candidateLimit = options.candidateLimit || 50;
 
-  // Get all other registrants
+  // ── Stage 1: Candidate selection via Qdrant ANN ──
+  // Get all registrants for this event
   var registrants = await dbAll(
-    `SELECT user_id FROM event_registrations
-     WHERE event_id = $1 AND user_id != $2 AND status = 'active'`,
+    "SELECT user_id FROM event_registrations WHERE event_id = $1 AND user_id != $2 AND status = 'active'",
     [eventId, userId]
   );
 
+  if (!registrants.length) return [];
+
+  var registrantIds = registrants.map(function(r) { return r.user_id; });
+  var candidates = null;
+  var precomputedSimilarity = {};
+
+  // Try ANN candidate selection (fast path)
+  try {
+    candidates = await findCandidates(userId, registrantIds, candidateLimit);
+    if (candidates && candidates.length > 0) {
+      // Store pre-computed similarities to avoid re-fetching vectors in scoreMatch
+      candidates.forEach(function(c) {
+        precomputedSimilarity[c.user_id] = c.similarity;
+      });
+      console.log('Stage 1 ANN: ' + candidates.length + ' candidates from ' + registrantIds.length + ' registrants');
+    } else {
+      candidates = null; // fall through to full scan
+    }
+  } catch(e) {
+    console.error('ANN candidate selection failed, falling back to full scan:', e.message);
+    candidates = null;
+  }
+
+  // Fallback: if no vectors in Qdrant, score all registrants (slow path)
+  var pairsToScore = candidates
+    ? candidates.map(function(c) { return c.user_id; })
+    : registrantIds;
+
+  if (!candidates) {
+    console.log('Stage 1 fallback: scoring all ' + pairsToScore.length + ' registrants');
+  }
+
+  // ── Stage 2: Full scoring on candidates only ──
   var matches = [];
-  for (var i = 0; i < registrants.length; i++) {
-    var otherId = registrants[i].user_id;
+  var scoreOptions = Object.assign({}, options, { precomputedSimilarity: precomputedSimilarity });
+
+  for (var i = 0; i < pairsToScore.length; i++) {
+    var otherId = pairsToScore[i];
+
+    // Boundary guard: don't mix test and real users
+    var selfUser = await dbGet('SELECT auth_provider FROM users WHERE id = $1', [userId]);
+    var otherUser = await dbGet('SELECT auth_provider FROM users WHERE id = $1', [otherId]);
+    if (selfUser && otherUser) {
+      var selfIsTest = selfUser.auth_provider === 'test';
+      var otherIsTest = otherUser.auth_provider === 'test';
+      if (selfIsTest !== otherIsTest) continue;
+    }
 
     // Skip if match already exists
     var existing = await dbGet(
-      `SELECT id FROM event_matches
-       WHERE event_id = $1 AND
-       ((user_a_id = $2 AND user_b_id = $3) OR (user_a_id = $3 AND user_b_id = $2))`,
+      "SELECT id FROM event_matches WHERE event_id = $1 AND ((user_a_id = $2 AND user_b_id = $3) OR (user_a_id = $3 AND user_b_id = $2))",
       [eventId, userId, otherId]
     );
     if (existing) continue;
 
-    var result = await scoreMatch(userId, otherId, eventId, options);
+    var result = await scoreMatch(userId, otherId, eventId, scoreOptions);
     if (!result || result.score_total < threshold) continue;
 
     // Insert match
     await dbRun(
-      `INSERT INTO event_matches
-        (event_id, user_a_id, user_b_id, score_total, score_semantic, score_theme, score_intent,
-         score_stakeholder, score_capital, score_signal_convergence, score_timing,
-         score_constraint_complementarity, match_reasons, signal_context, status)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
-       ON CONFLICT (event_id, user_a_id, user_b_id) DO NOTHING`,
+      "INSERT INTO event_matches (event_id, user_a_id, user_b_id, score_total, score_semantic, score_theme, score_intent, score_stakeholder, score_capital, score_signal_convergence, score_timing, score_constraint_complementarity, match_reasons, signal_context, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) ON CONFLICT (event_id, user_a_id, user_b_id) DO NOTHING",
       [
         eventId, userId, otherId,
         result.score_total, result.score_semantic, result.score_theme, result.score_intent,
@@ -617,10 +705,8 @@ async function generateMatchesForUser(userId, eventId, options) {
         'pending'
       ]
     );
-
     matches.push(result);
   }
-
   return matches;
 }
 
