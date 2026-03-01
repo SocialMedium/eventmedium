@@ -1,7 +1,7 @@
 var express = require('express');
 var router = express.Router();
 var { dbGet, dbRun, dbAll } = require('../db');
-var { authenticateToken } = require('./auth');
+var { authenticateToken } = require('../middleware/auth');
 // ──────────────────────────────────────────
 
 
