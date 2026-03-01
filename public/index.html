@@ -710,5 +710,12 @@ var observer = new IntersectionObserver(function(entries) {
 }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
 reveals.forEach(function(el) { observer.observe(el); });
 </script>
+<script>
+(function() {
+  var track = document.getElementById('event-carousel');
+  if (!track) return;
+  track.innerHTML = track.innerHTML + track.innerHTML;
+})();
+</script>
 </body>
 </html>
