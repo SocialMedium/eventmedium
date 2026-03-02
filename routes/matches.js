@@ -85,12 +85,30 @@ var ARCHETYPE_COMPATIBILITY = {
 
 function scoreStakeholderFit(typeA, typeB) {
   if (!typeA || !typeB) return 0.5;
-  var a = typeA.toLowerCase();
-  var b = typeB.toLowerCase();
-  if (ARCHETYPE_COMPATIBILITY[a] && ARCHETYPE_COMPATIBILITY[a][b] !== undefined) {
-    return ARCHETYPE_COMPATIBILITY[a][b];
+  var ALIASES = {
+    'angel investor': 'investor', 'angel': 'investor', 'vc': 'investor',
+    'venture capitalist': 'investor', 'lp': 'investor', 'family office': 'investor',
+    'executive search operator': 'hirer', 'recruiter': 'hirer', 'headhunter': 'hirer',
+    'consultant': 'advisor', 'mentor': 'advisor', 'coach': 'advisor',
+    'ceo': 'founder', 'co-founder': 'founder', 'cofounder': 'founder',
+    'vendor': 'seller', 'supplier': 'seller', 'provider': 'seller',
+    'procurement': 'buyer', 'purchasing': 'buyer',
+    'vp': 'operator', 'director': 'operator', 'manager': 'operator',
+    'scientist': 'researcher', 'academic': 'researcher', 'professor': 'researcher'
+  };
+  var typesA = typeA.toLowerCase().split(',').map(function(t) { return t.trim(); });
+  var typesB = typeB.toLowerCase().split(',').map(function(t) { return t.trim(); });
+  var bestScore = 0.4;
+  for (var i = 0; i < typesA.length; i++) {
+    for (var j = 0; j < typesB.length; j++) {
+      var a = ALIASES[typesA[i]] || typesA[i];
+      var b = ALIASES[typesB[j]] || typesB[j];
+      if (ARCHETYPE_COMPATIBILITY[a] && ARCHETYPE_COMPATIBILITY[a][b] !== undefined) {
+        bestScore = Math.max(bestScore, ARCHETYPE_COMPATIBILITY[a][b]);
+      }
+    }
   }
-  return 0.4;
+  return bestScore;
 }
 
 // ══════════════════════════════════════════════════════
@@ -122,44 +140,63 @@ function scoreIntentComplementarity(profileA, profileB) {
   var offeringA = parseJsonSafe(profileA.offering);
   var intentB = parseJsonSafe(profileB.intent);
   var offeringB = parseJsonSafe(profileB.offering);
-
   if ((!intentA.length && !intentB.length) || (!offeringA.length && !offeringB.length)) {
     return { score: 0, reasons: [] };
   }
-
+  // Signal keywords that indicate the same concept
+  var SYNONYMS = {
+    'investment': ['capital', 'funding', 'angel', 'seed', 'check', 'ticket', 'raise', 'invest', 'back', 'finance'],
+    'distribution': ['go-to-market', 'gtm', 'channel', 'market entry', 'expansion', 'reach', 'scale'],
+    'introductions': ['intros', 'connections', 'network', 'warm intro', 'referral', 'access to'],
+    'talent': ['hiring', 'recruit', 'search', 'executive search', 'headhunt', 'team', 'staffing'],
+    'partnerships': ['partner', 'alliance', 'collaboration', 'co-develop', 'joint', 'strategic'],
+    'advisory': ['advice', 'advisor', 'mentor', 'guidance', 'consulting', 'strategy'],
+    'technology': ['tech', 'platform', 'product', 'solution', 'infrastructure', 'tool', 'api'],
+    'research': ['r&d', 'ip', 'data', 'insights', 'intelligence', 'analysis']
+  };
+  function extractKeywords(text) {
+    var lower = text.toLowerCase();
+    var found = [];
+    Object.keys(SYNONYMS).forEach(function(key) {
+      if (lower.indexOf(key) !== -1) found.push(key);
+      SYNONYMS[key].forEach(function(syn) {
+        if (lower.indexOf(syn) !== -1) found.push(key);
+      });
+    });
+    return [...new Set(found)];
+  }
   var reasons = [];
   var matchCount = 0;
-  var totalChecks = 0;
-
+  var totalPairs = 0;
   // Does A want what B offers?
   intentA.forEach(function(want) {
-    var wantLower = want.toLowerCase();
+    var wantKeys = extractKeywords(want);
     offeringB.forEach(function(offer) {
-      totalChecks++;
-      if (offer.toLowerCase().indexOf(wantLower) !== -1 || wantLower.indexOf(offer.toLowerCase()) !== -1) {
+      totalPairs++;
+      var offerKeys = extractKeywords(offer);
+      var overlap = wantKeys.filter(function(k) { return offerKeys.indexOf(k) !== -1; });
+      if (overlap.length > 0 || offer.toLowerCase().indexOf(want.toLowerCase()) !== -1 || want.toLowerCase().indexOf(offer.toLowerCase()) !== -1) {
         matchCount++;
-        reasons.push('A wants "' + want + '" — B offers "' + offer + '"');
+        if (reasons.length < 3) reasons.push('A wants "' + want.slice(0,40) + '" — B offers "' + offer.slice(0,40) + '"');
       }
     });
   });
-
   // Does B want what A offers?
   intentB.forEach(function(want) {
-    var wantLower = want.toLowerCase();
+    var wantKeys = extractKeywords(want);
     offeringA.forEach(function(offer) {
-      totalChecks++;
-      if (offer.toLowerCase().indexOf(wantLower) !== -1 || wantLower.indexOf(offer.toLowerCase()) !== -1) {
+      totalPairs++;
+      var offerKeys = extractKeywords(offer);
+      var overlap = wantKeys.filter(function(k) { return offerKeys.indexOf(k) !== -1; });
+      if (overlap.length > 0 || offer.toLowerCase().indexOf(want.toLowerCase()) !== -1 || want.toLowerCase().indexOf(offer.toLowerCase()) !== -1) {
         matchCount++;
-        reasons.push('B wants "' + want + '" — A offers "' + offer + '"');
+        if (reasons.length < 3) reasons.push('B wants "' + want.slice(0,40) + '" — A offers "' + offer.slice(0,40) + '"');
       }
     });
   });
-
-  var score = totalChecks > 0 ? Math.min(1.0, matchCount / Math.max(1, totalChecks / 2)) : 0;
+  var score = totalPairs > 0 ? Math.min(1.0, matchCount / Math.max(1, totalPairs / 3)) : 0;
   return { score: score, reasons: reasons };
 }
-
-// ══════════════════════════════════════════════════════
 // CAPITAL FIT — investor-founder specific scoring
 // ══════════════════════════════════════════════════════
 
@@ -626,19 +663,17 @@ function cosineSimilarity(a, b) {
 async function generateMatchesForUser(userId, eventId, options) {
   options = options || {};
   var threshold = options.threshold || 0.45;
-  var maxMatches = options.maxMatches || (registrantIds.length > 1000 ? 20 : registrantIds.length > 200 ? 12 : 8);
   var candidateLimit = options.candidateLimit || 50;
-
   // ── Stage 1: Candidate selection via Qdrant ANN ──
   // Get all registrants for this event
   var registrants = await dbAll(
     "SELECT user_id FROM event_registrations WHERE event_id = $1 AND user_id != $2 AND status = 'active'",
     [eventId, userId]
   );
-
   if (!registrants.length) return [];
-
   var registrantIds = registrants.map(function(r) { return r.user_id; });
+  var maxMatches = options.maxMatches || (registrantIds.length > 1000 ? 20 : registrantIds.length > 200 ? 12 : 8);
+
   var candidates = null;
   var precomputedSimilarity = {};
 
