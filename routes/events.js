@@ -383,6 +383,18 @@ router.post('/:id/register', authenticateToken, async function(req, res) {
     );
 
     res.json({ registered: true });
+    // Async: generate matches for this user at this event
+    try {
+      var { generateMatchesForUser } = require('./matches');
+      var hasProfile = await dbGet('SELECT user_id FROM stakeholder_profiles WHERE user_id = $1', [req.user.id]);
+      if (hasProfile) {
+        generateMatchesForUser(req.user.id, parseInt(req.params.id)).then(function(matches) {
+          if (matches.length) console.log('Auto-matched user ' + req.user.id + ' at event ' + req.params.id + ': ' + matches.length + ' matches');
+        }).catch(function(err) {
+          console.error('Auto-match on registration error:', err);
+        });
+      }
+    } catch(e) { console.error('Registration match trigger error:', e); }
   } catch (err) {
     console.error('Register error:', err);
     res.status(500).json({ error: 'Registration failed' });

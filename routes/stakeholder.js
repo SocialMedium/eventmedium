@@ -126,14 +126,28 @@ router.post('/profile', authenticateToken, async function(req, res) {
     var user = await dbGet('SELECT name, company FROM users WHERE id = $1', [req.user.id]);
 
     // Embed in Qdrant (async, don't block response)
-    embedProfile(profile, user).then(function(vectorId) {
+    // Embed in Qdrant then trigger matching (async, don't block response)
+    embedProfile(profile, user).then(async function(vectorId) {
       if (vectorId) {
-        dbRun('UPDATE stakeholder_profiles SET qdrant_vector_id = $1 WHERE user_id = $2', [vectorId, req.user.id]);
+        await dbRun('UPDATE stakeholder_profiles SET qdrant_vector_id = $1 WHERE user_id = $2', [vectorId, req.user.id]);
+      }
+      // Generate matches for all events this user is registered for
+      try {
+        var { generateMatchesForUser } = require('./matches');
+        var regs = await dbAll(
+          "SELECT er.event_id FROM event_registrations er JOIN events e ON e.id = er.event_id WHERE er.user_id = $1 AND er.status = 'active' AND e.event_date >= CURRENT_DATE",
+          [req.user.id]
+        );
+        for (var i = 0; i < regs.length; i++) {
+          await generateMatchesForUser(req.user.id, regs[i].event_id);
+        }
+        if (regs.length) console.log('Auto-matched user ' + req.user.id + ' across ' + regs.length + ' events');
+      } catch(err) {
+        console.error('Auto-match after canister save error:', err);
       }
     }).catch(function(err) {
       console.error('Profile embedding error:', err);
     });
-
     res.json({ profile: profile, embedded: true });
   } catch (err) {
     console.error('Save profile error:', err);

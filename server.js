@@ -81,6 +81,38 @@ app.get('/', function(req, res) {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// ── Scheduled matching: 3x daily (8am, 1pm, 6pm UTC) ──
+function scheduleMatching() {
+  var MATCH_HOURS = [8, 13, 18]; // UTC
+  setInterval(async function() {
+    var hour = new Date().getUTCHours();
+    var minute = new Date().getUTCMinutes();
+    if (MATCH_HOURS.indexOf(hour) === -1 || minute !== 0) return;
+    console.log('[Scheduler] Running matching cycle at ' + new Date().toISOString());
+    try {
+      var { generateMatchesForUser } = require('./routes/matches');
+      var events = await require('./db').dbAll(
+        "SELECT e.id FROM events e WHERE e.event_date >= CURRENT_DATE AND e.event_date <= CURRENT_DATE + INTERVAL '30 days'"
+      );
+      for (var i = 0; i < events.length; i++) {
+        var regs = await require('./db').dbAll(
+          "SELECT user_id FROM event_registrations WHERE event_id = $1 AND status = 'active'",
+          [events[i].id]
+        );
+        for (var j = 0; j < regs.length; j++) {
+          try {
+            await generateMatchesForUser(regs[j].user_id, events[i].id);
+          } catch(e) { /* skip individual failures */ }
+        }
+        if (regs.length) console.log('[Scheduler] Event ' + events[i].id + ': processed ' + regs.length + ' users');
+      }
+    } catch(err) {
+      console.error('[Scheduler] Matching cycle error:', err);
+    }
+  }, 60000); // check every minute
+}
+scheduleMatching();
+
 // ── 404 ──
 app.use(function(req, res) {
   if (req.path.startsWith('/api/')) return res.status(404).json({ error: 'Not found' });
