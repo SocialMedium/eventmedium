@@ -45,6 +45,29 @@ body{font-family:var(--font);color:var(--txt);background:var(--bg);-webkit-font-
 .filter-check{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--txtL);cursor:pointer;user-select:none}
 .filter-check input{accent-color:var(--p)}
 .filter-spacer{flex:1}
+/* Scope tabs */
+.scope-tabs{display:flex;gap:4px;margin-bottom:20px;background:var(--pL);padding:4px;border-radius:12px;width:fit-content}
+.scope-tab{padding:10px 24px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;border:none;font-family:var(--font);background:transparent;color:var(--txtL);transition:all 0.2s}
+.scope-tab.active{background:var(--p);color:white;box-shadow:var(--shadow)}
+.scope-tab:hover:not(.active){color:var(--txt);background:rgba(0,102,255,0.08)}
+.scope-panel{display:none}.scope-panel.active{display:block}
+/* Community cards */
+.comm-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;margin-top:20px}
+.comm-card{background:var(--card);border:1px solid var(--bdr);border-radius:14px;padding:24px;cursor:pointer;transition:all 0.2s}
+.comm-card:hover{border-color:var(--p);box-shadow:var(--shadowL);transform:translateY(-2px)}
+.comm-name{font-size:1.1rem;font-weight:700;margin-bottom:4px}
+.comm-desc{font-size:13px;color:var(--txtL);margin-bottom:12px;line-height:1.5}
+.comm-meta{display:flex;gap:16px;font-size:12px;color:var(--txtXL)}
+.comm-meta span{display:flex;align-items:center;gap:4px}
+.comm-join{margin-top:24px;padding:20px;background:var(--pL);border-radius:14px;text-align:center}
+.comm-join h3{margin-bottom:8px;font-size:1rem}
+.comm-join p{font-size:13px;color:var(--txtL);margin-bottom:16px}
+.code-input{padding:12px 16px;border:2px solid var(--bdr);border-radius:10px;font-size:18px;font-weight:700;letter-spacing:4px;text-align:center;width:160px;font-family:var(--font);text-transform:uppercase}
+.code-input:focus{outline:none;border-color:var(--p);box-shadow:0 0 0 3px var(--pL)}
+.join-btn{padding:12px 24px;background:var(--p);color:white;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font);margin-left:8px}
+.join-btn:hover{background:var(--pD)}
+.create-comm-btn{padding:10px 20px;background:var(--card);color:var(--p);border:1px solid var(--p);border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font);margin-top:16px}
+.create-comm-btn:hover{background:var(--pL)}
 .filter-btn{padding:10px 20px;background:var(--card);color:var(--txt);border:1px solid var(--bdr);border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font);transition:all 0.2s;display:flex;align-items:center;gap:6px}
 .filter-btn:hover{border-color:var(--p);color:var(--p);background:var(--pL)}
 .filter-btn i{width:14px;height:14px}
@@ -190,6 +213,12 @@ body{font-family:var(--font);color:var(--txt);background:var(--bg);-webkit-font-
   <div class="page-header">
     <h1>Browse Events</h1>
     <p>Find your next event and get matched before you arrive.</p>
+  </div>
+  <div class="scope-tabs">
+    <button class="scope-tab active" onclick="switchScope('events')">Events</button>
+    <button class="scope-tab" onclick="switchScope('communities')">Communities</button>
+  </div>
+  <div id="eventsPanel" class="scope-panel active">
   </div>
 
   <div class="filters">
@@ -881,7 +910,7 @@ function openSidecarForm() {
   // Build tag chips
   var tagsHtml = '';
   allSidecarTags.forEach(function(t) {
-    tagsHtml += '<span class="sf-tag-chip" onclick="toggleSfTag(this,'' + t + '')">' + t + '</span>';
+    tagsHtml += '<span class="sf-tag-chip" onclick="toggleSfTag(this,&#39;' + t + '&#39;)">' + t + '</span>';
   });
   document.getElementById('sf-tags').innerHTML = tagsHtml;
 
@@ -973,6 +1002,131 @@ document.addEventListener('keydown', function(e) {
     closeSidecarForm();
   }
 });
+</script>
+
+
+  </div><!-- /eventsPanel -->
+
+  <div id="communitiesPanel" class="scope-panel">
+    <div class="comm-join">
+      <h3>Join a Community</h3>
+      <p>Enter an access code shared by your community organizer</p>
+      <div style="display:flex;align-items:center;justify-content:center;gap:8px">
+        <input type="text" class="code-input" id="joinCode" maxlength="6" placeholder="CODE">
+        <button class="join-btn" onclick="joinCommunity()">Join</button>
+      </div>
+      <div id="joinMsg" style="margin-top:12px;font-size:13px"></div>
+    </div>
+
+    <h3 style="margin-top:32px;margin-bottom:4px">My Communities</h3>
+    <p style="font-size:13px;color:var(--txtL);margin-bottom:16px">Private matching pools you belong to</p>
+    <div id="commGrid" class="comm-grid">
+      <div class="comm-empty">
+        <div><i data-lucide="users" style="width:48px;height:48px;color:var(--txtXL)"></i></div>
+        <p style="margin-top:12px">No communities yet. Join one with an access code above.</p>
+      </div>
+    </div>
+
+    <div style="text-align:center;margin-top:32px">
+      <button class="create-comm-btn" onclick="showCreateComm()">+ Create a Community</button>
+    </div>
+
+    <div id="createCommForm" style="display:none;margin-top:20px;padding:24px;background:var(--card);border:1px solid var(--bdr);border-radius:14px;max-width:480px;margin-left:auto;margin-right:auto">
+      <h3 style="margin-bottom:16px">Create a Community</h3>
+      <input type="text" id="commName" class="filter-input" placeholder="Community name" style="width:100%;margin-bottom:12px">
+      <textarea id="commDesc" class="filter-input" placeholder="Description (optional)" rows="3" style="width:100%;margin-bottom:16px;resize:vertical"></textarea>
+      <button class="join-btn" onclick="createCommunity()" style="width:100%">Create & Get Access Code</button>
+      <div id="createMsg" style="margin-top:12px;font-size:13px"></div>
+    </div>
+  </div>
+
+<script>
+function switchScope(scope) {
+  document.querySelectorAll('.scope-tab').forEach(function(t) { t.classList.remove('active'); });
+  document.querySelectorAll('.scope-panel').forEach(function(p) { p.classList.remove('active'); });
+  event.target.classList.add('active');
+  document.getElementById(scope === 'communities' ? 'communitiesPanel' : 'eventsPanel').classList.add('active');
+  if (scope === 'communities') loadCommunities();
+}
+
+async function loadCommunities() {
+  var token = localStorage.getItem('em_token');
+  if (!token) { document.getElementById('commGrid').innerHTML = '<div class="comm-empty"><p>Sign in to view your communities</p></div>'; return; }
+  try {
+    var resp = await fetch('/api/communities/mine', { headers: { Authorization: 'Bearer ' + token } });
+    var data = await resp.json();
+    if (!data.communities || !data.communities.length) {
+      document.getElementById('commGrid').innerHTML = '<div class="comm-empty"><div><i data-lucide="users" style="width:48px;height:48px;color:var(--txtXL)"></i></div><p style="margin-top:12px">No communities yet. Join one with an access code above.</p></div>';
+      lucide.createIcons();
+      return;
+    }
+    document.getElementById('commGrid').innerHTML = data.communities.map(function(c) {
+      return '<div class="comm-card" onclick="goToCommunity(\'' + c.slug + '\')">' +
+        '<div class="comm-name">' + esc(c.name) + '</div>' +
+        '<div class="comm-desc">' + esc(c.description || '') + '</div>' +
+        '<div class="comm-meta">' +
+          '<span><i data-lucide="users" style="width:14px;height:14px"></i> ' + c.member_count + ' members</span>' +
+          '<span><i data-lucide="calendar" style="width:14px;height:14px"></i> ' + c.upcoming_events + ' upcoming events</span>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+    lucide.createIcons();
+  } catch(e) { console.error('Load communities error:', e); }
+}
+
+function goToCommunity(slug) {
+  window.location.href = '/community.html?slug=' + slug;
+}
+
+async function joinCommunity() {
+  var code = document.getElementById('joinCode').value.trim();
+  if (!code) return;
+  var token = localStorage.getItem('em_token');
+  if (!token) { document.getElementById('joinMsg').innerHTML = '<span style="color:var(--warn)">Please sign in first</span>'; return; }
+  try {
+    var resp = await fetch('/api/communities/join', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ code: code })
+    });
+    var data = await resp.json();
+    if (data.error) {
+      document.getElementById('joinMsg').innerHTML = '<span style="color:#ef4444">' + data.error + '</span>';
+    } else {
+      document.getElementById('joinMsg').innerHTML = '<span style="color:var(--ok)">Joined ' + data.community.name + '!</span>';
+      document.getElementById('joinCode').value = '';
+      loadCommunities();
+    }
+  } catch(e) { document.getElementById('joinMsg').innerHTML = '<span style="color:#ef4444">Error joining</span>'; }
+}
+
+function showCreateComm() {
+  var form = document.getElementById('createCommForm');
+  form.style.display = form.style.display === 'none' ? 'block' : 'none';
+}
+
+async function createCommunity() {
+  var name = document.getElementById('commName').value.trim();
+  if (!name) return;
+  var token = localStorage.getItem('em_token');
+  if (!token) return;
+  try {
+    var resp = await fetch('/api/communities', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ name: name, description: document.getElementById('commDesc').value.trim() })
+    });
+    var data = await resp.json();
+    if (data.error) {
+      document.getElementById('createMsg').innerHTML = '<span style="color:#ef4444">' + data.error + '</span>';
+    } else {
+      document.getElementById('createMsg').innerHTML = '<span style="color:var(--ok)">Created! Access code: <strong style="font-size:18px;letter-spacing:2px">' + data.community.access_code + '</strong><br>Share this code with your members.</span>';
+      document.getElementById('commName').value = '';
+      document.getElementById('commDesc').value = '';
+      loadCommunities();
+    }
+  } catch(e) { document.getElementById('createMsg').innerHTML = '<span style="color:#ef4444">Error creating</span>'; }
+}
 </script>
 
 <script src="/js/nav.js"></script></body>
