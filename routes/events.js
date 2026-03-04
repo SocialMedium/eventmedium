@@ -38,7 +38,8 @@ router.get('/', optionalAuth, async function(req, res) {
       conditions.push('event_date >= CURRENT_DATE');
     }
 
-    var where = conditions.length ? ' WHERE ' + conditions.join(' AND ') : '';
+    conditions.push('community_id IS NULL');
+    var where = ' WHERE ' + conditions.join(' AND ');
     var lim = parseInt(limit) || 50;
     var off = parseInt(offset) || 0;
 
@@ -105,7 +106,7 @@ router.get('/recommended', authenticateToken, async function(req, res) {
       `SELECT e.*, 
         (SELECT COUNT(*) FROM event_registrations WHERE event_id = e.id AND status = 'active') as reg_count
        FROM events e 
-       WHERE e.event_date >= CURRENT_DATE 
+       WHERE e.event_date >= CURRENT_DATE AND e.community_id IS NULL 
        AND e.id NOT IN (SELECT event_id FROM event_registrations WHERE user_id = $1 AND status = 'active')
        ORDER BY e.event_date ASC`,
       [req.user.id]

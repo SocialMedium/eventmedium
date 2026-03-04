@@ -155,4 +155,24 @@ router.post('/profile', authenticateToken, async function(req, res) {
   }
 });
 
+
+// ── POST /api/stakeholder/matching-mode ── toggle matching scope
+router.post("/matching-mode", authenticateToken, async function(req, res) {
+  try {
+    var mode = req.body.mode;
+    var valid = ["event_only", "always_on", "community", "all"];
+    if (!mode || valid.indexOf(mode) === -1) {
+      return res.status(400).json({ error: "Invalid mode. Use: " + valid.join(", ") });
+    }
+    await dbRun(
+      "UPDATE stakeholder_profiles SET matching_mode = $1 WHERE user_id = $2",
+      [mode, req.user.id]
+    );
+    res.json({ matching_mode: mode });
+  } catch (err) {
+    console.error("Matching mode error:", err);
+    res.status(500).json({ error: "Failed to update matching mode" });
+  }
+});
+
 module.exports = { router };

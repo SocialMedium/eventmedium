@@ -63,6 +63,7 @@ app.use('/api/signals', require('./routes/signals').router);
 // Matching engine
 app.use('/api/matches', require('./routes/matches').router);
 app.use('/api/inbox', require('./routes/inbox_routes').router);
+app.use('/api/communities', require('./routes/communities').router);
 
 // Nev (AI concierge)
 app.use('/api/nev', require('./routes/nev').router);
