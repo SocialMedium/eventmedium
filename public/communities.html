@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Communities — Event Medium</title>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+:root {
+  --p: #0066ff;--pL: #e8f0fe;--pD: #0052cc;--s: #6c63ff;--ok: #00d084;
+  --okL: #e6faf2;--warn: #f59e0b;--bg: #f8f9fd;--card: #ffffff;
+  --txt: #1a1d29;--txtL: #6b7280;--txtXL: #9ca3af;--bdr: #e5e7eb;
+  --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadowL: 0 10px 25px rgba(0,0,0,0.08);
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--font);color:var(--txt);background:var(--bg);-webkit-font-smoothing:antialiased}
+/* Nav */
+.nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,0.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--bdr);padding:0 24px}
+.nav-inner{max-width:1140px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:64px}
+.nav-brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--txt)}
+.nav-logo{width:36px;height:36px;background:var(--p);border-radius:10px;display:flex;align-items:center;justify-content:center;color:white}
+.nav-name{font-weight:800;font-size:1.15rem;letter-spacing:-0.3px}
+.nav-name span{color:var(--p)}
+.nav-links{display:flex;align-items:center;gap:8px}
+.nav-link{padding:8px 16px;color:var(--txtL);text-decoration:none;font-size:14px;font-weight:500;border-radius:8px;transition:all 0.2s}
+.nav-link:hover{color:var(--txt);background:var(--card)}
+.nav-link.active{color:var(--p);font-weight:600}
+.nav-cta{padding:8px 20px;background:var(--p);color:white;font-size:14px;font-weight:600;border-radius:8px;text-decoration:none;transition:all 0.2s}
+.nav-burger{display:none;background:none;border:none;cursor:pointer;padding:8px}
+.nav-burger svg{width:24px;height:24px;color:var(--txt)}
+.nav-mobile-drawer{display:none;position:fixed;top:64px;left:0;right:0;background:white;border-bottom:1px solid var(--bdr);padding:16px 24px;z-index:99;flex-direction:column;gap:8px}
+.nav-mobile-drawer.open{display:flex}
+.nav-mobile-drawer:not(.open){display:none!important}
+@media(max-width:768px){.nav-links{display:none}.nav-burger{display:block}}
+
+.page{max-width:1140px;margin:84px auto 40px;padding:0 24px}
+.page-header{margin-bottom:24px}
+.page-header h1{font-size:2rem;font-weight:800;letter-spacing:-0.5px;margin-bottom:4px}
+.page-header p{color:var(--txtL);font-size:15px}
+
+/* Scope tabs */
+.scope-tabs{display:flex;gap:4px;margin-bottom:28px;background:var(--pL);padding:4px;border-radius:12px;width:fit-content}
+.scope-tab{padding:10px 24px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;border:none;font-family:var(--font);background:transparent;color:var(--txtL);transition:all 0.2s;text-decoration:none;display:inline-block}
+.scope-tab.active{background:var(--p);color:white;box-shadow:var(--shadow)}
+.scope-tab:hover:not(.active){color:var(--txt);background:rgba(0,102,255,0.08)}
+
+/* Join box */
+.comm-join{padding:28px;background:var(--pL);border-radius:14px;text-align:center;margin-bottom:32px}
+.comm-join h3{margin-bottom:8px;font-size:1.1rem;font-weight:700}
+.comm-join p{font-size:13px;color:var(--txtL);margin-bottom:16px}
+.code-input{padding:12px 16px;border:2px solid var(--bdr);border-radius:10px;font-size:18px;font-weight:700;letter-spacing:4px;text-align:center;width:160px;font-family:var(--font);text-transform:uppercase}
+.code-input:focus{outline:none;border-color:var(--p);box-shadow:0 0 0 3px var(--pL)}
+.join-btn{padding:12px 24px;background:var(--p);color:white;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font);margin-left:8px}
+.join-btn:hover{background:var(--pD)}
+
+/* Community cards */
+.section-title{font-size:1.1rem;font-weight:700;margin-bottom:4px}
+.section-sub{font-size:13px;color:var(--txtL);margin-bottom:16px}
+.comm-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;margin-bottom:32px}
+.comm-card{background:var(--card);border:1px solid var(--bdr);border-radius:14px;padding:24px;cursor:pointer;transition:all 0.2s}
+.comm-card:hover{border-color:var(--p);box-shadow:var(--shadowL);transform:translateY(-2px)}
+.comm-name{font-size:1.05rem;font-weight:700;margin-bottom:4px}
+.comm-desc{font-size:13px;color:var(--txtL);margin-bottom:12px;line-height:1.5}
+.comm-meta{display:flex;gap:16px;font-size:12px;color:var(--txtXL)}
+.comm-meta span{display:flex;align-items:center;gap:4px}
+.comm-badge{display:inline-block;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;margin-bottom:8px}
+.badge-owner{background:var(--okL);color:var(--ok)}
+.badge-member{background:var(--pL);color:var(--p)}
+
+.comm-empty{text-align:center;padding:48px 24px;color:var(--txtL)}
+
+/* Create form */
+.create-comm-btn{padding:10px 20px;background:var(--card);color:var(--p);border:1px solid var(--p);border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font)}
+.create-comm-btn:hover{background:var(--pL)}
+.create-form{display:none;margin-top:20px;padding:24px;background:var(--card);border:1px solid var(--bdr);border-radius:14px;max-width:480px;margin-left:auto;margin-right:auto}
+.form-input{padding:10px 14px;border:1px solid var(--bdr);border-radius:10px;font-size:14px;font-family:var(--font);background:var(--card);color:var(--txt);width:100%;transition:border 0.2s}
+.form-input:focus{outline:none;border-color:var(--p);box-shadow:0 0 0 3px var(--pL)}
+
+/* Share result */
+.share-result{margin-top:20px;padding:20px;background:var(--okL);border-radius:12px;text-align:left}
+.share-result h4{font-size:14px;margin-bottom:8px;color:var(--ok)}
+.share-field{margin-bottom:12px}
+.share-field label{display:block;font-size:11px;font-weight:600;color:var(--txtL);margin-bottom:4px;text-transform:uppercase}
+.share-field input,.share-field textarea{width:100%;padding:10px 12px;border:1px solid var(--bdr);border-radius:8px;font-size:13px;font-family:var(--font);background:white}
+.share-field textarea{resize:none}
+.copy-btn{padding:6px 14px;background:var(--p);color:white;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);margin-top:4px}
+.copy-btn:hover{background:var(--pD)}
+
+@media(max-width:600px){
+  .comm-grid{grid-template-columns:1fr}
+  .code-input{width:120px}
+}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-brand">
+      <div class="nav-logo"><i data-lucide="radio" style="width:20px;height:20px;color:var(--p)"></i></div>
+      <span class="nav-name">Event <span style="color:var(--p)">Medium</span></span>
+    </a>
+    <div class="nav-links">
+      <a href="/events.html" class="nav-link">Events</a>
+      <a href="/matches.html" class="nav-link">Matches</a>
+      <a href="/inbox.html" class="nav-link">Inbox</a>
+      <a href="/canister.html" class="nav-link">My Canister</a>
+    </div>
+  </div>
+</nav>
+
+<div class="page">
+  <div class="page-header">
+    <h1>Communities</h1>
+    <p>Private matching pools for your networks, teams, and organizations.</p>
+  </div>
+
+  <div class="scope-tabs">
+    <a href="/events.html" class="scope-tab">Events</a>
+    <a href="/communities.html" class="scope-tab active">Communities</a>
+  </div>
+
+  <!-- Join box -->
+  <div class="comm-join">
+    <h3>Join a Community</h3>
+    <p>Enter an access code shared by your community organizer</p>
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px">
+      <input type="text" class="code-input" id="joinCode" maxlength="6" placeholder="CODE">
+      <button class="join-btn" onclick="joinCommunity()">Join</button>
+    </div>
+    <div id="joinMsg" style="margin-top:12px;font-size:13px"></div>
+  </div>
+
+  <!-- My communities -->
+  <h3 class="section-title">My Communities</h3>
+  <p class="section-sub">Private matching pools you belong to</p>
+  <div id="commGrid" class="comm-grid">
+    <div class="comm-empty">
+      <i data-lucide="users" style="width:48px;height:48px;color:var(--txtXL)"></i>
+      <p style="margin-top:12px">No communities yet. Join one with an access code above.</p>
+    </div>
+  </div>
+
+  <!-- Create -->
+  <div style="text-align:center">
+    <button class="create-comm-btn" onclick="toggleCreate()">+ Create a Community</button>
+  </div>
+
+  <div class="create-form" id="createForm">
+    <h3 style="margin-bottom:16px">Create a Community</h3>
+    <input type="text" id="commName" class="form-input" placeholder="Community name" style="margin-bottom:12px">
+    <textarea id="commDesc" class="form-input" placeholder="Description (optional)" rows="3" style="margin-bottom:16px;resize:vertical"></textarea>
+    <button class="join-btn" onclick="createCommunity()" style="width:100%">Create & Get Access Code</button>
+    <div id="createResult"></div>
+  </div>
+</div>
+
+<script>
+function esc(s) { if (!s) return ''; var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+// Load communities on page load
+(async function() {
+  var token = localStorage.getItem('auth_token');
+  if (!token) {
+    document.getElementById('commGrid').innerHTML = '<div class="comm-empty"><p>Sign in to view your communities</p></div>';
+    return;
+  }
+  try {
+    var resp = await fetch('/api/communities/mine', { headers: { Authorization: 'Bearer ' + token } });
+    var data = await resp.json();
+    if (!data.communities || !data.communities.length) {
+      document.getElementById('commGrid').innerHTML = '<div class="comm-empty"><i data-lucide="users" style="width:48px;height:48px;color:var(--txtXL)"></i><p style="margin-top:12px">No communities yet. Join one with an access code above.</p></div>';
+      lucide.createIcons();
+      return;
+    }
+    document.getElementById('commGrid').innerHTML = data.communities.map(function(c) {
+      var badge = c.role === 'owner'
+        ? '<span class="comm-badge badge-owner">Owner</span>'
+        : '<span class="comm-badge badge-member">Member</span>';
+      return '<div class="comm-card" onclick="window.location.href=\'/community.html?slug=' + c.slug + '\'">' +
+        badge +
+        '<div class="comm-name">' + esc(c.name) + '</div>' +
+        '<div class="comm-desc">' + esc(c.description || '') + '</div>' +
+        '<div class="comm-meta">' +
+          '<span><i data-lucide="users" style="width:14px;height:14px"></i> ' + c.member_count + ' members</span>' +
+          '<span><i data-lucide="calendar" style="width:14px;height:14px"></i> ' + c.upcoming_events + ' upcoming</span>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+    lucide.createIcons();
+  } catch(e) { console.error('Load communities error:', e); }
+})();
+
+async function joinCommunity() {
+  var code = document.getElementById('joinCode').value.trim();
+  if (!code) return;
+  var token = localStorage.getItem('auth_token');
+  if (!token) { document.getElementById('joinMsg').innerHTML = '<span style="color:var(--warn)">Please sign in first</span>'; return; }
+  try {
+    var resp = await fetch('/api/communities/join', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ code: code })
+    });
+    var data = await resp.json();
+    if (data.error) {
+      document.getElementById('joinMsg').innerHTML = '<span style="color:#ef4444">' + data.error + '</span>';
+    } else {
+      document.getElementById('joinMsg').innerHTML = '<span style="color:var(--ok)">Joined ' + esc(data.community.name) + '!</span>';
+      document.getElementById('joinCode').value = '';
+      setTimeout(function() { window.location.reload(); }, 1000);
+    }
+  } catch(e) { document.getElementById('joinMsg').innerHTML = '<span style="color:#ef4444">Error joining</span>'; }
+}
+
+function toggleCreate() {
+  var form = document.getElementById('createForm');
+  form.style.display = form.style.display === 'none' || !form.style.display ? 'block' : 'none';
+}
+
+async function createCommunity() {
+  var name = document.getElementById('commName').value.trim();
+  if (!name) return;
+  var token = localStorage.getItem('auth_token');
+  if (!token) return;
+  try {
+    var resp = await fetch('/api/communities', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ name: name, description: document.getElementById('commDesc').value.trim() })
+    });
+    var data = await resp.json();
+    if (data.error) {
+      document.getElementById('createResult').innerHTML = '<p style="color:#ef4444;margin-top:12px;font-size:13px">' + data.error + '</p>';
+    } else {
+      var shareUrl = window.location.origin + '/c/' + data.community.slug + '?code=' + data.community.access_code;
+      var shareMsg = "I've set up private AI-powered matching for " + name + " on EventMedium.\n\nNo public profiles, no ads — just double-blind introductions with people who complement what you're building.\n\nJoin here: " + shareUrl;
+      document.getElementById('createResult').innerHTML =
+        '<div class="share-result">' +
+          '<h4>Community created!</h4>' +
+          '<div class="share-field">' +
+            '<label>Access Code</label>' +
+            '<input type="text" value="' + data.community.access_code + '" readonly style="font-size:18px;font-weight:800;letter-spacing:3px;text-align:center">' +
+          '</div>' +
+          '<div class="share-field">' +
+            '<label>Share Link</label>' +
+            '<input type="text" id="shareLink" value="' + shareUrl + '" readonly onclick="this.select()">' +
+            '<button class="copy-btn" onclick="copyField(\'shareLink\')">Copy link</button>' +
+          '</div>' +
+          '<div class="share-field">' +
+            '<label>Share Message</label>' +
+            '<textarea id="shareMsg" rows="4" readonly onclick="this.select()">' + esc(shareMsg) + '</textarea>' +
+            '<button class="copy-btn" onclick="copyField(\'shareMsg\')">Copy message</button>' +
+          '</div>' +
+        '</div>';
+      document.getElementById('commName').value = '';
+      document.getElementById('commDesc').value = '';
+    }
+  } catch(e) { document.getElementById('createResult').innerHTML = '<p style="color:#ef4444;margin-top:12px;font-size:13px">Error creating community</p>'; }
+}
+
+function copyField(id) {
+  var el = document.getElementById(id);
+  el.select();
+  navigator.clipboard.writeText(el.value);
+  var btn = el.nextElementSibling;
+  if (btn) { var orig = btn.textContent; btn.textContent = 'Copied!'; setTimeout(function() { btn.textContent = orig; }, 1500); }
+}
+</script>
+<script src="/js/nav.js"></script>
+</body>
+</html>
