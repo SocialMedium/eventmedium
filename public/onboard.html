@@ -174,6 +174,11 @@ body{font-family:var(--font);color:var(--txt);background:var(--bg);-webkit-font-
   .canister-pane{padding:12px}
   .canister-preview{padding:16px}
 }
+
+.signal-ready{display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,#ecfdf5,#d1fae5);border:1px solid #6ee7b7;border-radius:10px;padding:12px 14px;margin-top:12px;animation:msgIn 0.4s ease-out}
+.signal-ready-icon{width:32px;height:32px;border-radius:8px;background:#059669;color:white;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.signal-ready-title{font-size:13px;font-weight:700;color:#065f46}
+.signal-ready-sub{font-size:11px;color:#047857;margin-top:1px}
 </style>
 <link rel="stylesheet" href="/css/nav.css"></head>
 <body>
@@ -321,7 +326,7 @@ body{font-family:var(--font);color:var(--txt);background:var(--bg);-webkit-font-
         <div class="cp-deal-grid" id="cpDealVal"></div>
       </div>
 
-      <div class="canister-saved" id="canisterSaved">
+      <div class="signal-ready" id="signalReady" style="display:none"><div class="signal-ready-icon"><i data-lucide="zap" style="width:16px;height:16px"></i></div><div><div class="signal-ready-title">Base signal reached</div><div class="signal-ready-sub">Matching is active. Keep going to improve quality.</div></div></div><div class="canister-saved" id="canisterSaved">
         <h4>Canister saved!</h4>
         <p>Matching is now active. Register for events to see who's aligned with you.</p>
         <a href="/events.html" class="saved-primary"><i data-lucide="calendar"></i> Find my people</a>
@@ -667,6 +672,9 @@ function updateCompleteness() {
   var fill = document.getElementById('completeFill');
   fill.style.width = pct + '%';
   fill.style.background = pct >= 70 ? 'var(--ok)' : pct >= 40 ? 'var(--p)' : pct >= 20 ? 'var(--warn)' : 'var(--txtXL)';
+  var hasBase = liveCanister.stakeholder_type && liveCanister.themes.length > 0 && liveCanister.intent.length > 0 && !!liveCanister.geography;
+  var readyEl = document.getElementById('signalReady');
+  if (readyEl && hasBase && readyEl.style.display === 'none') { readyEl.style.display = 'flex'; lucide.createIcons(); }
 }
 
 // ── Save canister ──
