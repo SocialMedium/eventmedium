@@ -437,13 +437,17 @@ async function handlePostAuth(token) {
       headers: { 'Authorization': 'Bearer ' + token }
     });
     var data = await resp.json();
-    if (data.profile && data.profile.stakeholder_type) {
+    var redirect = new URLSearchParams(window.location.search).get('redirect');
+    if (redirect) {
+      window.location.href = redirect;
+    } else if (data.profile && data.profile.stakeholder_type) {
       window.location.href = '/canister.html';
     } else {
       window.location.href = '/onboard.html';
     }
   } catch (err) {
-    window.location.href = '/onboard.html';
+    var redirect = new URLSearchParams(window.location.search).get('redirect');
+    window.location.href = redirect || '/onboard.html';
   }
 }
 
