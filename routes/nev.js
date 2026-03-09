@@ -136,8 +136,7 @@ Everything else improves match quality but isn't required to start.`;
 
   // Inject follow-up patterns based on conversation context
   if (playbook.follow_up_patterns) {
-    base += '\n\nFOLLOW-UP PATTERNS BY STAKEHOLDER TYPE:';
-    base += '\nUse these ONLY in Stage 2-3. Pick the single most revealing question, not a list. These are your sharpest tools — use one at a time.';
+    base += '\n\nFOLLOW-UP PATTERNS — pick ONE question only, never a list:';
     
     Object.keys(playbook.follow_up_patterns).forEach(function(type) {
       var pattern = playbook.follow_up_patterns[type];
@@ -199,7 +198,13 @@ Always include this block at the end of every response:
 {"stakeholder_type":"...","themes":["..."],"intent":["..."],"offering":["..."],"context":"...","deal_details":{},"geography":"..."}
 [/CANISTER_READY]
 
-Use empty strings and empty arrays for unknown fields. Update as conversation progresses. The user won't see this block.`;
+Use empty strings and empty arrays for unknown fields. Update as conversation progresses. The user won't see this block.
+
+ABSOLUTE FINAL RULES — NO EXCEPTIONS:
+- Your entire reply must be 3 sentences or fewer.
+- ONE question mark maximum. Delete any others.
+- ZERO bullet points, ZERO numbered lists, ZERO bold text.
+- The CANISTER_READY block is MANDATORY on every response. If you skip it, matching breaks.`;
 }
 
 // ── POST /api/nev/chat ──
