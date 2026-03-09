@@ -106,14 +106,24 @@ body{font-family:var(--font);color:var(--txt);background:var(--bg);-webkit-font-
 </head>
 <body>
 
+sed -i '' '109,116d' public/community.html
+sed -i '' '108r /dev/stdin' public/community.html << 'NAVEOF'
 <nav class="nav">
   <div class="nav-inner">
     <a href="/" class="nav-brand">
-      <div class="nav-logo"><i data-lucide="zap" style="width:20px;height:20px"></i></div>
-      <div class="nav-name">Event <span>Medium</span></div>
+      <div class="nav-logo"><i data-lucide="radio" style="width:20px;height:20px;color:var(--p)"></i></div>
+      <span class="nav-name">Event <span style="color:var(--p)">Medium</span></span>
     </a>
+    <div class="nav-links">
+      <a href="/events.html" class="nav-link">Events</a>
+      <a href="/matches.html" class="nav-link">Matches</a>
+      <a href="/inbox.html" class="nav-link">Inbox</a>
+      <a href="/canister.html" class="nav-link">My Canister</a>
+    </div>
   </div>
 </nav>
+NAVEOF
+node -c public/community.html 2>/dev/null; echo "done"
 
 <div id="loadingState" class="loading">
   <p>Loading community...</p>
