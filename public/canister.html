@@ -185,12 +185,13 @@ if (!token) window.location.href = '/auth.html';
 
 async function loadCanister() {
   try {
-    var [userResp, profileResp, regResp, matchResp, notiResp] = await Promise.all([
+    var [userResp, profileResp, regResp, matchResp, notiResp, commResp] = await Promise.all([
       fetch('/api/auth/me', { headers: { 'Authorization': 'Bearer ' + token } }),
       fetch('/api/stakeholder/profile', { headers: { 'Authorization': 'Bearer ' + token } }),
       fetch('/api/events/user/registrations', { headers: { 'Authorization': 'Bearer ' + token } }),
       fetch('/api/matches/mine', { headers: { 'Authorization': 'Bearer ' + token } }),
-      fetch('/api/notifications/unread-count', { headers: { 'Authorization': 'Bearer ' + token } })
+      fetch('/api/notifications/unread-count', { headers: { 'Authorization': 'Bearer ' + token } }),
+      fetch('/api/communities/mine', { headers: { 'Authorization': 'Bearer ' + token } })
     ]);
 
     if (!userResp.ok) { localStorage.removeItem('auth_token'); window.location.href = '/auth.html'; return; }
@@ -308,6 +309,7 @@ async function loadCanister() {
     html += '<div class="card"><div class="card-header"><h2>Stats</h2></div>' +
       '<div class="stats-grid">' +
         '<div class="stat-card"><div class="stat-num">' + registrations.length + '</div><div class="stat-label">Events</div></div>' +
+        '<div class="stat-card"><div class="stat-num">' + communities.length + '</div><div class="stat-label">Communities</div></div>' +
         '<div class="stat-card"><div class="stat-num">' + matches.length + '</div><div class="stat-label">Matches</div></div>' +
         '<div class="stat-card"><div class="stat-num">' + revealedMatches.length + '</div><div class="stat-label">Revealed</div></div>' +
       '</div>' +
