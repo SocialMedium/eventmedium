@@ -109,6 +109,33 @@ body{font-family:var(--font);color:var(--txt);background:var(--bg);-webkit-font-
 
 sed -i '' '109,116d' public/community.html
 sed -i '' '108r /dev/stdin' public/community.html << 'NAVEOF'
+node -e "
+var fs = require('fs');
+var code = fs.readFileSync('routes/communities.js','utf8');
+var insert = \`
+// ── GET /api/communities/:slug/public ── unauthenticated landing page info
+router.get('/:slug/public', async function(req, res) {
+  try {
+    var community = await dbGet(
+      \"SELECT name, slug, description, created_at, (SELECT COUNT(*) FROM community_members WHERE community_id = communities.id) as member_count, (SELECT COUNT(*) FROM events WHERE community_id = communities.id AND event_date >= CURRENT_DATE) as upcoming_events FROM communities WHERE slug = \\$1 AND is_active = true\",
+      [req.params.slug]
+    );
+    if (!community) return res.status(404).json({ error: 'Community not found' });
+    res.json({ community: community });
+  } catch (err) {
+    console.error('Public community error:', err);
+    res.status(500).json({ error: 'Failed to load community' });
+  }
+});
+\`;
+code = code.replace(
+  \"// ── GET /api/communities/:slug ── community detail + events\",
+  insert + '\n// ── GET /api/communities/:slug ── community detail + events'
+);
+fs.writeFileSync('routes/communities.js', code);
+console.log('done');
+"
+node -c routes/communities.js
 <nav class="nav">
   <div class="nav-inner">
     <a href="/" class="nav-brand">
@@ -271,27 +298,24 @@ async function init() {
 
   var token = localStorage.getItem('auth_token');
   try {
+    var data = null;
     // Try authenticated fetch first (shows access code for owners, membership status)
-    var headers = {};
-    if (token) headers['Authorization'] = 'Bearer ' + token;
-
-    var resp = await fetch('/api/communities/' + slug, { headers: headers });
-
-    if (resp.status === 403) {
-      // Not a member — show public info from slug
-      showPublicView(slug);
-      return;
+    if (token) {
+      var resp = await fetch('/api/communities/' + slug, { headers: { Authorization: 'Bearer ' + token } });
+      if (resp.ok) {
+        data = await resp.json();
+      }
     }
-
-    if (!resp.ok) {
-      showError();
-      return;
+    // Fall back to public endpoint
+    if (!data) {
+      var pubResp = await fetch('/api/communities/' + slug + '/public');
+      if (!pubResp.ok) { showError(); return; }
+      data = await pubResp.json();
+      data.role = null;
+      data.events = [];
     }
-
-    var data = await resp.json();
     communityData = data.community;
     joinCode = joinCode || data.community.access_code;
-
     renderCommunity(data);
   } catch(e) {
     console.error('Load error:', e);
