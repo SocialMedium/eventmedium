@@ -287,6 +287,22 @@ async function loadCanister() {
       html += '</div></div>';
     }
 
+    
+    // Communities card
+    html += '<div class="card"><div class="card-header"><h2>My Communities</h2><a href="/communities.html" class="card-edit"><i data-lucide="plus"></i> Browse</a></div>';
+    if (communities.length) {
+      html += communities.map(function(c) {
+        return '<div class="event-item">' +
+          '<div class="event-item-left"><span class="event-dot upcoming"></span><div>' +
+          '<div class="event-item-name">' + esc(c.name || 'Community') + '</div>' +
+          '<div class="event-item-date">' + (c.member_count ? c.member_count + ' members' : 'Private') + '</div></div></div>' +
+          '<a href="/community.html?id=' + c.id + '">View</a></div>';
+      }).join('');
+    } else {
+      html += '<div class="empty-state">No communities yet. <a href="/communities.html">Browse communities</a> to join.</div>';
+    }
+    html += '</div>';
+
     // Events card
     html += '<div class="card"><div class="card-header"><h2>My Events</h2><a href="/events.html" class="card-edit"><i data-lucide="plus"></i> Browse</a></div>';
     if (registrations.length) {
