@@ -81,6 +81,10 @@ app.use('/api/privacy', require('./routes/privacy'));
 app.get('/', function(req, res) {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
+// ── Community landing pages ──
+app.get("/c/:slug", function(req, res) {
+  res.sendFile(path.join(__dirname, "public", "community.html"));
+});
 
 // ── Scheduled matching: 3x daily (8am, 1pm, 6pm UTC) ──
 function scheduleMatching() {

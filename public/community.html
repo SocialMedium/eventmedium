@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Join Community — Event Medium</title>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+:root {
+  --p: #0066ff;--pL: #e8f0fe;--pD: #0052cc;--s: #6c63ff;--ok: #00d084;
+  --okL: #e6faf2;--warn: #f59e0b;--bg: #f8f9fd;--card: #ffffff;
+  --txt: #1a1d29;--txtL: #6b7280;--txtXL: #9ca3af;--bdr: #e5e7eb;
+  --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadowL: 0 10px 25px rgba(0,0,0,0.08);
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--font);color:var(--txt);background:var(--bg);-webkit-font-smoothing:antialiased}
+
+/* Nav */
+.nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,0.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--bdr);padding:0 24px}
+.nav-inner{max-width:1140px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:64px}
+.nav-brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--txt)}
+.nav-logo{width:36px;height:36px;background:var(--p);border-radius:10px;display:flex;align-items:center;justify-content:center;color:white}
+.nav-name{font-weight:800;font-size:1.15rem;letter-spacing:-0.3px}
+.nav-name span{color:var(--p)}
+
+/* Hero */
+.hero{margin-top:64px;padding:80px 24px 60px;text-align:center;background:linear-gradient(180deg, var(--pL) 0%, var(--bg) 100%)}
+.hero-badge{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;background:white;border:1px solid var(--bdr);border-radius:20px;font-size:12px;font-weight:600;color:var(--txtL);margin-bottom:20px}
+.hero-badge i{width:14px;height:14px;color:var(--p)}
+.hero h1{font-size:2.4rem;font-weight:800;letter-spacing:-1px;margin-bottom:12px;line-height:1.15}
+.hero-desc{font-size:1.1rem;color:var(--txtL);max-width:540px;margin:0 auto 32px;line-height:1.6}
+.hero-stats{display:flex;justify-content:center;gap:32px;margin-bottom:40px}
+.hero-stat{text-align:center}
+.hero-stat .num{font-size:1.8rem;font-weight:800;color:var(--p)}
+.hero-stat .label{font-size:12px;color:var(--txtL);margin-top:2px}
+
+/* Join box */
+.join-box{max-width:480px;margin:0 auto;background:white;border-radius:16px;padding:32px;box-shadow:var(--shadowL);border:1px solid var(--bdr)}
+.join-box h3{font-size:1.1rem;margin-bottom:6px}
+.join-box p{font-size:13px;color:var(--txtL);margin-bottom:20px}
+.join-row{display:flex;gap:10px;align-items:center;justify-content:center}
+.code-display{padding:14px 20px;background:var(--pL);border-radius:10px;font-size:20px;font-weight:800;letter-spacing:4px;color:var(--p);text-align:center;flex:1;max-width:200px}
+.join-btn{padding:14px 28px;background:var(--p);color:white;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:var(--font);transition:all 0.2s}
+.join-btn:hover{background:var(--pD);transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,102,255,0.3)}
+.join-btn:disabled{opacity:0.5;cursor:not-allowed;transform:none}
+.join-msg{margin-top:16px;font-size:13px;text-align:center}
+.join-or{margin-top:16px;text-align:center;font-size:13px;color:var(--txtXL)}
+.join-or a{color:var(--p);text-decoration:none;font-weight:600}
+
+/* Benefits */
+.benefits{max-width:800px;margin:0 auto;padding:60px 24px}
+.benefits h2{text-align:center;font-size:1.6rem;font-weight:800;letter-spacing:-0.5px;margin-bottom:8px}
+.benefits-sub{text-align:center;font-size:14px;color:var(--txtL);margin-bottom:40px}
+.benefits-grid{display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:20px}
+.benefit{background:white;border:1px solid var(--bdr);border-radius:14px;padding:24px;transition:all 0.2s}
+.benefit:hover{border-color:var(--p);box-shadow:var(--shadow)}
+.benefit-icon{width:40px;height:40px;background:var(--pL);border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:14px}
+.benefit-icon i{width:20px;height:20px;color:var(--p)}
+.benefit h4{font-size:14px;font-weight:700;margin-bottom:6px}
+.benefit p{font-size:13px;color:var(--txtL);line-height:1.5}
+
+/* How it works */
+.how{max-width:700px;margin:0 auto;padding:40px 24px 80px}
+.how h2{text-align:center;font-size:1.6rem;font-weight:800;letter-spacing:-0.5px;margin-bottom:32px}
+.steps{display:flex;flex-direction:column;gap:20px}
+.step{display:flex;align-items:flex-start;gap:16px;background:white;border:1px solid var(--bdr);border-radius:14px;padding:20px}
+.step-num{width:36px;height:36px;background:var(--p);color:white;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;flex-shrink:0}
+.step h4{font-size:14px;font-weight:700;margin-bottom:4px}
+.step p{font-size:13px;color:var(--txtL);line-height:1.5}
+
+/* Owner info */
+.owner-section{max-width:480px;margin:0 auto;padding:0 24px 60px;text-align:center}
+.owner-section p{font-size:13px;color:var(--txtXL)}
+
+/* Loading */
+.loading{text-align:center;padding:120px 24px;margin-top:64px}
+.loading p{color:var(--txtL);font-size:14px}
+
+/* Error */
+.error-state{text-align:center;padding:120px 24px;margin-top:64px}
+.error-state h2{margin-bottom:8px}
+.error-state p{color:var(--txtL);font-size:14px;margin-bottom:24px}
+.error-state a{color:var(--p);font-weight:600;text-decoration:none}
+
+@media(max-width:600px) {
+  .hero h1{font-size:1.8rem}
+  .hero-stats{gap:20px}
+  .hero-stat .num{font-size:1.4rem}
+  .join-row{flex-direction:column}
+  .code-display{max-width:100%}
+  .benefits-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-brand">
+      <div class="nav-logo"><i data-lucide="zap" style="width:20px;height:20px"></i></div>
+      <div class="nav-name">Event <span>Medium</span></div>
+    </a>
+  </div>
+</nav>
+
+<div id="loadingState" class="loading">
+  <p>Loading community...</p>
+</div>
+
+<div id="errorState" class="error-state" style="display:none">
+  <h2>Community not found</h2>
+  <p>This link may be invalid or the community may no longer be active.</p>
+  <a href="/events.html">Browse public events instead</a>
+</div>
+
+<div id="mainContent" style="display:none">
+
+  <div class="hero">
+    <div class="hero-badge"><i data-lucide="shield-check"></i> <span>Private Community</span></div>
+    <h1 id="commName"></h1>
+    <p class="hero-desc" id="commDesc"></p>
+    <div class="hero-stats">
+      <div class="hero-stat"><div class="num" id="memberCount">0</div><div class="label">Members</div></div>
+      <div class="hero-stat"><div class="num" id="eventCount">0</div><div class="label">Upcoming Events</div></div>
+    </div>
+
+    <div class="join-box">
+      <div id="joinState">
+        <h3>Join this community</h3>
+        <p>Get privately matched with other members based on what you're building, seeking, and offering.</p>
+        <div class="join-row">
+          <div class="code-display" id="codeDisplay"></div>
+          <button class="join-btn" id="joinBtn" onclick="handleJoin()">Join & Get Matched</button>
+        </div>
+        <div class="join-msg" id="joinMsg"></div>
+        <div class="join-or" id="loginPrompt" style="display:none">
+          <a href="/login.html?redirect=REDIRECT_URL">Sign in or create an account</a> to join
+        </div>
+      </div>
+      <div id="memberState" style="display:none;text-align:center">
+        <div style="width:48px;height:48px;background:var(--okL);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px">
+          <i data-lucide="check" style="width:24px;height:24px;color:var(--ok)"></i>
+        </div>
+        <h3 style="margin-bottom:4px">You're a member</h3>
+        <p style="font-size:13px;color:var(--txtL);margin-bottom:20px">You'll be matched with other members at community events.</p>
+        <a href="/matches.html" style="display:inline-block;padding:12px 24px;background:var(--p);color:white;border-radius:10px;text-decoration:none;font-weight:600;font-size:14px">View My Matches</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="benefits">
+    <h2>Private matching, powered by AI</h2>
+    <p class="benefits-sub">How EventMedium works for your community</p>
+    <div class="benefits-grid">
+      <div class="benefit">
+        <div class="benefit-icon"><i data-lucide="eye-off"></i></div>
+        <h4>Double-blind matching</h4>
+        <p>No public profiles. No directory. Identities only revealed when both sides say yes.</p>
+      </div>
+      <div class="benefit">
+        <div class="benefit-icon"><i data-lucide="brain"></i></div>
+        <h4>Signal-driven AI</h4>
+        <p>Matched on what you're building, seeking, and offering — not job titles or company names.</p>
+      </div>
+      <div class="benefit">
+        <div class="benefit-icon"><i data-lucide="lock"></i></div>
+        <h4>Community only</h4>
+        <p>Your matches come from inside this community. Private pool, trusted network.</p>
+      </div>
+      <div class="benefit">
+        <div class="benefit-icon"><i data-lucide="sparkles"></i></div>
+        <h4>Nev, your AI concierge</h4>
+        <p>Nev builds your private profile through conversation — no forms, no friction.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="how">
+    <h2>How it works</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div><h4>Join with your code</h4><p>Click "Join & Get Matched" above. Create a free account if you don't have one.</p></div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div><h4>Talk to Nev</h4><p>Our AI concierge builds your private profile through a quick conversation. Takes 3 minutes.</p></div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div><h4>Get matched</h4><p>Nev finds people in this community who complement what you're doing. Review anonymous profiles and accept the ones that interest you.</p></div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div><h4>Mutual reveal</h4><p>When both sides say yes, identities are revealed and you can connect directly.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="owner-section">
+    <p>This community is managed by its organizer on EventMedium.ai</p>
+  </div>
+
+</div>
+
+<!-- Share modal -->
+<div id="shareModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:200;align-items:center;justify-content:center">
+  <div style="background:white;border-radius:16px;padding:32px;max-width:520px;width:90%;margin:auto;position:relative;top:50%;transform:translateY(-50%)">
+    <h3 style="margin-bottom:4px">Share this community</h3>
+    <p style="font-size:13px;color:var(--txtL);margin-bottom:20px">Copy the link or message below to invite people</p>
+    <div style="margin-bottom:16px">
+      <label style="font-size:12px;font-weight:600;color:var(--txtL);display:block;margin-bottom:6px">SHARE LINK</label>
+      <div style="display:flex;gap:8px">
+        <input type="text" id="shareLink" readonly style="flex:1;padding:10px 14px;border:1px solid var(--bdr);border-radius:8px;font-size:13px;font-family:var(--font);background:var(--bg)">
+        <button onclick="copyShare('shareLink')" style="padding:10px 16px;background:var(--p);color:white;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font)">Copy</button>
+      </div>
+    </div>
+    <div style="margin-bottom:20px">
+      <label style="font-size:12px;font-weight:600;color:var(--txtL);display:block;margin-bottom:6px">SHARE MESSAGE</label>
+      <textarea id="shareMsg" readonly rows="4" style="width:100%;padding:10px 14px;border:1px solid var(--bdr);border-radius:8px;font-size:13px;font-family:var(--font);background:var(--bg);resize:none"></textarea>
+      <button onclick="copyShare('shareMsg')" style="margin-top:6px;padding:8px 16px;background:var(--pL);color:var(--p);border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font)">Copy message</button>
+    </div>
+    <button onclick="document.getElementById('shareModal').style.display='none'" style="width:100%;padding:12px;background:var(--bg);border:1px solid var(--bdr);border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font)">Close</button>
+  </div>
+</div>
+
+<script>
+var communityData = null;
+var joinCode = null;
+
+async function init() {
+  // Get slug from URL path: /c/slug or ?slug=
+  var path = window.location.pathname;
+  var slug = null;
+  if (path.startsWith('/c/')) {
+    slug = path.replace('/c/', '').replace(/\/$/, '');
+  } else {
+    slug = new URLSearchParams(window.location.search).get('slug');
+  }
+
+  // Get code from URL if present
+  joinCode = new URLSearchParams(window.location.search).get('code');
+
+  if (!slug) {
+    showError();
+    return;
+  }
+
+  var token = localStorage.getItem('auth_token');
+  try {
+    // Try authenticated fetch first (shows access code for owners, membership status)
+    var headers = {};
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+
+    var resp = await fetch('/api/communities/' + slug, { headers: headers });
+
+    if (resp.status === 403) {
+      // Not a member — show public info from slug
+      showPublicView(slug);
+      return;
+    }
+
+    if (!resp.ok) {
+      showError();
+      return;
+    }
+
+    var data = await resp.json();
+    communityData = data.community;
+    joinCode = joinCode || data.community.access_code;
+
+    renderCommunity(data);
+  } catch(e) {
+    console.error('Load error:', e);
+    showError();
+  }
+}
+
+async function showPublicView(slug) {
+  // We're not a member — show limited info and join prompt
+  // Try to get basic info via the code in the URL
+  if (!joinCode) {
+    showError();
+    return;
+  }
+
+  document.getElementById('loadingState').style.display = 'none';
+  document.getElementById('mainContent').style.display = 'block';
+  document.getElementById('commName').textContent = slug.replace(/-/g, ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); });
+  document.getElementById('commDesc').textContent = 'A private matching community on EventMedium.';
+  document.getElementById('codeDisplay').textContent = joinCode;
+  document.getElementById('memberCount').textContent = '—';
+  document.getElementById('eventCount').textContent = '—';
+
+  var token = localStorage.getItem('auth_token');
+  if (!token) {
+    document.getElementById('loginPrompt').style.display = 'block';
+    var redirect = encodeURIComponent(window.location.href);
+    document.getElementById('loginPrompt').querySelector('a').href = '/login.html?redirect=' + redirect;
+  }
+
+  lucide.createIcons();
+}
+
+function renderCommunity(data) {
+  document.getElementById('loadingState').style.display = 'none';
+  document.getElementById('mainContent').style.display = 'block';
+
+  document.getElementById('commName').textContent = data.community.name;
+  document.getElementById('commDesc').textContent = data.community.description || 'A private matching community on EventMedium.';
+  document.getElementById('memberCount').textContent = data.community.member_count || 0;
+
+  var upcomingEvents = data.events ? data.events.filter(function(e) { return new Date(e.event_date) >= new Date(); }).length : 0;
+  document.getElementById('eventCount').textContent = upcomingEvents;
+
+  if (joinCode) {
+    document.getElementById('codeDisplay').textContent = joinCode;
+  } else {
+    document.getElementById('codeDisplay').textContent = '••••••';
+  }
+
+  // If already a member, show member state
+  if (data.role) {
+    document.getElementById('joinState').style.display = 'none';
+    document.getElementById('memberState').style.display = 'block';
+
+    // If owner, add share button
+    if (data.role === 'owner' && data.community.access_code) {
+      var shareBtn = document.createElement('button');
+      shareBtn.className = 'join-btn';
+      shareBtn.style.cssText = 'margin-top:12px;background:var(--s)';
+      shareBtn.innerHTML = '<i data-lucide="share-2" style="width:16px;height:16px;display:inline;vertical-align:middle;margin-right:4px"></i> Share invite link';
+      shareBtn.onclick = function() { showShareModal(data.community); };
+      document.getElementById('memberState').appendChild(shareBtn);
+    }
+  }
+
+  var token = localStorage.getItem('auth_token');
+  if (!token) {
+    document.getElementById('loginPrompt').style.display = 'block';
+    var redirect = encodeURIComponent(window.location.href);
+    document.getElementById('loginPrompt').querySelector('a').href = '/login.html?redirect=' + redirect;
+  }
+
+  lucide.createIcons();
+}
+
+async function handleJoin() {
+  var token = localStorage.getItem('auth_token');
+  if (!token) {
+    var redirect = encodeURIComponent(window.location.href);
+    window.location.href = '/login.html?redirect=' + redirect;
+    return;
+  }
+
+  if (!joinCode) {
+    document.getElementById('joinMsg').innerHTML = '<span style="color:#ef4444">No access code available</span>';
+    return;
+  }
+
+  var btn = document.getElementById('joinBtn');
+  btn.disabled = true;
+  btn.textContent = 'Joining...';
+
+  try {
+    var resp = await fetch('/api/communities/join', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ code: joinCode })
+    });
+    var data = await resp.json();
+    if (data.error) {
+      document.getElementById('joinMsg').innerHTML = '<span style="color:#ef4444">' + data.error + '</span>';
+      btn.disabled = false;
+      btn.textContent = 'Join & Get Matched';
+    } else {
+      document.getElementById('joinState').style.display = 'none';
+      document.getElementById('memberState').style.display = 'block';
+      lucide.createIcons();
+      // Update member count
+      var count = document.getElementById('memberCount');
+      var current = parseInt(count.textContent);
+      if (!isNaN(current)) count.textContent = current + 1;
+    }
+  } catch(e) {
+    document.getElementById('joinMsg').innerHTML = '<span style="color:#ef4444">Error joining community</span>';
+    btn.disabled = false;
+    btn.textContent = 'Join & Get Matched';
+  }
+}
+
+function showShareModal(community) {
+  var url = window.location.origin + '/c/' + community.slug + '?code=' + community.access_code;
+  document.getElementById('shareLink').value = url;
+  document.getElementById('shareMsg').value = 'I\'ve set up private AI-powered matching for ' + community.name + ' on EventMedium.\n\nNo public profiles, no ads — just double-blind introductions with people who complement what you\'re building.\n\nJoin here: ' + url;
+  document.getElementById('shareModal').style.display = 'block';
+}
+
+function copyShare(id) {
+  var el = document.getElementById(id);
+  if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+    el.select();
+    navigator.clipboard.writeText(el.value);
+  }
+  var btn = el.nextElementSibling || el.parentElement.querySelector('button');
+  if (btn) {
+    var orig = btn.textContent;
+    btn.textContent = 'Copied!';
+    setTimeout(function() { btn.textContent = orig; }, 1500);
+  }
+}
+
+function showError() {
+  document.getElementById('loadingState').style.display = 'none';
+  document.getElementById('errorState').style.display = 'block';
+}
+
+init();
+</script>
+<script src="/js/nav.js"></script>
+</body>
+</html>
