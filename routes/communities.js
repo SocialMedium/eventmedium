@@ -109,6 +109,24 @@ router.post('/join', authenticateToken, async function(req, res) {
   }
 });
 
+
+// ── GET /api/communities/:slug/public ── unauthenticated landing page info
+router.get('/:slug/public', async function(req, res) {
+  try {
+    var community = await dbGet(
+      `SELECT name, slug, description, created_at,
+        (SELECT COUNT(*) FROM community_members WHERE community_id = communities.id) as member_count,
+        (SELECT COUNT(*) FROM events WHERE community_id = communities.id AND event_date >= CURRENT_DATE) as upcoming_events
+       FROM communities WHERE slug = $1 AND is_active = true`,
+      [req.params.slug]
+    );
+    if (!community) return res.status(404).json({ error: 'Community not found' });
+    res.json({ community: community });
+  } catch (err) {
+    console.error('Public community error:', err);
+    res.status(500).json({ error: 'Failed to load community' });
+  }
+});
 // ── GET /api/communities/:slug ── community detail + events
 router.get('/:slug', authenticateToken, async function(req, res) {
   try {
