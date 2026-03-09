@@ -92,6 +92,17 @@ body{font-family:var(--font);color:var(--txt);background:var(--bg);-webkit-font-
   .comm-grid{grid-template-columns:1fr}
   .code-input{width:120px}
 }
+
+.form-label{display:block;font-size:12px;font-weight:600;color:var(--txtL);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px}
+.type-toggle{display:flex;gap:8px}
+.type-btn{display:flex;align-items:flex-start;gap:10px;padding:14px;background:var(--card);border:2px solid var(--bdr);border-radius:12px;cursor:pointer;font-family:var(--font);text-align:left;flex:1;transition:all 0.2s}
+.type-btn:hover{border-color:var(--p)}
+.type-btn.active{border-color:var(--p);background:var(--pL)}
+.type-btn i{color:var(--txtL);flex-shrink:0;margin-top:2px}
+.type-btn.active i{color:var(--p)}
+.type-btn strong{display:block;font-size:13px;margin-bottom:2px}
+.type-btn span{font-size:11px;color:var(--txtL);line-height:1.4}
+
 </style>
 </head>
 <body>
@@ -149,10 +160,63 @@ body{font-family:var(--font);color:var(--txt);background:var(--bg);-webkit-font-
   </div>
 
   <div class="create-form" id="createForm">
-    <h3 style="margin-bottom:16px">Create a Community</h3>
-    <input type="text" id="commName" class="form-input" placeholder="Community name" style="margin-bottom:12px">
-    <textarea id="commDesc" class="form-input" placeholder="Description (optional)" rows="3" style="margin-bottom:16px;resize:vertical"></textarea>
-    <button class="join-btn" onclick="createCommunity()" style="width:100%">Create & Get Access Code</button>
+    <h3 style="margin-bottom:4px">Create a Community</h3>
+    <p style="font-size:13px;color:var(--txtL);margin-bottom:20px">Set up private matching for your network, organization, or group.</p>
+
+    <label class="form-label">Community name *</label>
+    <input type="text" id="commName" class="form-input" placeholder="e.g. Coca-Cola Scholars, UTAS Alumni, Climate Founders" style="margin-bottom:16px">
+
+    <label class="form-label">Description *</label>
+    <textarea id="commDesc" class="form-input" placeholder="What brings this community together? Who should join?" rows="3" style="margin-bottom:16px;resize:vertical"></textarea>
+
+    <label class="form-label">Community type *</label>
+    <div class="type-toggle" style="margin-bottom:16px">
+      <button class="type-btn active" id="typeOpen" onclick="setCommType('open')">
+        <i data-lucide="globe" style="width:18px;height:18px"></i>
+        <div><strong>Open</strong><span>Anyone can find and join. Listed publicly.</span></div>
+      </button>
+      <button class="type-btn" id="typeOfficial" onclick="setCommType('official')">
+        <i data-lucide="shield-check" style="width:18px;height:18px"></i>
+        <div><strong>Official / Private</strong><span>Verified organization. Members must match email domain.</span></div>
+      </button>
+    </div>
+
+    <div id="officialFields" style="display:none">
+      <label class="form-label">Category *</label>
+      <select id="commCategory" class="form-input" style="margin-bottom:16px">
+        <option value="">Select category...</option>
+        <option value="alumni">Alumni Network</option>
+        <option value="institution">University / Institution</option>
+        <option value="association">Industry Association</option>
+        <option value="club">Private Club</option>
+        <option value="nonprofit">Not for Profit</option>
+        <option value="corporate">Corporate / Enterprise</option>
+        <option value="accelerator">Accelerator / Incubator</option>
+        <option value="fund">Investment Fund / LP Network</option>
+        <option value="other">Other</option>
+      </select>
+
+      <label class="form-label">Organization website *</label>
+      <input type="url" id="commUrl" class="form-input" placeholder="https://www.example.org" style="margin-bottom:16px">
+
+      <label class="form-label">Email domain for members *</label>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
+        <span style="font-size:14px;color:var(--txtL)">@</span>
+        <input type="text" id="commDomain" class="form-input" placeholder="e.g. utas.edu.au" style="margin-bottom:0">
+      </div>
+
+      <label class="form-label">Your role at this organization *</label>
+      <input type="text" id="commRole" class="form-input" placeholder="e.g. Alumni Relations Director, Chapter President" style="margin-bottom:16px">
+
+      <div style="background:var(--pL);border-radius:10px;padding:14px;margin-bottom:16px">
+        <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:13px;color:var(--txt);line-height:1.5">
+          <input type="checkbox" id="commAuthority" style="margin-top:3px;accent-color:var(--p)">
+          I have official permission to establish and manage this community on behalf of the organization. I understand this will be reviewed by EventMedium before verification.
+        </label>
+      </div>
+    </div>
+
+    <button class="join-btn" onclick="createCommunity()" style="width:100%" id="createBtn">Create Community</button>
     <div id="createResult"></div>
   </div>
 </div>
@@ -237,9 +301,11 @@ async function createCommunity() {
     } else {
       var shareUrl = window.location.origin + '/c/' + data.community.slug + '?code=' + data.community.access_code;
       var shareMsg = "I've set up private AI-powered matching for " + name + " on EventMedium.\n\nNo public profiles, no ads — just double-blind introductions with people who complement what you're building.\n\nJoin here: " + shareUrl;
+      var isOfficial = commType === 'official';
       document.getElementById('createResult').innerHTML =
         '<div class="share-result">' +
-          '<h4>Community created!</h4>' +
+          '<h4>' + (isOfficial ? 'Submitted for verification!' : 'Community created!') + '</h4>' +
+          (isOfficial ? '<p style="font-size:13px;color:var(--txtL);margin-bottom:12px">We\'ll review your submission and verify your organization. You can start inviting members now — the verified badge will appear once approved.</p>' : '') +
           '<div class="share-field">' +
             '<label>Access Code</label>' +
             '<input type="text" value="' + data.community.access_code + '" readonly style="font-size:18px;font-weight:800;letter-spacing:3px;text-align:center">' +

@@ -201,6 +201,8 @@ async function loadCanister() {
     var regData = await regResp.json();
     var matchData = await matchResp.json();
     var notiData = await notiResp.json();
+    var commData = await commResp.json();
+    var communities = commData.communities || [];
 
     var user = userData.user;
     var profile = profileData.profile || {};
