@@ -166,7 +166,7 @@ node -c public/community.html 2>/dev/null; echo "done"
         </div>
         <div class="join-msg" id="joinMsg"></div>
         <div class="join-or" id="loginPrompt" style="display:none">
-          <a href="/login.html?redirect=REDIRECT_URL">Sign in or create an account</a> to join
+          <a href="/auth.html?redirect=REDIRECT_URL">Sign in or create an account</a> to join
         </div>
       </div>
       <div id="memberState" style="display:none;text-align:center">
@@ -333,7 +333,7 @@ async function showPublicView(slug) {
   if (!token) {
     document.getElementById('loginPrompt').style.display = 'block';
     var redirect = encodeURIComponent(window.location.href);
-    document.getElementById('loginPrompt').querySelector('a').href = '/login.html?redirect=' + redirect;
+    document.getElementById('loginPrompt').querySelector('a').href = '/auth.html?redirect=' + redirect;
   }
 
   lucide.createIcons();
@@ -376,7 +376,7 @@ async function renderCommunity(data) {
   if (!token) {
     document.getElementById('loginPrompt').style.display = 'block';
     var redirect = encodeURIComponent(window.location.href);
-    document.getElementById('loginPrompt').querySelector('a').href = '/login.html?redirect=' + redirect;
+    document.getElementById('loginPrompt').querySelector('a').href = '/auth.html?redirect=' + redirect;
   }
 
   // Get user name for share messages
@@ -395,7 +395,7 @@ async function handleJoin() {
   var token = localStorage.getItem('auth_token');
   if (!token) {
     var redirect = encodeURIComponent(window.location.href);
-    window.location.href = '/login.html?redirect=' + redirect;
+    window.location.href = '/auth.html?redirect=' + redirect;
     return;
   }
 
