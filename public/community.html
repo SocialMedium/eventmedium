@@ -103,6 +103,18 @@ body{font-family:var(--font);color:var(--txt);background:var(--bg);-webkit-font-
   .code-display{max-width:100%}
   .benefits-grid{grid-template-columns:1fr}
 }
+
+/* Share section */
+.share-section{max-width:700px;margin:0 auto;padding:0 24px 60px}
+.share-card{background:var(--card);border:1px solid var(--bdr);border-radius:14px;padding:24px}
+.share-card h2{font-size:1.1rem;font-weight:700;margin-bottom:4px}
+.share-card .share-sub{font-size:13px;color:var(--txtL);margin-bottom:16px}
+.share-row{display:flex;flex-wrap:wrap;gap:8px}
+.share-btn{display:inline-flex;align-items:center;gap:6px;padding:10px 16px;background:var(--card);border:1px solid var(--bdr);border-radius:10px;font-size:13px;font-weight:600;color:var(--txt);cursor:pointer;font-family:var(--font);text-decoration:none;transition:all 0.2s}
+.share-btn:hover{border-color:var(--p);color:var(--p);background:var(--pL)}
+.share-btn i{width:16px;height:16px}
+@media(max-width:600px){.share-row{flex-direction:column}.share-btn{justify-content:center}}
+
 </style>
 </head>
 <body>
@@ -214,6 +226,14 @@ node -c public/community.html 2>/dev/null; echo "done"
         <div class="step-num">4</div>
         <div><h4>Mutual reveal</h4><p>When both sides say yes, identities are revealed and you can connect directly.</p></div>
       </div>
+    </div>
+  </div>
+
+  <div class="share-section" id="shareSection" style="display:none">
+    <div class="share-card">
+      <h2>Invite people to this community</h2>
+      <p class="share-sub">Share this link with your network. They'll see your name as the inviter.</p>
+      <div class="share-row" id="shareRow"></div>
     </div>
   </div>
 
@@ -359,6 +379,15 @@ function renderCommunity(data) {
     document.getElementById('loginPrompt').querySelector('a').href = '/login.html?redirect=' + redirect;
   }
 
+  // Get user name for share messages
+  if (data.role) {
+    var shareName = '';
+    try {
+      var meResp = await fetch('/api/auth/me', { headers: { Authorization: 'Bearer ' + token } });
+      if (meResp.ok) { var meData = await meResp.json(); shareName = meData.name || ''; }
+    } catch(e) {}
+    buildShareSection(data.community, shareName);
+  }
   lucide.createIcons();
 }
 
@@ -433,6 +462,51 @@ function showError() {
 }
 
 init();
+
+
+function buildShareSection(community, userName) {
+  var section = document.getElementById('shareSection');
+  if (!section) return;
+  var code = joinCode || community.access_code || '';
+  var shareUrl = window.location.origin + '/c/' + community.slug + (code ? '?code=' + code : '');
+  var commName = community.name || 'a community';
+  var inviter = userName || 'A colleague';
+
+  var tweetText = 'Just joined ' + commName + ' on @EventMedium — AI-powered private matching. No profiles, no ads, just introductions that matter.';
+  var whatsAppText = 'Hey! ' + inviter + ' invited you to join ' + commName + ' on EventMedium. It matches you privately with people who complement what you\'re working on — identities only revealed when both sides agree. Join here: ' + shareUrl;
+  var emailSubject = inviter + ' invited you to ' + commName + ' on EventMedium';
+  var emailBody = 'Hi,\n\n' + inviter + ' has invited you to join ' + commName + ' on EventMedium.ai.\n\nEventMedium uses AI to privately match you with people who complement what you\'re building, seeking, and offering. All matching is anonymous and double-blind — identities are only revealed with mutual consent.\n\nJoin here: ' + shareUrl + '\n\nNo public profiles. No ads. Just introductions that matter.';
+
+  var row = document.getElementById('shareRow');
+  row.innerHTML =
+    '<button class="share-btn" onclick="copyInviteLink()"><i data-lucide="link"></i> Copy link</button>' +
+    '<a href="https://www.linkedin.com/sharing/share-offsite/?url=' + encodeURIComponent(shareUrl) + '" target="_blank" class="share-btn"><i data-lucide="share-2"></i> LinkedIn</a>' +
+    '<a href="https://twitter.com/intent/tweet?text=' + encodeURIComponent(tweetText) + '&url=' + encodeURIComponent(shareUrl) + '" target="_blank" class="share-btn"><i data-lucide="share-2"></i> X / Twitter</a>' +
+    '<a href="https://wa.me/?text=' + encodeURIComponent(whatsAppText) + '" target="_blank" class="share-btn"><i data-lucide="share-2"></i> WhatsApp</a>' +
+    '<a href="mailto:?subject=' + encodeURIComponent(emailSubject) + '&body=' + encodeURIComponent(emailBody) + '" class="share-btn"><i data-lucide="mail"></i> Email</a>';
+
+  if (navigator.share) {
+    var nativeBtn = document.createElement('button');
+    nativeBtn.className = 'share-btn';
+    nativeBtn.innerHTML = '<i data-lucide="smartphone"></i> Share';
+    nativeBtn.onclick = function() {
+      navigator.share({ title: commName + ' on EventMedium', text: inviter + ' invited you to ' + commName + '. Private AI-powered matching:', url: shareUrl }).catch(function() {});
+    };
+    row.insertBefore(nativeBtn, row.firstChild);
+  }
+
+  section.style.display = 'block';
+  lucide.createIcons();
+}
+
+function copyInviteLink() {
+  var code = joinCode || (communityData ? communityData.access_code : '');
+  var url = window.location.origin + '/c/' + (communityData ? communityData.slug : '') + (code ? '?code=' + code : '');
+  navigator.clipboard.writeText(url);
+  var btn = document.querySelector('#shareRow .share-btn');
+  if (btn) { var orig = btn.innerHTML; btn.innerHTML = '<i data-lucide="check"></i> Copied!'; lucide.createIcons(); setTimeout(function() { btn.innerHTML = orig; lucide.createIcons(); }, 1500); }
+}
+
 </script>
 <script src="/js/nav.js"></script>
 </body>
