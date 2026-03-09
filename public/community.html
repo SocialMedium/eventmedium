@@ -174,11 +174,14 @@ node -c public/community.html 2>/dev/null; echo "done"
           <i data-lucide="check" style="width:24px;height:24px;color:var(--ok)"></i>
         </div>
         <h3 style="margin-bottom:4px">You're a member</h3>
-        <p style="font-size:13px;color:var(--txtL);margin-bottom:20px">You'll be matched with other members at community events.</p>
-        <a href="/matches.html" style="display:inline-block;padding:12px 24px;background:var(--p);color:white;border-radius:10px;text-decoration:none;font-weight:600;font-size:14px">View My Matches</a>
+        <p style="font-size:13px;color:var(--txtL);margin-bottom:16px">You'll be matched with other members at community events.</p>
+        <a href="/matches.html" style="display:inline-block;padding:12px 24px;background:var(--p);color:white;border-radius:10px;text-decoration:none;font-weight:600;font-size:14px;margin-bottom:20px">View My Matches</a>
+        <div style="border-top:1px solid var(--bdr);padding-top:20px;margin-top:8px">
+          <h4 style="font-size:14px;font-weight:700;margin-bottom:4px">Invite people</h4>
+          <p style="font-size:12px;color:var(--txtL);margin-bottom:12px">Share with your network — they'll see your name as the inviter.</p>
+          <div class="share-row" id="memberShareRow" style="justify-content:center"></div>
+        </div>
       </div>
-    </div>
-  </div>
 
   <div class="benefits">
     <h2>Private matching, powered by AI</h2>
@@ -361,15 +364,7 @@ async function renderCommunity(data) {
     document.getElementById('joinState').style.display = 'none';
     document.getElementById('memberState').style.display = 'block';
 
-    // If owner, add share button
-    if (data.role === 'owner' && data.community.access_code) {
-      var shareBtn = document.createElement('button');
-      shareBtn.className = 'join-btn';
-      shareBtn.style.cssText = 'margin-top:12px;background:var(--s)';
-      shareBtn.innerHTML = '<i data-lucide="share-2" style="width:16px;height:16px;display:inline;vertical-align:middle;margin-right:4px"></i> Share invite link';
-      shareBtn.onclick = function() { showShareModal(data.community); };
-      document.getElementById('memberState').appendChild(shareBtn);
-    }
+
   }
 
   var token = localStorage.getItem('auth_token');
@@ -384,7 +379,7 @@ async function renderCommunity(data) {
     var shareName = '';
     try {
       var meResp = await fetch('/api/auth/me', { headers: { Authorization: 'Bearer ' + token } });
-      if (meResp.ok) { var meData = await meResp.json(); shareName = meData.name || ''; }
+      if (meResp.ok) { var meData = await meResp.json(); shareName = (meData.user && meData.user.name) || ''; }
     } catch(e) {}
     buildShareSection(data.community, shareName);
   }
@@ -435,26 +430,9 @@ async function handleJoin() {
   }
 }
 
-function showShareModal(community) {
-  var url = window.location.origin + '/c/' + community.slug + '?code=' + community.access_code;
-  document.getElementById('shareLink').value = url;
-  document.getElementById('shareMsg').value = 'I\'ve set up private AI-powered matching for ' + community.name + ' on EventMedium.\n\nNo public profiles, no ads — just double-blind introductions with people who complement what you\'re building.\n\nJoin here: ' + url;
-  document.getElementById('shareModal').style.display = 'block';
-}
 
-function copyShare(id) {
-  var el = document.getElementById(id);
-  if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
-    el.select();
-    navigator.clipboard.writeText(el.value);
-  }
-  var btn = el.nextElementSibling || el.parentElement.querySelector('button');
-  if (btn) {
-    var orig = btn.textContent;
-    btn.textContent = 'Copied!';
-    setTimeout(function() { btn.textContent = orig; }, 1500);
-  }
-}
+
+
 
 function showError() {
   document.getElementById('loadingState').style.display = 'none';
@@ -496,6 +474,9 @@ function buildShareSection(community, userName) {
   }
 
   section.style.display = 'block';
+  // Also populate inline share in member card
+  var memberRow = document.getElementById('memberShareRow');
+  if (memberRow) memberRow.innerHTML = row.innerHTML;
   lucide.createIcons();
 }
 
