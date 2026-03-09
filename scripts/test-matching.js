@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+require('dotenv').config();
 /**
  * EventMedium Match Quality Test Harness
  * 
@@ -332,18 +333,87 @@ async function setup() {
   console.log('     → 30 founders, 20 investors, 20 corporates, 12 researchers, 10 advisors, 8 operators');
   console.log('   ✓ All registered for test event');
 
+  // 3. Embed all profiles in Qdrant for two-stage matching
+  console.log('   ⏳ Embedding profiles in Qdrant...');
+  var { embedProfile, buildProfileText } = require('../lib/vector_search');
+  var embedded = 0;
+  for (var e = 0; e < profiles.length; e++) {
+    var p = profiles[e];
+    var profileObj = {
+      user_id: userIds[e],
+      stakeholder_type: p.stakeholder_type,
+      themes: p.themes,
+      intent: p.intent,
+      offering: p.offering,
+      focus_text: p.context,
+      geography: p.geography,
+      deal_details: p.deal_details || {}
+    };
+    var userObj = { name: p.name, company: p.company };
+    try {
+      var result = await embedProfile(profileObj, userObj);
+      if (result) embedded++;
+    } catch(err) {
+      // silent — will fall back to on-the-fly embedding
+    }
+  }
+  console.log('   ✓ Embedded ' + embedded + '/' + profiles.length + ' profiles in Qdrant');
+
   return { eventId, userIds, profiles };
 }
 
 async function runMatching(eventId, userIds, profiles) {
   console.log('\n⚡ Running matching engine...');
   console.log('   Scoring all ' + (userIds.length * (userIds.length - 1) / 2) + ' unique pairs');
-  console.log('   (This may take a few minutes if embeddings are enabled)\n');
+  console.log('   (Two-stage: pre-fetch vectors → local cosine → full scoring)\n');
 
-  // We'll score ALL pairs but skip embeddings for speed
-  // Load the scoring functions
   var { scoreMatch } = require('../routes/matches');
+  var { getPointVectors, COLLECTIONS } = require('../lib/vector_search');
 
+  // ── Stage 1: Pre-fetch ALL vectors from Qdrant in one call ──
+  console.log('   ⏳ Fetching all vectors from Qdrant...');
+  var vectors = await getPointVectors(COLLECTIONS.profiles, userIds);
+  var vectorCount = Object.keys(vectors).length;
+  console.log('   ✓ Retrieved ' + vectorCount + '/' + userIds.length + ' vectors');
+
+  // ── Pre-compute all cosine similarities locally ──
+  console.log('   ⏳ Computing cosine similarities...');
+  var cosineLookup = {};
+  for (var i = 0; i < userIds.length; i++) {
+    for (var j = i + 1; j < userIds.length; j++) {
+      var a = vectors[userIds[i]];
+      var b = vectors[userIds[j]];
+      if (a && b) {
+        var dot = 0, magA = 0, magB = 0;
+        for (var k = 0; k < a.length; k++) {
+          dot += a[k] * b[k];
+          magA += a[k] * a[k];
+          magB += b[k] * b[k];
+        }
+        var sim = (magA && magB) ? dot / (Math.sqrt(magA) * Math.sqrt(magB)) : 0;
+        if (!cosineLookup[userIds[i]]) cosineLookup[userIds[i]] = {};
+        if (!cosineLookup[userIds[j]]) cosineLookup[userIds[j]] = {};
+        cosineLookup[userIds[i]][userIds[j]] = sim;
+        cosineLookup[userIds[j]][userIds[i]] = sim;
+      }
+    }
+  }
+  console.log('   ✓ Cosine matrix computed');
+
+  // ── Pre-fetch all profiles into memory ──
+  console.log('   ⏳ Pre-fetching all profiles...');
+  var { dbGet } = require('../db');
+  var profileCache = {};
+  for (var p = 0; p < userIds.length; p++) {
+    var prof = await dbGet(
+      'SELECT sp.*, u.name as name, u.company as company FROM stakeholder_profiles sp JOIN users u ON u.id = sp.user_id WHERE sp.user_id = $1',
+      [userIds[p]]
+    );
+    if (prof) profileCache[userIds[p]] = prof;
+  }
+  console.log('   ✓ Loaded ' + Object.keys(profileCache).length + ' profiles into memory');
+
+  // ── Stage 2: Full scoring with everything pre-loaded ──
   var allScores = [];
   var pairsScored = 0;
   var startTime = Date.now();
@@ -351,10 +421,16 @@ async function runMatching(eventId, userIds, profiles) {
   for (var i = 0; i < userIds.length; i++) {
     for (var j = i + 1; j < userIds.length; j++) {
       try {
-        var result = await scoreMatch(userIds[i], userIds[j], eventId, {
-          enrichWithSignals: false // skip external signals for speed
-        });
+        var precomputed = (cosineLookup[userIds[i]] || {})[userIds[j]];
+        var simMap = {};
+        simMap[userIds[j]] = precomputed || 0;
 
+        var result = await scoreMatch(userIds[i], userIds[j], eventId, {
+          enrichWithSignals: false,
+          skipNetworkProximity: true,
+          precomputedSimilarity: simMap,
+          profileCache: profileCache
+        });
         if (result) {
           allScores.push({
             ...result,
@@ -365,9 +441,8 @@ async function runMatching(eventId, userIds, profiles) {
           });
         }
       } catch(e) {
-        // Skip errors (embedding failures etc)
+        // Skip errors
       }
-
       pairsScored++;
       if (pairsScored % 500 === 0) {
         var elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
@@ -375,10 +450,8 @@ async function runMatching(eventId, userIds, profiles) {
       }
     }
   }
-
   var elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
   console.log('   ✓ ' + allScores.length + ' pairs scored in ' + elapsed + 's');
-
   return allScores;
 }
 
