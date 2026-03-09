@@ -1049,7 +1049,7 @@ function switchScope(scope) {
 }
 
 async function loadCommunities() {
-  var token = localStorage.getItem('em_token');
+  var token = localStorage.getItem('auth_token');
   if (!token) { document.getElementById('commGrid').innerHTML = '<div class="comm-empty"><p>Sign in to view your communities</p></div>'; return; }
   try {
     var resp = await fetch('/api/communities/mine', { headers: { Authorization: 'Bearer ' + token } });
@@ -1080,7 +1080,7 @@ function goToCommunity(slug) {
 async function joinCommunity() {
   var code = document.getElementById('joinCode').value.trim();
   if (!code) return;
-  var token = localStorage.getItem('em_token');
+  var token = localStorage.getItem('auth_token');
   if (!token) { document.getElementById('joinMsg').innerHTML = '<span style="color:var(--warn)">Please sign in first</span>'; return; }
   try {
     var resp = await fetch('/api/communities/join', {
@@ -1107,7 +1107,7 @@ function showCreateComm() {
 async function createCommunity() {
   var name = document.getElementById('commName').value.trim();
   if (!name) return;
-  var token = localStorage.getItem('em_token');
+  var token = localStorage.getItem('auth_token');
   if (!token) return;
   try {
     var resp = await fetch('/api/communities', {
