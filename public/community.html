@@ -106,36 +106,6 @@ body{font-family:var(--font);color:var(--txt);background:var(--bg);-webkit-font-
 </style>
 </head>
 <body>
-
-sed -i '' '109,116d' public/community.html
-sed -i '' '108r /dev/stdin' public/community.html << 'NAVEOF'
-node -e "
-var fs = require('fs');
-var code = fs.readFileSync('routes/communities.js','utf8');
-var insert = \`
-// ── GET /api/communities/:slug/public ── unauthenticated landing page info
-router.get('/:slug/public', async function(req, res) {
-  try {
-    var community = await dbGet(
-      \"SELECT name, slug, description, created_at, (SELECT COUNT(*) FROM community_members WHERE community_id = communities.id) as member_count, (SELECT COUNT(*) FROM events WHERE community_id = communities.id AND event_date >= CURRENT_DATE) as upcoming_events FROM communities WHERE slug = \\$1 AND is_active = true\",
-      [req.params.slug]
-    );
-    if (!community) return res.status(404).json({ error: 'Community not found' });
-    res.json({ community: community });
-  } catch (err) {
-    console.error('Public community error:', err);
-    res.status(500).json({ error: 'Failed to load community' });
-  }
-});
-\`;
-code = code.replace(
-  \"// ── GET /api/communities/:slug ── community detail + events\",
-  insert + '\n// ── GET /api/communities/:slug ── community detail + events'
-);
-fs.writeFileSync('routes/communities.js', code);
-console.log('done');
-"
-node -c routes/communities.js
 <nav class="nav">
   <div class="nav-inner">
     <a href="/" class="nav-brand">
