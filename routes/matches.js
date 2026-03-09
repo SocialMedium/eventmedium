@@ -197,9 +197,6 @@ function scoreIntentComplementarity(profileA, profileB) {
   var score = totalPairs > 0 ? Math.min(1.0, matchCount / Math.max(1, totalPairs / 3)) : 0;
   return { score: score, reasons: reasons };
 }
-
-  var score = totalChecks > 0 ? Math.min(1.0, matchCount / Math.max(1, totalChecks / 2)) : 0;
-  return { score: score, reasons: reasons };
 }
 
 // ══════════════════════════════════════════════════════
