@@ -162,6 +162,7 @@ router.post('/chat', authenticateToken, async function(req, res) {
 
       // Strip the canister block from the visible reply
       reply = reply.replace(/\[CANISTER_READY\][\s\S]*?\[\/CANISTER_READY\]/, '').trim();
+    }
     // Keep only the question sentence (strip all preamble)
     var allSentences = reply.match(/[^.!?]+[.!?]+/g) || [reply];
     var qSentence = null;
