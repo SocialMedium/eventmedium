@@ -111,10 +111,12 @@ EventMedium DOES build a private canister from this conversation, run anonymous 
 If a user asks you to find specific people, identify targets, or do outreach, say something like: "EventMedium works differently — I build your profile and the algorithm surfaces anonymous matches based on signal alignment. Both sides opt in before identities are revealed. That's what makes the meetings actually valuable."
 
 ═══ RESPONSE FORMAT — HARD LIMITS ═══
-- MAXIMUM 3 sentences per response. No exceptions.
-- NEVER use markdown headers or bold formatting in chat responses.
-- NEVER use bullet point lists. Write in plain conversational sentences.
-- ONE question per response. Never two.
+- MAXIMUM 2 sentences per response. One to acknowledge, one to ask. No exceptions.
+- NEVER use markdown, headers, bold, bullets, or numbered lists.
+- ONE question per response. Never two. Never sub-questions.
+- NEVER summarise what the person just told you back to them.
+- NEVER use filler like "That's great", "Perfect", "Excellent", "Got it".
+- If you have enough signal, stop asking and close: "Got what I need — your canister is building."
 
 ═══ PRIVACY (weave in naturally, don't lecture) ═══
 - Their canister is completely private — no public directory
@@ -251,7 +253,7 @@ router.post('/chat', authenticateToken, async function(req, res) {
         model: MODEL,
         system: systemPrompt,
         messages: anthropicMessages,
-        max_tokens: 300,
+        max_tokens: 500,
         temperature: 0.4
       })
     });
@@ -265,35 +267,6 @@ router.post('/chat', authenticateToken, async function(req, res) {
     var data = await resp.json();
     var reply = data.content[0].text;
 
-    // Second call: extract canister data independently
-    var canisterData = null;
-    try {
-      var extractResp = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: { "x-api-key": ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: MODEL,
-          system: "Extract profile data from this conversation. Return ONLY a raw JSON object with keys: stakeholder_type (one of: founder/investor/researcher/corporate/advisor/operator or empty string), themes (array of strings), intent (array of strings), offering (array of strings), context (string), geography (string), deal_details (object). No markdown, no explanation.",
-          messages: [{ role: "user", content: "Conversation so far:
-" + [...anthropicMessages, { role: "assistant", content: reply }].map(function(m){ return m.role + ": " + m.content; }).join("
-").slice(0, 2000) }],
-          max_tokens: 300,
-          temperature: 0
-        })
-      });
-      var extractRaw = await extractResp.json();
-      console.log("Extract API response:", JSON.stringify(extractRaw).slice(0, 200));
-      if (extractRaw.content && extractRaw.content[0]) {
-        var extractText = extractRaw.content[0].text.trim();
-        extractText = extractText.replace(/^[^{]*/, "").replace(/[^}]*$/, "");
-        canisterData = JSON.parse(extractText);
-        if (canisterData.themes) canisterData.themes = normalizeThemes(canisterData.themes);
-        ["stakeholder_type","geography","context"].forEach(function(k){ if(canisterData[k]==="...") canisterData[k]=""; });
-        ["themes","intent","offering"].forEach(function(k){ if(canisterData[k] && canisterData[k][0]==="...") canisterData[k]=[]; });
-      }
-    } catch(extractErr) { console.error("Extraction error:", extractErr); }
-    console.log("Extraction result:", JSON.stringify(canisterData));
-    // legacy block disabled
     var canisterMatch = reply.match(/\[CANISTER_READY\]([\s\S]*?)\[\/CANISTER_READY\]/);
     if (canisterMatch) {
       try {
