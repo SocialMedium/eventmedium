@@ -162,8 +162,12 @@ router.post('/chat', authenticateToken, async function(req, res) {
 
       // Strip the canister block from the visible reply
       reply = reply.replace(/\[CANISTER_READY\][\s\S]*?\[\/CANISTER_READY\]/, '').trim();
-    // Hard truncate to 2 sentences max
+    // Hard truncate: one short statement + one question max
+    var qIdx = reply.indexOf('?');
+    if (qIdx !== -1) { reply = reply.slice(0, qIdx + 1).trim(); }
+    // Also cap at 2 sentences
     var nevSentences = reply.match(/[^.!?]+[.!?]+/g) || [reply];
+    if (nevSentences.length > 2) { reply = nevSentences.slice(0,2).join(' ').trim(); }
     if (nevSentences.length > 2) { reply = nevSentences.slice(0,2).join(' ').trim(); }
     }
 
