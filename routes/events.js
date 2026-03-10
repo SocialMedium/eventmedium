@@ -1,4 +1,5 @@
 var express = require('express');
+var crypto = require('crypto');
 var { dbGet, dbRun, dbAll } = require('../db');
 var { authenticateToken, optionalAuth } = require('../middleware/auth');
 var { normalizeThemes } = require('../lib/theme_taxonomy');
@@ -161,6 +162,231 @@ router.get('/recommended', authenticateToken, async function(req, res) {
   } catch (err) {
     console.error('Recommendations error:', err);
     res.status(500).json({ error: 'Failed to load recommendations' });
+  }
+});
+
+// ── GET /api/events/verify-claim ── (email link, no auth)
+router.get('/verify-claim', async function(req, res) {
+  try {
+    var token = req.query.token;
+    if (!token) return res.status(400).json({ error: 'Token required' });
+
+    var event = await dbGet(
+      'SELECT * FROM events WHERE claim_token = $1 AND claim_token_expires > NOW()',
+      [token]
+    );
+    if (!event) return res.status(400).json({ error: 'This verification link has expired or is invalid' });
+
+    if (event.is_flagship) {
+      // Flagship: verify email but require manual admin approval
+      await dbRun(
+        'UPDATE events SET claim_pending = true, claim_token = NULL, claim_token_expires = NULL WHERE id = $1',
+        [event.id]
+      );
+      return res.json({ status: 'pending_approval', message: 'Your claim is verified and pending admin approval. You will be notified within 24 hours.', event_name: event.name });
+    } else {
+      // Non-flagship: auto-approve
+      await dbRun(
+        'UPDATE events SET claim_verified = true, claimed_at = NOW(), claim_pending = false, claim_token = NULL, claim_token_expires = NULL WHERE id = $1',
+        [event.id]
+      );
+      return res.json({ status: 'approved', event_slug: event.slug, event_id: event.id, event_name: event.name });
+    }
+  } catch (err) {
+    console.error('Verify claim error:', err);
+    res.status(500).json({ error: 'Verification failed' });
+  }
+});
+
+// ── GET /api/events/:id/claim-status ──
+router.get('/:id/claim-status', optionalAuth, async function(req, res) {
+  try {
+    var event = await dbGet(
+      'SELECT id, owner_user_id, claim_verified, claim_pending, is_flagship FROM events WHERE id = $1',
+      [parseInt(req.params.id)]
+    );
+    if (!event) return res.status(404).json({ error: 'Event not found' });
+
+    var userId = req.user ? req.user.id : null;
+    res.json({
+      is_claimed: !!event.claim_verified,
+      is_mine: !!(userId && event.owner_user_id === userId && event.claim_verified),
+      claim_pending: !!event.claim_pending,
+      is_my_pending: !!(userId && event.owner_user_id === userId && event.claim_pending),
+      is_flagship: !!event.is_flagship
+    });
+  } catch (err) {
+    console.error('Claim status error:', err);
+    res.status(500).json({ error: 'Failed to load claim status' });
+  }
+});
+
+// ── POST /api/events/:id/claim ──
+router.post('/:id/claim', authenticateToken, async function(req, res) {
+  try {
+    var eventId = parseInt(req.params.id);
+    var { organiser_email, organiser_role, website } = req.body;
+
+    if (!organiser_email || !website) {
+      return res.status(400).json({ error: 'Email and website are required' });
+    }
+
+    var event = await dbGet('SELECT * FROM events WHERE id = $1', [eventId]);
+    if (!event) return res.status(404).json({ error: 'Event not found' });
+
+    if (event.claim_verified) {
+      return res.status(409).json({ error: 'This event already has a verified organiser' });
+    }
+    if (event.claim_pending && event.owner_user_id !== req.user.id) {
+      return res.status(409).json({ error: 'A claim is already pending for this event' });
+    }
+
+    // Domain match check
+    var emailDomain = organiser_email.split('@')[1] ? organiser_email.split('@')[1].toLowerCase() : '';
+    var websiteDomain = '';
+    try {
+      websiteDomain = new URL(website).hostname.replace(/^www\./, '').toLowerCase();
+    } catch(e) {
+      return res.status(400).json({ error: 'Please enter a valid website URL (include https://)' });
+    }
+    if (!emailDomain || emailDomain !== websiteDomain) {
+      return res.status(400).json({ error: 'Please use an email address from your event\'s official domain (' + websiteDomain + ')' });
+    }
+
+    // Generate token
+    var claimToken = crypto.randomBytes(32).toString('hex');
+    var tokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    await dbRun(
+      `UPDATE events SET
+        claim_pending = true,
+        claim_token = $1,
+        claim_token_expires = $2,
+        owner_user_id = $3,
+        owner_email = $4,
+        owner_website = $5
+       WHERE id = $6`,
+      [claimToken, tokenExpires, req.user.id, organiser_email, website, eventId]
+    );
+
+    // Send verification email
+    var appUrl = process.env.APP_URL || 'https://eventmedium.ai';
+    var verifyUrl = appUrl + '/verify-claim.html?token=' + claimToken;
+    var user = await dbGet('SELECT name FROM users WHERE id = $1', [req.user.id]);
+    var userName = user ? user.name : 'Organiser';
+
+    var Resend;
+    try { Resend = require('resend'); } catch(e) {
+      console.error('Resend not installed');
+      return res.status(500).json({ error: 'Email service not configured' });
+    }
+    var resend = new Resend.Resend(process.env.RESEND_API_KEY);
+
+    await resend.emails.send({
+      from: process.env.FROM_EMAIL || 'nev@eventmedium.ai',
+      to: organiser_email,
+      subject: 'Verify your claim for ' + event.name + ' on EventMedium.ai',
+      html: `
+        <div style="font-family:system-ui,-apple-system,sans-serif;max-width:520px;margin:0 auto;padding:40px 24px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:32px">
+            <div style="width:28px;height:28px;border-radius:6px;background:linear-gradient(135deg,#0066ff,#0052cc)"></div>
+            <span style="font-size:16px;font-weight:700;color:#1a1a2e">Event <span style="color:#0066ff">Medium</span></span>
+          </div>
+          <h1 style="font-size:22px;font-weight:700;color:#1a1a2e;margin-bottom:8px">Verify your claim</h1>
+          <p style="font-size:14px;color:#555;margin-bottom:24px">Hi ${userName}, you've requested to claim <strong>${event.name}</strong> on EventMedium.ai.</p>
+          <p style="font-size:14px;color:#555;margin-bottom:24px">Click below to verify your email and complete your claim:</p>
+          <a href="${verifyUrl}" style="display:inline-block;padding:14px 28px;background:#0066ff;color:white;font-size:14px;font-weight:600;border-radius:10px;text-decoration:none;margin-bottom:24px">Verify My Claim →</a>
+          <p style="font-size:12px;color:#999;margin-bottom:8px">This link expires in 24 hours.</p>
+          <p style="font-size:12px;color:#999">If you didn't request this, you can safely ignore this email.</p>
+          <div style="margin-top:32px;padding-top:16px;border-top:1px solid rgba(0,0,0,0.06);font-size:11px;color:#999">
+            EventMedium.ai · Signal-driven networking
+          </div>
+        </div>
+      `
+    });
+
+    // Notify admin if flagship
+    if (event.is_flagship) {
+      try {
+        await resend.emails.send({
+          from: process.env.FROM_EMAIL || 'nev@eventmedium.ai',
+          to: 'jon@mitchellake.com',
+          subject: 'Flagship claim pending: ' + event.name,
+          html: `
+            <div style="font-family:system-ui,-apple-system,sans-serif;max-width:520px;margin:0 auto;padding:40px 24px">
+              <h2 style="font-size:18px;font-weight:700;color:#1a1a2e;margin-bottom:16px">Flagship claim pending approval</h2>
+              <p style="font-size:14px;color:#555;margin-bottom:8px"><strong>${userName}</strong> (${organiser_email}) has claimed <strong>${event.name}</strong>.</p>
+              <p style="font-size:14px;color:#555;margin-bottom:8px">Role: ${organiser_role || 'Not specified'}</p>
+              <p style="font-size:14px;color:#555;margin-bottom:24px">Website provided: ${website}</p>
+              <p style="font-size:13px;color:#888;margin-bottom:16px">Use this admin endpoint to approve (POST with your auth token):</p>
+              <code style="display:block;padding:12px 16px;background:#f0f4ff;border-radius:8px;font-size:13px;color:#0066ff;word-break:break-all">POST ${process.env.APP_URL || 'https://eventmedium.ai'}/api/events/${eventId}/approve-claim</code>
+              <div style="margin-top:32px;padding-top:16px;border-top:1px solid rgba(0,0,0,0.06);font-size:11px;color:#999">EventMedium.ai</div>
+            </div>
+          `
+        });
+      } catch(adminEmailErr) {
+        console.error('Admin notification email failed:', adminEmailErr);
+      }
+    }
+
+    res.json({ message: 'Check your email at ' + organiser_email + ' to verify your claim. The link expires in 24 hours.' });
+  } catch (err) {
+    console.error('Claim event error:', err);
+    res.status(500).json({ error: 'Claim failed: ' + err.message });
+  }
+});
+
+// ── POST /api/events/:id/approve-claim (admin only, user ID 2) ──
+router.post('/:id/approve-claim', authenticateToken, async function(req, res) {
+  try {
+    if (req.user.id !== 2) return res.status(403).json({ error: 'Admin only' });
+
+    var eventId = parseInt(req.params.id);
+    var event = await dbGet('SELECT * FROM events WHERE id = $1 AND claim_pending = true', [eventId]);
+    if (!event) return res.status(404).json({ error: 'No pending claim found for this event' });
+
+    await dbRun(
+      'UPDATE events SET claim_verified = true, claimed_at = NOW(), claim_pending = false WHERE id = $1',
+      [eventId]
+    );
+
+    // Notify the organiser
+    if (event.owner_email) {
+      var appUrl = process.env.APP_URL || 'https://eventmedium.ai';
+      var dashUrl = appUrl + '/event-dashboard.html?id=' + eventId;
+      var ownerUser = event.owner_user_id ? await dbGet('SELECT name FROM users WHERE id = $1', [event.owner_user_id]) : null;
+      var ownerName = ownerUser ? ownerUser.name : 'Organiser';
+
+      try {
+        var Resend = require('resend');
+        var resend = new Resend.Resend(process.env.RESEND_API_KEY);
+        await resend.emails.send({
+          from: process.env.FROM_EMAIL || 'nev@eventmedium.ai',
+          to: event.owner_email,
+          subject: 'Your EventMedium dashboard for ' + event.name + ' is ready',
+          html: `
+            <div style="font-family:system-ui,-apple-system,sans-serif;max-width:520px;margin:0 auto;padding:40px 24px">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:32px">
+                <div style="width:28px;height:28px;border-radius:6px;background:linear-gradient(135deg,#0066ff,#0052cc)"></div>
+                <span style="font-size:16px;font-weight:700;color:#1a1a2e">Event <span style="color:#0066ff">Medium</span></span>
+              </div>
+              <h1 style="font-size:22px;font-weight:700;color:#1a1a2e;margin-bottom:8px">Your dashboard is ready</h1>
+              <p style="font-size:14px;color:#555;margin-bottom:24px">Hi ${ownerName}, your claim for <strong>${event.name}</strong> has been approved.</p>
+              <a href="${dashUrl}" style="display:inline-block;padding:14px 28px;background:#0066ff;color:white;font-size:14px;font-weight:600;border-radius:10px;text-decoration:none;margin-bottom:24px">Go to your dashboard →</a>
+              <p style="font-size:14px;color:#555">You now have access to full attendee intelligence, gap analysis, and matching insights for your event.</p>
+              <div style="margin-top:32px;padding-top:16px;border-top:1px solid rgba(0,0,0,0.06);font-size:11px;color:#999">EventMedium.ai · Signal-driven networking</div>
+            </div>
+          `
+        });
+      } catch(emailErr) {
+        console.error('Approval email failed:', emailErr);
+      }
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Approve claim error:', err);
+    res.status(500).json({ error: 'Approval failed' });
   }
 });
 
@@ -465,6 +691,64 @@ router.get('/:id/demand-signals', authenticateToken, async function(req, res) {
   } catch (err) {
     console.error('Demand signals error:', err);
     res.status(500).json({ error: 'Failed to load demand signals' });
+  }
+});
+
+// ── POST /api/events/harvest (admin only, user ID 2) ──
+router.post('/harvest', authenticateToken, async function(req, res) {
+  try {
+    if (req.user.id !== 2) return res.status(403).json({ error: 'Admin only' });
+
+    var url = (req.body.url || '').trim();
+    if (!url) return res.status(400).json({ error: 'URL is required' });
+    try { new URL(url); } catch(e) { return res.status(400).json({ error: 'Invalid URL format' }); }
+
+    var { harvestEvent } = require('../lib/event-harvester');
+    var extracted = await harvestEvent(url);
+
+    // Deduplicate: check by name + year
+    var year = extracted.event_date ? new Date(extracted.event_date).getFullYear() : null;
+    var existing = year
+      ? await dbGet("SELECT id, name, slug FROM events WHERE name ILIKE $1 AND EXTRACT(YEAR FROM event_date) = $2", [extracted.name, year])
+      : await dbGet("SELECT id, name, slug FROM events WHERE name ILIKE $1", [extracted.name]);
+
+    if (existing) {
+      return res.status(409).json({ error: 'Event already exists', existing: { id: existing.id, name: existing.name, slug: existing.slug } });
+    }
+
+    // Generate slug
+    var slug = (extracted.name || 'event').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    if (extracted.event_date) slug += '-' + String(extracted.event_date).replace(/-/g, '').substring(0, 8);
+
+    var { normalizeThemes } = require('../lib/theme_taxonomy');
+    var themes = normalizeThemes(extracted.themes || []);
+
+    var result = await dbRun(
+      `INSERT INTO events (name, description, event_date, city, country, event_type, themes, slug, source_url, expected_attendees, is_flagship, needs_review)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+       ON CONFLICT (name, event_date, city, country) DO UPDATE SET
+         description = COALESCE(EXCLUDED.description, events.description),
+         themes = EXCLUDED.themes, source_url = COALESCE(EXCLUDED.source_url, events.source_url),
+         needs_review = true, updated_at = NOW()
+       RETURNING *`,
+      [
+        extracted.name, extracted.description || null,
+        extracted.event_date || null, extracted.city || null, extracted.country || null,
+        'conference', JSON.stringify(themes), slug,
+        extracted.website || url,
+        extracted.expected_attendees || null,
+        false, true
+      ]
+    );
+
+    var event = result.rows[0];
+    res.json({ success: true, event: event, extracted: extracted, needs_review: true });
+  } catch (err) {
+    console.error('Harvest error:', err);
+    var msg = err.message || 'Extraction failed';
+    if (msg.includes('Could not reach')) return res.status(422).json({ error: msg });
+    if (msg.includes("doesn't look like")) return res.status(422).json({ error: msg });
+    res.status(500).json({ error: msg });
   }
 });
 
