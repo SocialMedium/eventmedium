@@ -61,6 +61,8 @@ body{font-family:var(--font);color:var(--txt);background:var(--bg);-webkit-font-
 .comm-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;margin-bottom:32px}
 .comm-card{background:var(--card);border:1px solid var(--bdr);border-radius:14px;padding:24px;cursor:pointer;transition:all 0.2s}
 .comm-card:hover{border-color:var(--p);box-shadow:var(--shadowL);transform:translateY(-2px)}
+.delete-comm-btn{position:absolute;top:10px;right:10px;background:none;border:none;color:#ccc;font-size:16px;cursor:pointer;padding:2px 6px;border-radius:6px;line-height:1}
+.delete-comm-btn:hover{background:#fee2e2;color:#ef4444}
 .comm-name{font-size:1.05rem;font-weight:700;margin-bottom:4px}
 .comm-desc{font-size:13px;color:var(--txtL);margin-bottom:12px;line-height:1.5}
 .comm-meta{display:flex;gap:16px;font-size:12px;color:var(--txtXL)}
@@ -243,7 +245,11 @@ function esc(s) { if (!s) return ''; var d = document.createElement('div'); d.te
       var badge = c.role === 'owner'
         ? '<span class="comm-badge badge-owner">Owner</span>'
         : '<span class="comm-badge badge-member">Member</span>';
-      return '<div class="comm-card" onclick="window.location.href=\'/community.html?slug=' + c.slug + '\'">' +
+      var deleteBtn = c.role === 'owner'
+        ? '<button class="delete-comm-btn" onclick="event.stopPropagation();deleteCommunity(' + c.id + ',this)" title="Delete">&#x2715;</button>'
+        : '';
+      return '<div class="comm-card" style="position:relative" onclick="window.location.href=\'/community.html?slug=' + c.slug + '\'">' +
+        deleteBtn +
         badge +
         '<div class="comm-name">' + esc(c.name) + '</div>' +
         '<div class="comm-desc">' + esc(c.description || '') + '</div>' +
