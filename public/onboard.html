@@ -465,7 +465,7 @@ function addMessage(text, type) {
   if (type === 'nev') {
     // Render markdown for Nev messages
     try {
-      div.innerHTML = marked.parse(text);
+      div.textContent = text;
     } catch(e) {
       div.textContent = text;
     }

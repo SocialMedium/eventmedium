@@ -193,7 +193,7 @@ CONVERSATION STYLE:
 CRITICAL — INCREMENTAL EXTRACTION:
 After EVERY response, extract whatever canister fields you can. Include a partial canister even if incomplete.
 
-Always include this block at the end of every response:
+OUTPUT FORMAT — the CANISTER_READY block comes FIRST, before your reply:
 [CANISTER_READY]
 {"stakeholder_type":"...","themes":["..."],"intent":["..."],"offering":["..."],"context":"...","deal_details":{},"geography":"..."}
 [/CANISTER_READY]
@@ -264,6 +264,8 @@ router.post('/chat', authenticateToken, async function(req, res) {
 
     var data = await resp.json();
     var reply = data.content[0].text;
+    // Strip markdown formatting Nev should never produce
+    reply = reply.replace(/^[s]*[-*•]s+/gm, '').replace(/^[s]*d+.s+/gm, '').replace(/**(.*?)**/g, '$1').replace(/^#{1,4}s+/gm, '');
 
     // Extract canister data
     var canisterData = null;
