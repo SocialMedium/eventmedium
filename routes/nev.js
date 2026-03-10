@@ -274,7 +274,9 @@ router.post('/chat', authenticateToken, async function(req, res) {
         body: JSON.stringify({
           model: MODEL,
           system: "Extract profile data from this conversation. Return ONLY a raw JSON object with keys: stakeholder_type (one of: founder/investor/researcher/corporate/advisor/operator or empty string), themes (array of strings), intent (array of strings), offering (array of strings), context (string), geography (string), deal_details (object). No markdown, no explanation.",
-          messages: [...anthropicMessages, { role: "assistant", content: reply }],
+          messages: [{ role: "user", content: "Conversation so far:
+" + [...anthropicMessages, { role: "assistant", content: reply }].map(function(m){ return m.role + ": " + m.content; }).join("
+").slice(0, 2000) }],
           max_tokens: 300,
           temperature: 0
         })
