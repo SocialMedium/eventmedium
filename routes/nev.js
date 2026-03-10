@@ -261,7 +261,7 @@ router.post('/opening', authenticateToken, async function(req, res) {
       } else if (themes) {
         opening += ' Good to see you again — still focused on ' + themes + '?';
       }
-      opening += ' Anything new I should know about?';
+      opening += ' Anything new I should know about? You can sign off anytime by saying done.';
     } else if (user) {
       opening = 'Hey ' + user.name + '! I\'m Nev, your networking concierge. A few quick questions and I\'ll start matching you with the right people at events. Just say done whenever you are ready to stop — more context means sharper matches, but a few answers is enough to get started. Let\'s start — what do you do, and what are you working on right now?';
     } else {
