@@ -8,7 +8,7 @@ var { normalizeThemes } = require('../lib/theme_taxonomy');
 var router = express.Router();
 
 var ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
-var MODEL = 'claude-haiku-4-5-20251001';
+var MODEL = 'claude-sonnet-4-20250514';
 
 // ── Load playbook ──
 var playbook = {};
