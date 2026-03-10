@@ -134,6 +134,10 @@ router.post('/chat', authenticateToken, async function(req, res) {
     var data = await resp.json();
     var reply = data.content[0].text;
 
+    // Strip markdown server-side
+    reply = reply.split('\n').map(function(l){
+      return l.replace(/^\s*#{1,4}\s+/,'').replace(/^\s*[-*]\s+/,'').replace(/^\s*\d+\.\s+/,'').replace(/\*\*(.*?)\*\*/g,'$1').replace(/\*(.*?)\*/g,'$1').replace(/^\s*[oc]\s+/,'');
+    }).filter(function(l){return l.trim()!='';}).join(' ').trim();
     var canisterData = null;
     var canisterMatch = reply.match(/\[CANISTER_READY\]([\s\S]*?)\[\/CANISTER_READY\]/);
     if (canisterMatch) {
