@@ -70,6 +70,7 @@ body{font-family:var(--font);color:var(--txt);background:var(--bg);-webkit-font-
 .comm-badge{display:inline-block;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;margin-bottom:8px}
 .badge-owner{background:var(--okL);color:var(--ok)}
 .badge-member{background:var(--pL);color:var(--p)}
+.dash-btn{display:inline-block;margin-top:10px;padding:5px 14px;background:var(--p);color:#fff;border-radius:6px;font-size:12px;font-weight:600;text-decoration:none;}
 
 .comm-empty{text-align:center;padding:48px 24px;color:var(--txtL)}
 
@@ -248,6 +249,9 @@ function esc(s) { if (!s) return ''; var d = document.createElement('div'); d.te
       var deleteBtn = c.role === 'owner'
         ? '<button class="delete-comm-btn" onclick="event.stopPropagation();deleteCommunity(' + c.id + ',this)" title="Delete">&#x2715;</button>'
         : '';
+      var dashBtn = c.role === 'owner'
+        ? '<a class="dash-btn" href="/community-dashboard.html?slug=' + c.slug + '" onclick="event.stopPropagation()">Dashboard</a>'
+        : '';
       return '<div class="comm-card" style="position:relative" onclick="window.location.href=\'/community.html?slug=' + c.slug + '\'">' +
         deleteBtn +
         badge +
@@ -257,6 +261,7 @@ function esc(s) { if (!s) return ''; var d = document.createElement('div'); d.te
           '<span><i data-lucide="users" style="width:14px;height:14px"></i> ' + c.member_count + ' members</span>' +
           '<span><i data-lucide="calendar" style="width:14px;height:14px"></i> ' + c.upcoming_events + ' upcoming</span>' +
         '</div>' +
+        dashBtn +
       '</div>';
     }).join('');
     lucide.createIcons();
