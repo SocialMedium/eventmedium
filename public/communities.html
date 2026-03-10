@@ -4,7 +4,18 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Communities — Event Medium</title>
-<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://unpkg.com/lucide@latest">
+async function deleteCommunity(id, btn) {
+  var token = localStorage.getItem('auth_token');
+  if (!window.confirm('Delete this community? This cannot be undone.')) return;
+  try {
+    var resp = await fetch('/api/communities/' + id, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
+    var data = await resp.json();
+    if (data.success) { btn.closest('.comm-card').remove(); }
+    else { alert('Error: ' + (data.error || 'Could not delete')); }
+  } catch(e) { alert('Delete failed'); }
+}
+</script>
 <style>
 :root {
   --p: #0066ff;--pL: #e8f0fe;--pD: #0052cc;--s: #6c63ff;--ok: #00d084;
