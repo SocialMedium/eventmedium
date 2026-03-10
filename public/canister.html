@@ -185,13 +185,14 @@ if (!token) window.location.href = '/auth.html';
 
 async function loadCanister() {
   try {
+    var safe = function(p) { return p.catch(function() { return { ok: false, json: function() { return Promise.resolve({}); } }; }); };
     var [userResp, profileResp, regResp, matchResp, notiResp, commResp] = await Promise.all([
-      fetch('/api/auth/me', { headers: { 'Authorization': 'Bearer ' + token } }),
-      fetch('/api/stakeholder/profile', { headers: { 'Authorization': 'Bearer ' + token } }),
-      fetch('/api/events/user/registrations', { headers: { 'Authorization': 'Bearer ' + token } }),
-      fetch('/api/matches/mine', { headers: { 'Authorization': 'Bearer ' + token } }),
-      fetch('/api/notifications/unread-count', { headers: { 'Authorization': 'Bearer ' + token } }),
-      fetch('/api/communities/mine', { headers: { 'Authorization': 'Bearer ' + token } })
+      safe(fetch('/api/auth/me', { headers: { 'Authorization': 'Bearer ' + token } })),
+      safe(fetch('/api/stakeholder/profile', { headers: { 'Authorization': 'Bearer ' + token } })),
+      safe(fetch('/api/events/user/registrations', { headers: { 'Authorization': 'Bearer ' + token } })),
+      safe(fetch('/api/matches/mine', { headers: { 'Authorization': 'Bearer ' + token } })),
+      safe(fetch('/api/notifications/unread-count', { headers: { 'Authorization': 'Bearer ' + token } })),
+      safe(fetch('/api/communities/mine', { headers: { 'Authorization': 'Bearer ' + token } }))
     ]);
 
     if (!userResp.ok) { localStorage.removeItem('auth_token'); window.location.href = '/auth.html'; return; }
