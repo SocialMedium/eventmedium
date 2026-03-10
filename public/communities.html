@@ -357,6 +357,17 @@ function copyField(id) {
   var btn = el.nextElementSibling;
   if (btn) { var orig = btn.textContent; btn.textContent = 'Copied!'; setTimeout(function() { btn.textContent = orig; }, 1500); }
 }
+
+async function deleteCommunity(id, btn) {
+  var token = localStorage.getItem('auth_token');
+  if (!window.confirm('Delete this community? This cannot be undone.')) return;
+  try {
+    var resp = await fetch('/api/communities/' + id, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
+    var data = await resp.json();
+    if (data.success) { btn.closest('.comm-card').remove(); }
+    else { alert('Error: ' + (data.error || 'Could not delete')); }
+  } catch(e) { alert('Delete failed'); }
+}
 </script>
 <script src="/js/nav.js"></script>
 </body>

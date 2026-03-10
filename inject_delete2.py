@@ -14,7 +14,11 @@ async function deleteCommunity(id, btn) {
 }
 """
 
-content = content.replace('</script>', fn + '</script>', 1)
+# Replace the LAST </script> before nav.js
+content = content.replace(
+    '</script>\n<script src="/js/nav.js">',
+    fn + '</script>\n<script src="/js/nav.js">'
+)
 
 with open('/Users/jonathantanner/Downloads/event-medium/public/communities.html', 'w') as f:
     f.write(content)
