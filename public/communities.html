@@ -301,7 +301,13 @@ async function createCommunity() {
     } else {
       var shareUrl = window.location.origin + '/c/' + data.community.slug + '?code=' + data.community.access_code;
       var shareMsg = "I've set up private AI-powered matching for " + name + " on EventMedium.\n\nNo public profiles, no ads — just double-blind introductions with people who complement what you're building.\n\nJoin here: " + shareUrl;
-      var isOfficial = commType === 'official';
+      var commType = "open";
+      function setCommType(type) {
+        commType = type;
+        document.getElementById("typeOpen").classList.toggle("active", type === "open");
+        document.getElementById("typeOfficial").classList.toggle("active", type === "official");
+      }
+      var isOfficial = commType === "official";
       document.getElementById('createResult').innerHTML =
         '<div class="share-result">' +
           '<h4>' + (isOfficial ? 'Submitted for verification!' : 'Community created!') + '</h4>' +
