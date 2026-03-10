@@ -138,6 +138,9 @@ router.post('/chat', authenticateToken, async function(req, res) {
     reply = reply.split('\n').map(function(l){
       return l.replace(/^\s*#{1,4}\s+/,'').replace(/^\s*[-*]\s+/,'').replace(/^\s*\d+\.\s+/,'').replace(/\*\*(.*?)\*\*/g,'$1').replace(/\*(.*?)\*/g,'$1').replace(/^\s*[oc]\s+/,'');
     }).filter(function(l){return l.trim()!='';}).join(' ').trim();
+    // Hard truncate to 2 sentences max
+    var nevSentences = reply.match(/[^.!?]+[.!?]+/g) || [reply];
+    if (nevSentences.length > 2) { reply = nevSentences.slice(0,2).join(' ').trim(); }
     var canisterData = null;
     var canisterMatch = reply.match(/\[CANISTER_READY\]([\s\S]*?)\[\/CANISTER_READY\]/);
     if (canisterMatch) {
