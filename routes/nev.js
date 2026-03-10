@@ -91,7 +91,7 @@ router.post('/chat', authenticateToken, async function(req, res) {
     // Server-side exit detection - bypass AI entirely for clean signoff
     var exitPhrases = ['have to go', 'gotta go', 'got to go', 'bye', 'goodbye', 'i am done', "i'm done", 'finished now', 'finish now', 'that is enough', "that's enough", 'all good', 'got to run', 'gotta run', 'stop here', 'no more', 'just matches', 'i have finished', 'enough for now', 'ok thanks', 'thank you', 'thanks bye', 'need to go'];
     var msgLower = message.toLowerCase().trim();
-    var isExit = exitPhrases.some(function(p) { return msgLower.indexOf(p) !== -1; });
+    var isExit = msgLower === "done" || msgLower === "stop" || msgLower === "ok done" || exitPhrases.some(function(p) { return msgLower.indexOf(p) !== -1; });
     if (isExit) {
       var quotes = [
         { q: "The best investment you can make is in yourself.", a: "Warren Buffett" },
@@ -111,7 +111,7 @@ router.post('/chat', authenticateToken, async function(req, res) {
       ];
       var picked = quotes[Math.floor(Math.random() * quotes.length)];
       return res.json({
-        reply: "Your canister is saved and matching is active. You'll hear from me when we find the right people.\n\nGood talk.\n\n*\"" + picked.q + "\"*\n— " + picked.a,
+        reply: "Your canister is saved and matching is active. I will continue to monitor events and communities for strong matches for your needs.\n\nGood talk.\n\n*\"" + picked.q + "\"*\n— " + picked.a,
         canister_data: null
       });
     }
