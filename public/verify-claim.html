@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Verify Event Claim — Event Medium</title>
+<style>
+:root {
+  --p: #0066ff;--pL: #e8f0fe;--pD: #0052cc;--ok: #059669;--okL: #e6faf2;
+  --warn: #f59e0b;--warnL: #fffbeb;--bg: #f8f9fd;--card: #ffffff;
+  --txt: #1a1d29;--txtL: #6b7280;--txtXL: #9ca3af;--bdr: #e5e7eb;
+  --shadowL: 0 10px 25px rgba(0,0,0,0.08);
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--font);color:var(--txt);background:var(--bg);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;-webkit-font-smoothing:antialiased}
+.card{background:var(--card);border:1px solid var(--bdr);border-radius:20px;padding:48px 40px;max-width:480px;width:100%;text-align:center;box-shadow:var(--shadowL)}
+.logo{display:inline-flex;align-items:center;gap:10px;margin-bottom:40px;text-decoration:none;color:var(--txt)}
+.logo-icon{width:36px;height:36px;background:var(--p);border-radius:10px;display:flex;align-items:center;justify-content:center}
+.logo-dot{width:12px;height:12px;border-radius:3px;background:white}
+.logo-name{font-weight:800;font-size:1.1rem;letter-spacing:-0.3px}
+.icon-circle{width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 24px;font-size:32px}
+.icon-circle.loading{background:var(--pL)}
+.icon-circle.success{background:var(--okL)}
+.icon-circle.pending{background:var(--warnL)}
+.icon-circle.error{background:#fef2f2}
+h1{font-size:22px;font-weight:700;margin-bottom:10px;line-height:1.3}
+p{font-size:14px;color:var(--txtL);line-height:1.6;margin-bottom:0}
+.event-name{font-size:15px;font-weight:600;color:var(--txt);margin-bottom:8px}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:12px 28px;background:var(--p);color:white;font-size:14px;font-weight:600;border-radius:10px;text-decoration:none;transition:all 0.2s;margin-top:28px}
+.btn:hover{background:var(--pD);transform:translateY(-1px)}
+.btn-ok{background:var(--ok)}
+.btn-ok:hover{background:#047857}
+.link{display:block;margin-top:20px;font-size:13px;color:var(--txtL)}
+.link a{color:var(--p);font-weight:500;text-decoration:none}
+.link a:hover{text-decoration:underline}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner{width:28px;height:28px;border:3px solid var(--pL);border-top-color:var(--p);border-radius:50%;animation:spin 0.8s linear infinite}
+</style>
+</head>
+<body>
+
+<div class="card">
+  <a href="/" class="logo">
+    <div class="logo-icon"><div class="logo-dot"></div></div>
+    <span class="logo-name">Event <span style="color:var(--p)">Medium</span></span>
+  </a>
+
+  <div id="content">
+    <div class="icon-circle loading"><div class="spinner"></div></div>
+    <h1>Verifying your claim...</h1>
+    <p>Please wait a moment.</p>
+  </div>
+</div>
+
+<script>
+(async function() {
+  var token = new URLSearchParams(window.location.search).get('token');
+  var el = document.getElementById('content');
+
+  function show(iconClass, emoji, title, body, btnHtml, linkHtml) {
+    el.innerHTML =
+      '<div class="icon-circle ' + iconClass + '">' + emoji + '</div>' +
+      '<h1>' + title + '</h1>' +
+      (body ? '<p>' + body + '</p>' : '') +
+      (btnHtml || '') +
+      (linkHtml || '<div class="link"><a href="/events.html">← Browse events</a></div>');
+  }
+
+  if (!token) {
+    show('error', '❌', 'Invalid link', 'This verification link is missing a token.', '', '<div class="link"><a href="/events.html">Return to events</a></div>');
+    return;
+  }
+
+  try {
+    var resp = await fetch('/api/events/verify-claim?token=' + encodeURIComponent(token));
+    var data = await resp.json();
+
+    if (!resp.ok) {
+      show('error', '❌', 'Link expired or invalid', data.error || 'This verification link has expired or is invalid.', '', '<div class="link"><a href="/events.html">Return to events</a></div>');
+      return;
+    }
+
+    if (data.status === 'approved') {
+      show(
+        'success', '✅',
+        'Claim approved!',
+        '<span class="event-name">' + (data.event_name || 'Your event') + '</span>You now have full access to attendee intelligence, gap analysis, and matching insights.',
+        '<a href="/event-dashboard.html?id=' + data.event_id + '" class="btn btn-ok">Go to your dashboard →</a>',
+        '<div class="link"><a href="/events.html">← Browse events</a></div>'
+      );
+    } else if (data.status === 'pending_approval') {
+      show(
+        'pending', '⏳',
+        'Email verified — pending approval',
+        'Your email is verified. Your claim for <strong>' + (data.event_name || 'this event') + '</strong> is pending manual approval by our team. You\'ll hear from us within 24 hours.',
+        '',
+        '<div class="link"><a href="/events.html">← Browse events</a></div>'
+      );
+    } else {
+      show('error', '❌', 'Something went wrong', 'Please try claiming the event again.', '', '<div class="link"><a href="/events.html">Return to events</a></div>');
+    }
+  } catch(err) {
+    show('error', '❌', 'Connection error', 'Could not reach the server. Please try again.', '', '<div class="link"><a href="/events.html">Return to events</a></div>');
+  }
+})();
+</script>
+</body>
+</html>

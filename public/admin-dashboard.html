@@ -560,44 +560,269 @@ async function drillEvent(id){
 // ══════════════════════════════════════════════════════════════════
 (function(){
   var harvestHistory = [];
+  var discoverResults = [];
+  var discoverMode = 'keyword';
+
+  var ALL_THEMES = ['AI','Fintech','Climate','Health','Cybersecurity','Enterprise SaaS','Web3','Quantum','Space','Robotics','Defence','Education','Supply Chain','Real Estate','Food & Agriculture','Media & Entertainment'];
+  var DEFAULT_THEMES = ['AI','Web3','Fintech','Health','Climate','Robotics'];
 
   function initHarvestTab() {
     var el = document.getElementById('harvest');
     el.innerHTML =
+      // Panel 1: Discover
       '<div class="card grid-full">' +
-        '<div class="card-t">🌐 Harvest Event from Official Website</div>' +
-        '<p style="font-size:13px;color:var(--text2);margin-bottom:20px">Paste the official event URL. EventMedium will fetch and extract event details automatically using Claude AI.</p>' +
+        '<div class="card-t">🔍 Discover Events</div>' +
+        '<p style="font-size:13px;color:var(--text2);margin-bottom:20px">Search the web for event URLs by keyword or canonical theme. Select results to harvest into the database.</p>' +
 
-        // Single URL
-        '<div style="display:flex;gap:10px;margin-bottom:16px">' +
-          '<input type="url" id="harvestUrl" placeholder="https://example-conference.com" style="flex:1;padding:10px 14px;border:1px solid var(--border2);border-radius:8px;font-size:14px;font-family:var(--sans);background:var(--bg);color:var(--text);outline:none" ' +
-            'onkeydown="if(event.key===\'Enter\')harvestSingle()" ' +
-            'onfocus="this.style.borderColor=\'var(--accent)\'" onblur="this.style.borderColor=\'var(--border2)\'">' +
-          '<button id="harvestBtn" onclick="harvestSingle()" style="padding:10px 22px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--sans);white-space:nowrap;transition:background 0.15s" ' +
-            'onmouseover="this.style.background=\'var(--accent2)\'" onmouseout="this.style.background=\'var(--accent)\'">Harvest Event</button>' +
+        // Mode toggle
+        '<div style="display:flex;gap:0;margin-bottom:20px;border:1px solid var(--border2);border-radius:8px;overflow:hidden;width:fit-content">' +
+          '<button id="modeKeyword" onclick="setDiscoverMode(\'keyword\')" style="padding:8px 20px;font-size:13px;font-weight:600;cursor:pointer;border:none;font-family:var(--sans);background:var(--accent);color:#fff">Keyword</button>' +
+          '<button id="modeTheme" onclick="setDiscoverMode(\'theme\')" style="padding:8px 20px;font-size:13px;font-weight:600;cursor:pointer;border:none;font-family:var(--sans);background:var(--bg);color:var(--text)">By Theme</button>' +
         '</div>' +
 
-        '<div id="harvestResult"></div>' +
+        // Keyword panel
+        '<div id="keywordPanel" style="margin-bottom:16px">' +
+          '<div style="display:flex;gap:10px">' +
+            '<input type="text" id="discoverQuery" placeholder="e.g. AI conference 2026" style="flex:1;padding:10px 14px;border:1px solid var(--border2);border-radius:8px;font-size:14px;font-family:var(--sans);background:var(--bg);color:var(--text);outline:none" ' +
+              'onkeydown="if(event.key===\'Enter\')discoverEvents()" ' +
+              'onfocus="this.style.borderColor=\'var(--accent)\'" onblur="this.style.borderColor=\'var(--border2)\'">' +
+            '<button id="discoverBtn" onclick="discoverEvents()" style="padding:10px 22px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--sans);white-space:nowrap">Search</button>' +
+          '</div>' +
+        '</div>' +
 
-        // Divider
-        '<div style="margin:24px 0 16px;padding-top:16px;border-top:1px solid var(--border);font-size:11px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:var(--text3)">Or paste multiple URLs (one per line)</div>' +
+        // Theme panel
+        '<div id="themePanel" style="display:none;margin-bottom:16px">' +
+          '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px">' +
+          ALL_THEMES.map(function(t) {
+            var chk = DEFAULT_THEMES.indexOf(t) >= 0 ? ' checked' : '';
+            return '<label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;padding:5px 10px;border:1px solid var(--border2);border-radius:20px;background:var(--bg2)">' +
+              '<input type="checkbox" value="' + t + '"' + chk + ' style="cursor:pointer"> ' + t +
+            '</label>';
+          }).join('') +
+          '</div>' +
+          '<button id="discoverBtnTheme" onclick="discoverEvents()" style="padding:10px 22px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--sans)">Search by Themes</button>' +
+        '</div>' +
 
-        // Bulk
-        '<textarea id="bulkUrls" rows="5" placeholder="https://event-one.com&#10;https://event-two.com&#10;https://event-three.com" style="width:100%;padding:10px 14px;border:1px solid var(--border2);border-radius:8px;font-size:13px;font-family:var(--sans);background:var(--bg);color:var(--text);resize:vertical;outline:none;margin-bottom:10px" ' +
-          'onfocus="this.style.borderColor=\'var(--accent)\'" onblur="this.style.borderColor=\'var(--border2)\'"></textarea>' +
-        '<button id="bulkBtn" onclick="harvestBulk()" style="padding:10px 22px;background:var(--bg);color:var(--text);border:1px solid var(--border2);border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--sans);transition:all 0.15s" ' +
-          'onmouseover="this.style.borderColor=\'var(--accent)\';this.style.color=\'var(--accent)\'" onmouseout="this.style.borderColor=\'var(--border2)\';this.style.color=\'var(--text)\'">Harvest All</button>' +
-        '<div id="bulkProgress" style="margin-top:12px"></div>' +
+        '<div id="discoverStatus"></div>' +
+        '<div id="discoverResults"></div>' +
+      '</div>' +
+
+      // Panel 2: Harvest single URL (collapsed)
+      '<div class="card grid-full">' +
+        '<details id="harvestSingleDetails">' +
+          '<summary style="cursor:pointer;font-size:14px;font-weight:600;color:var(--text);list-style:none;display:flex;align-items:center;gap:8px;padding:4px 0;user-select:none">' +
+            '<span id="harvestSummaryArrow" style="font-size:12px;display:inline-block;transition:transform 0.2s">▸</span>' +
+            ' Harvest a specific URL manually' +
+          '</summary>' +
+          '<div style="margin-top:16px">' +
+            '<p style="font-size:13px;color:var(--text2);margin-bottom:16px">Paste the official event URL. EventMedium will fetch and extract event details automatically using Claude AI.</p>' +
+            '<div style="display:flex;gap:10px;margin-bottom:16px">' +
+              '<input type="url" id="harvestUrl" placeholder="https://example-conference.com" style="flex:1;padding:10px 14px;border:1px solid var(--border2);border-radius:8px;font-size:14px;font-family:var(--sans);background:var(--bg);color:var(--text);outline:none" ' +
+                'onkeydown="if(event.key===\'Enter\')harvestSingle()" ' +
+                'onfocus="this.style.borderColor=\'var(--accent)\'" onblur="this.style.borderColor=\'var(--border2)\'">' +
+              '<button id="harvestBtn" onclick="harvestSingle()" style="padding:10px 22px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--sans);white-space:nowrap">Harvest Event</button>' +
+            '</div>' +
+            '<div id="harvestResult"></div>' +
+          '</div>' +
+        '</details>' +
       '</div>' +
 
       '<div class="card grid-full" id="harvestHistoryCard" style="display:none">' +
         '<div class="card-t">Recent Harvests</div>' +
         '<div id="harvestHistoryBody"></div>' +
       '</div>';
+
+    // Arrow animation on details toggle
+    var details = document.getElementById('harvestSingleDetails');
+    details.addEventListener('toggle', function() {
+      document.getElementById('harvestSummaryArrow').style.transform = details.open ? 'rotate(90deg)' : '';
+    });
   }
 
+  window.setDiscoverMode = function(mode) {
+    discoverMode = mode;
+    document.getElementById('keywordPanel').style.display = mode === 'keyword' ? '' : 'none';
+    document.getElementById('themePanel').style.display = mode === 'theme' ? '' : 'none';
+    document.getElementById('modeKeyword').style.background = mode === 'keyword' ? 'var(--accent)' : 'var(--bg)';
+    document.getElementById('modeKeyword').style.color = mode === 'keyword' ? '#fff' : 'var(--text)';
+    document.getElementById('modeTheme').style.background = mode === 'theme' ? 'var(--accent)' : 'var(--bg)';
+    document.getElementById('modeTheme').style.color = mode === 'theme' ? '#fff' : 'var(--text)';
+  };
+
+  window.discoverEvents = async function() {
+    var statusEl = document.getElementById('discoverStatus');
+    var resultsEl = document.getElementById('discoverResults');
+    var btn = document.getElementById(discoverMode === 'keyword' ? 'discoverBtn' : 'discoverBtnTheme');
+
+    var body = { mode: discoverMode };
+    if (discoverMode === 'keyword') {
+      var q = (document.getElementById('discoverQuery').value || '').trim();
+      if (!q) return;
+      body.query = q;
+    } else {
+      var checked = Array.from(document.querySelectorAll('#themePanel input[type=checkbox]:checked')).map(function(cb) { return cb.value; });
+      if (!checked.length) { statusEl.innerHTML = '<div style="font-size:13px;color:var(--red);padding:8px 0">Select at least one theme.</div>'; return; }
+      body.themes = checked;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Searching...';
+    statusEl.innerHTML = '<div style="font-size:13px;color:var(--text3);padding:12px 0">⏳ Searching the web...</div>';
+    resultsEl.innerHTML = '';
+
+    try {
+      var resp = await fetch('/api/events/find-links', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify(body)
+      });
+      var data = await resp.json();
+
+      if (resp.status === 422 || resp.status === 429) {
+        statusEl.innerHTML = '<div style="padding:14px 16px;background:var(--amberL);border-radius:8px;border-left:3px solid var(--amber);font-size:13px">⚠️ ' + esc(data.error) + '</div>';
+        btn.disabled = false; btn.textContent = discoverMode === 'keyword' ? 'Search' : 'Search by Themes';
+        return;
+      }
+      if (!resp.ok) {
+        statusEl.innerHTML = '<div style="padding:14px 16px;background:var(--redL);border-radius:8px;border-left:3px solid var(--red);font-size:13px">❌ ' + esc(data.error || 'Search failed') + '</div>';
+        btn.disabled = false; btn.textContent = discoverMode === 'keyword' ? 'Search' : 'Search by Themes';
+        return;
+      }
+
+      discoverResults = data.results || [];
+      statusEl.innerHTML = discoverResults.length
+        ? '<div style="font-size:13px;color:var(--text3);padding:8px 0">' + discoverResults.length + ' results · ' + data.queries_run + ' quer' + (data.queries_run === 1 ? 'y' : 'ies') + ' run</div>'
+        : '<div style="font-size:13px;color:var(--text3);padding:8px 0">No results found. Try a different search.</div>';
+
+      if (discoverResults.length) renderDiscoverResults();
+    } catch(e) {
+      statusEl.innerHTML = '<div style="padding:14px 16px;background:var(--redL);border-radius:8px;border-left:3px solid var(--red);font-size:13px">❌ Connection error. Please try again.</div>';
+    }
+
+    btn.disabled = false;
+    btn.textContent = discoverMode === 'keyword' ? 'Search' : 'Search by Themes';
+  };
+
+  function renderDiscoverResults() {
+    var resultsEl = document.getElementById('discoverResults');
+    if (!discoverResults.length) { resultsEl.innerHTML = ''; return; }
+
+    var newCount = discoverResults.filter(function(r) { return !r.already_harvested; }).length;
+
+    var rows = discoverResults.map(function(r, i) {
+      var themeHtml = (r.themes_detected || []).slice(0,3).map(function(t) {
+        return '<span style="display:inline-block;padding:1px 7px;background:var(--accent-light);color:var(--accent);border-radius:8px;font-size:10px;font-weight:600;margin:1px">' + esc(t) + '</span>';
+      }).join('');
+
+      var scorePct = Math.round(r.relevanceScore || 0);
+      var scoreBar =
+        '<div style="display:flex;align-items:center;gap:6px">' +
+          '<div style="width:50px;height:4px;background:var(--border);border-radius:2px;overflow:hidden">' +
+            '<div style="width:' + scorePct + '%;height:100%;background:var(--accent);border-radius:2px"></div>' +
+          '</div>' +
+          '<span style="font-size:10px;color:var(--text3)">' + scorePct + '</span>' +
+        '</div>';
+
+      var badge = r.already_harvested
+        ? '<span style="padding:2px 8px;background:var(--border);color:var(--text3);border-radius:8px;font-size:10px;font-weight:600">Added</span>'
+        : '<span style="padding:2px 8px;background:var(--greenL);color:var(--green);border-radius:8px;font-size:10px;font-weight:600">New</span>';
+
+      var cbDisabled = r.already_harvested ? ' disabled' : '';
+      var cbChecked = !r.already_harvested ? ' checked' : '';
+
+      return '<div class="tbl-row" style="grid-template-columns:32px 1fr 160px 1fr 60px 60px;min-width:600px;align-items:center">' +
+        '<input type="checkbox" data-idx="' + i + '"' + cbChecked + cbDisabled + ' style="cursor:pointer" onchange="updateHarvestSelection()">' +
+        '<span style="font-size:13px;font-weight:600;word-break:break-word">' + esc(r.title || r.domain) + '</span>' +
+        '<span style="font-size:11px;color:var(--text3);word-break:break-all"><a href="' + esc(r.url) + '" target="_blank" style="color:var(--accent);text-decoration:none">' + esc(r.domain) + '</a></span>' +
+        '<span>' + (themeHtml || '<span style="color:var(--text3);font-size:11px">—</span>') + '</span>' +
+        '<span>' + scoreBar + '</span>' +
+        '<span>' + badge + '</span>' +
+      '</div>';
+    }).join('');
+
+    resultsEl.innerHTML =
+      '<div style="margin-top:16px">' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">' +
+          '<div style="display:flex;align-items:center;gap:10px">' +
+            '<button onclick="selectAllNew()" style="padding:6px 14px;background:var(--bg2);color:var(--text);border:1px solid var(--border2);border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--sans)">Select All New (' + newCount + ')</button>' +
+            '<span id="selectionCount" style="font-size:12px;color:var(--text3)">0 selected</span>' +
+          '</div>' +
+          '<button id="harvestSelectedBtn" onclick="harvestSelected()" disabled style="padding:8px 20px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--sans);opacity:0.4">Harvest Selected →</button>' +
+        '</div>' +
+        '<div class="tbl-head" style="grid-template-columns:32px 1fr 160px 1fr 60px 60px;min-width:600px">' +
+          '<span></span><span>Event</span><span>URL</span><span>Themes</span><span>Score</span><span>Status</span>' +
+        '</div>' +
+        rows +
+        '<div id="harvestBatchProgress" style="margin-top:16px"></div>' +
+      '</div>';
+
+    updateHarvestSelection();
+  }
+
+  window.updateHarvestSelection = function() {
+    var n = document.querySelectorAll('#discoverResults input[type=checkbox]:checked').length;
+    var countEl = document.getElementById('selectionCount');
+    var btn = document.getElementById('harvestSelectedBtn');
+    if (countEl) countEl.textContent = n + ' selected';
+    if (btn) { btn.disabled = !n; btn.style.opacity = n ? '1' : '0.4'; }
+  };
+
+  window.selectAllNew = function() {
+    document.querySelectorAll('#discoverResults input[type=checkbox]:not(:disabled)').forEach(function(cb) { cb.checked = true; });
+    updateHarvestSelection();
+  };
+
+  window.harvestSelected = async function() {
+    var checked = Array.from(document.querySelectorAll('#discoverResults input[type=checkbox]:checked'));
+    if (!checked.length) return;
+    var indices = checked.map(function(cb) { return parseInt(cb.dataset.idx); });
+    var urls = indices.map(function(i) { return discoverResults[i].url; });
+
+    var btn = document.getElementById('harvestSelectedBtn');
+    var progressEl = document.getElementById('harvestBatchProgress');
+    btn.disabled = true; btn.textContent = 'Harvesting...'; btn.style.opacity = '0.6';
+    progressEl.innerHTML = '<div style="font-size:13px;color:var(--text3)">⏳ Harvesting ' + urls.length + ' event' + (urls.length > 1 ? 's' : '') + '...</div>';
+
+    try {
+      var resp = await fetch('/api/events/harvest-batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ urls: urls })
+      });
+      var data = await resp.json();
+
+      if (!resp.ok) {
+        progressEl.innerHTML = '<div style="padding:12px 16px;background:var(--redL);border-radius:8px;font-size:13px">❌ ' + esc(data.error || 'Batch harvest failed') + '</div>';
+        btn.disabled = false; btn.textContent = 'Harvest Selected →'; btn.style.opacity = '1';
+        return;
+      }
+
+      // Mark harvested items as already added
+      (data.results || []).forEach(function(r, j) {
+        if (r.status === 'added') {
+          var idx = indices[j];
+          if (discoverResults[idx]) discoverResults[idx].already_harvested = true;
+          if (r.event) harvestHistory.unshift(r.event);
+        }
+      });
+
+      progressEl.innerHTML =
+        '<div style="padding:12px 16px;background:var(--greenL);border:1px solid rgba(5,150,105,0.2);border-radius:8px;font-size:13px">' +
+          '✓ Done — <strong>' + (data.added||0) + ' added</strong>' +
+          (data.duplicates ? ', ' + data.duplicates + ' duplicate' + (data.duplicates>1?'s':'') : '') +
+          (data.failed ? ', <span style="color:var(--red)">' + (data.failed) + ' failed</span>' : '') +
+        '</div>';
+
+      renderDiscoverResults();
+      renderHistory();
+    } catch(e) {
+      progressEl.innerHTML = '<div style="padding:12px 16px;background:var(--redL);border-radius:8px;font-size:13px">❌ Connection error. Please try again.</div>';
+      btn.disabled = false; btn.textContent = 'Harvest Selected →'; btn.style.opacity = '1';
+    }
+  };
+
   window.harvestSingle = async function() {
-    var url = document.getElementById('harvestUrl').value.trim();
+    var url = (document.getElementById('harvestUrl').value || '').trim();
     if (!url) return;
     var btn = document.getElementById('harvestBtn');
     var resultEl = document.getElementById('harvestResult');
@@ -618,14 +843,14 @@ async function drillEvent(id){
       if (resp.status === 409) {
         resultEl.innerHTML =
           '<div style="padding:14px 16px;background:var(--amberL);border-radius:8px;border-left:3px solid var(--amber);font-size:13px">' +
-            '⚠️ <strong>Already exists:</strong> ' + esc(data.existing.name) + ' ' +
-            '— <a href="/event.html?id=' + data.existing.id + '" target="_blank" style="color:var(--accent)">View event</a>' +
+            '⚠️ <strong>Already exists:</strong> ' + esc(data.existing.name) +
+            ' — <a href="/event.html?id=' + data.existing.id + '" target="_blank" style="color:var(--accent)">View event</a>' +
           '</div>';
       } else if (!resp.ok) {
         resultEl.innerHTML = '<div style="padding:14px 16px;background:var(--redL);border-radius:8px;border-left:3px solid var(--red);font-size:13px">❌ ' + esc(data.error || 'Harvest failed') + '</div>';
       } else {
         var ev = data.event;
-        var themes = (ev.themes ? (Array.isArray(ev.themes) ? ev.themes : JSON.parse(ev.themes || '[]')) : []);
+        var themes = ev.themes ? (Array.isArray(ev.themes) ? ev.themes : JSON.parse(ev.themes || '[]')) : [];
         harvestHistory.unshift(ev);
         resultEl.innerHTML = renderHarvestCard(ev, themes, data.extracted);
         document.getElementById('harvestUrl').value = '';
@@ -685,45 +910,6 @@ async function drillEvent(id){
     } catch(e) { btn.disabled=false; btn.textContent='Discard ✗'; }
   };
 
-  window.harvestBulk = async function() {
-    var raw = document.getElementById('bulkUrls').value.trim();
-    if (!raw) return;
-    var urls = raw.split('\n').map(function(u) { return u.trim(); }).filter(function(u) { return u && u.startsWith('http'); });
-    if (!urls.length) return;
-
-    var btn = document.getElementById('bulkBtn');
-    var progressEl = document.getElementById('bulkProgress');
-    btn.disabled = true; btn.textContent = 'Harvesting...';
-
-    var added = 0, dupes = 0, failed = 0;
-    for (var i = 0; i < urls.length; i++) {
-      progressEl.innerHTML = '<div style="font-size:13px;color:var(--text2)">Harvesting ' + (i+1) + ' of ' + urls.length + '... <span style="color:var(--text3)">' + esc(urls[i].substring(0,60)) + '…</span></div>';
-      try {
-        var resp = await fetch('/api/events/harvest', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-          body: JSON.stringify({ url: urls[i] })
-        });
-        var data = await resp.json();
-        if (resp.status === 409) dupes++;
-        else if (resp.ok) { added++; harvestHistory.unshift(data.event); }
-        else failed++;
-      } catch(e) { failed++; }
-
-      if (i < urls.length - 1) await new Promise(function(r) { setTimeout(r, 2000); });
-    }
-
-    progressEl.innerHTML =
-      '<div style="padding:12px 16px;background:var(--greenL);border:1px solid rgba(5,150,105,0.2);border-radius:8px;font-size:13px">' +
-        '✓ Done — <strong>' + added + ' added</strong>' +
-        (dupes ? ', ' + dupes + ' duplicate' + (dupes>1?'s':'') : '') +
-        (failed ? ', <span style="color:var(--red)">' + failed + ' failed</span>' : '') +
-      '</div>';
-    btn.disabled = false; btn.textContent = 'Harvest All';
-    document.getElementById('bulkUrls').value = '';
-    renderHistory();
-  };
-
   function renderHistory() {
     if (!harvestHistory.length) return;
     var card = document.getElementById('harvestHistoryCard');
@@ -740,9 +926,7 @@ async function drillEvent(id){
         '<span class="mono" style="font-size:11px;color:var(--text3)">' + esc(dateStr) + '</span>' +
         '<span style="font-size:12px;color:var(--text3)">' + esc(loc) + '</span>' +
         '<span>' + themes.slice(0,3).map(function(t){return '<span style="display:inline-block;padding:1px 7px;background:var(--accent-light);color:var(--accent);border-radius:8px;font-size:10px;font-weight:600;margin:1px">'+esc(t)+'</span>';}).join('') + '</span>' +
-        '<span style="display:flex;gap:6px">' +
-          '<a href="/event.html?id=' + ev.id + '" target="_blank" style="font-size:11px;color:var(--accent);font-weight:600;text-decoration:none">View</a>' +
-        '</span>' +
+        '<span><a href="/event.html?id=' + ev.id + '" target="_blank" style="font-size:11px;color:var(--accent);font-weight:600;text-decoration:none">View</a></span>' +
       '</div>';
     }).join('');
 

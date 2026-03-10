@@ -752,6 +752,123 @@ router.post('/harvest', authenticateToken, async function(req, res) {
   }
 });
 
+// ── POST /api/events/find-links (admin only, user ID 2) ──
+router.post('/find-links', authenticateToken, async function(req, res) {
+  try {
+    if (req.user.id !== 2) return res.status(403).json({ error: 'Admin only' });
+
+    var { findEventLinks, generateThemeQueries } = require('../lib/event-link-finder');
+    var mode = req.body.mode || 'keyword';
+    var limit = Math.min(parseInt(req.body.limit) || 20, 50);
+    var results = [];
+    var queriesRun = 0;
+
+    if (!process.env.GOOGLE_SEARCH_API_KEY || !process.env.GOOGLE_SEARCH_CX) {
+      return res.status(422).json({ error: 'Google Search API not configured. Add GOOGLE_SEARCH_API_KEY and GOOGLE_SEARCH_CX to environment variables.' });
+    }
+
+    if (mode === 'keyword') {
+      var query = (req.body.query || '').trim();
+      if (!query) return res.status(400).json({ error: 'Query is required for keyword mode' });
+      results = await findEventLinks(query);
+      queriesRun = 1;
+    } else {
+      // Theme mode — run queries per theme with 500ms delay
+      var themes = req.body.themes && req.body.themes.length ? req.body.themes : null;
+      var queries = generateThemeQueries(themes);
+      var seen = {};
+      for (var i = 0; i < queries.length; i++) {
+        try {
+          var found = await findEventLinks(queries[i], { num: 10 });
+          found.forEach(function(r) {
+            if (!seen[r.domain]) { seen[r.domain] = true; results.push(r); }
+          });
+          queriesRun++;
+        } catch(e) {
+          if (e.message === 'RATE_LIMIT') break;
+          console.error('Query failed:', queries[i], e.message);
+        }
+        if (i < queries.length - 1) await new Promise(function(r) { setTimeout(r, 500); });
+      }
+      results.sort(function(a, b) { return b.relevanceScore - a.relevanceScore; });
+      results = results.slice(0, limit);
+    }
+
+    // Check which are already in DB (by domain match against source_url)
+    for (var j = 0; j < results.length; j++) {
+      var existing = await dbGet(
+        "SELECT id FROM events WHERE source_url ILIKE $1 OR source_url ILIKE $2",
+        ['%' + results[j].domain + '%', '%' + results[j].domain.split('.')[0] + '%']
+      );
+      results[j].already_harvested = !!existing;
+    }
+
+    res.json({ results: results, total: results.length, queries_run: queriesRun });
+  } catch (err) {
+    console.error('Find-links error:', err);
+    var msg = err.message || 'Search failed';
+    if (msg === 'RATE_LIMIT') return res.status(429).json({ error: 'Search limit reached. Google allows 100 searches per day on the free tier.' });
+    if (msg === 'API_KEY_INVALID') return res.status(422).json({ error: 'Google Search API key is invalid or the Custom Search API is not enabled.' });
+    res.status(500).json({ error: msg });
+  }
+});
+
+// ── POST /api/events/harvest-batch (admin only, user ID 2) ──
+router.post('/harvest-batch', authenticateToken, async function(req, res) {
+  try {
+    if (req.user.id !== 2) return res.status(403).json({ error: 'Admin only' });
+
+    var urls = Array.isArray(req.body.urls) ? req.body.urls.filter(Boolean) : [];
+    if (!urls.length) return res.status(400).json({ error: 'urls array is required' });
+
+    var { harvestEvent } = require('../lib/event-harvester');
+    var { normalizeThemes: nt } = require('../lib/theme_taxonomy');
+    var added = 0, duplicates = 0, failed = 0;
+    var results = [];
+
+    for (var i = 0; i < urls.length; i++) {
+      var url = urls[i];
+      try {
+        var extracted = await harvestEvent(url);
+
+        // Deduplicate
+        var year = extracted.event_date ? new Date(extracted.event_date).getFullYear() : null;
+        var existing = year
+          ? await dbGet("SELECT id, name, slug FROM events WHERE name ILIKE $1 AND EXTRACT(YEAR FROM event_date) = $2", [extracted.name, year])
+          : await dbGet("SELECT id, name, slug FROM events WHERE name ILIKE $1", [extracted.name]);
+
+        if (existing) {
+          duplicates++;
+          results.push({ url: url, status: 'duplicate', existing: existing });
+        } else {
+          var slug = (extracted.name || 'event').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+          if (extracted.event_date) slug += '-' + String(extracted.event_date).replace(/-/g, '').substring(0, 8);
+          var themes = nt(extracted.themes || []);
+          var result = await dbRun(
+            `INSERT INTO events (name, description, event_date, city, country, event_type, themes, slug, source_url, expected_attendees, is_flagship, needs_review)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
+            [extracted.name, extracted.description || null, extracted.event_date || null,
+             extracted.city || null, extracted.country || null, 'conference',
+             JSON.stringify(themes), slug, extracted.website || url,
+             extracted.expected_attendees || null, false, true]
+          );
+          added++;
+          results.push({ url: url, status: 'added', event: result.rows[0] });
+        }
+      } catch(e) {
+        failed++;
+        results.push({ url: url, status: 'failed', error: e.message });
+      }
+      if (i < urls.length - 1) await new Promise(function(r) { setTimeout(r, 2000); });
+    }
+
+    res.json({ added: added, duplicates: duplicates, failed: failed, results: results });
+  } catch (err) {
+    console.error('Harvest-batch error:', err);
+    res.status(500).json({ error: err.message || 'Batch harvest failed' });
+  }
+});
+
 // ── POST /api/events/admin/seed ── seed known events
 router.post('/admin/seed', authenticateToken, async function(req, res) {
   try {

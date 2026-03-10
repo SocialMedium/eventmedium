@@ -84,6 +84,41 @@ body{font-family:var(--font);color:var(--txt);background:var(--bg);-webkit-font-
 .nev-cta a{display:inline-flex;align-items:center;gap:6px;padding:8px 18px;background:white;color:var(--txt);font-size:13px;font-weight:600;border-radius:8px;text-decoration:none;transition:all 0.2s}
 .nev-cta a:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,0.2)}
 
+/* Claim CTA */
+.claim-cta{background:var(--card);border:1px solid var(--bdr);border-radius:16px;padding:24px 28px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:20px}
+.claim-cta-body h3{font-size:15px;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.claim-cta-body p{font-size:13px;color:var(--txtL);line-height:1.5}
+.btn-claim{display:inline-flex;align-items:center;gap:6px;padding:10px 20px;background:var(--p);color:white;font-size:13px;font-weight:600;border-radius:9px;border:none;cursor:pointer;font-family:var(--font);white-space:nowrap;text-decoration:none;transition:all 0.2s}
+.btn-claim:hover{background:var(--pD)}
+.claim-mine{background:var(--okL);border-color:var(--ok)}
+.claim-mine h3{color:#059669}
+.claim-pending-box{background:#fffbeb;border-color:#f59e0b}
+.claim-pending-box h3{color:#b45309}
+
+/* Claim modal */
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.4);z-index:200;display:none;align-items:center;justify-content:center;padding:24px}
+.modal-overlay.active{display:flex}
+.modal{background:var(--card);border-radius:16px;padding:32px;max-width:500px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:var(--shadowL)}
+.modal h2{font-size:20px;font-weight:700;margin-bottom:4px}
+.modal-sub{font-size:14px;color:var(--txtL);margin-bottom:24px}
+.form-group{margin-bottom:16px}
+.form-label{display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--txt)}
+.form-input{width:100%;padding:10px 14px;border:1px solid var(--bdr);border-radius:10px;font-size:14px;font-family:var(--font);background:var(--card);color:var(--txt);transition:border 0.2s}
+.form-input:focus{outline:none;border-color:var(--p);box-shadow:0 0 0 3px var(--pL)}
+.form-hint{font-size:12px;color:var(--txtXL);margin-top:4px}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:24px}
+.modal-btn{padding:10px 20px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font);border:none;transition:all 0.2s}
+.modal-btn.cancel{background:var(--bg);color:var(--txtL)}
+.modal-btn.cancel:hover{background:var(--bdr)}
+.modal-btn.primary{background:var(--p);color:white}
+.modal-btn.primary:hover{background:var(--pD)}
+.modal-btn:disabled{opacity:0.5;cursor:not-allowed}
+.modal-error{font-size:13px;color:#ef4444;margin-top:12px;display:none}
+.modal-success{text-align:center;padding:20px 0}
+.modal-success-icon{font-size:40px;margin-bottom:12px}
+.modal-success h3{font-size:18px;font-weight:700;margin-bottom:8px}
+.modal-success p{font-size:14px;color:var(--txtL);line-height:1.5}
+
 /* Toast */
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--txt);color:white;padding:12px 24px;border-radius:10px;font-size:14px;font-weight:500;z-index:300;transition:transform 0.3s;box-shadow:var(--shadowL)}
 .toast.show{transform:translateX(-50%) translateY(0)}
@@ -127,6 +162,7 @@ var token = localStorage.getItem('auth_token');
 var eventId = new URLSearchParams(window.location.search).get('id');
 var isRegistered = false;
 var currentEvent = null;
+var claimStatus = null;
 
 async function loadEvent() {
   if (!eventId) { window.location.href = '/events.html'; return; }
@@ -144,6 +180,15 @@ async function loadEvent() {
         var regResp = await fetch('/api/events/user/registrations', { headers: { 'Authorization': 'Bearer ' + token } });
         var regData = await regResp.json();
         isRegistered = (regData.registrations || regData.events || []).some(function(r) { return r.id == eventId; });
+      } catch(x) {}
+      try {
+        var csResp = await fetch('/api/events/' + eventId + '/claim-status', { headers: { 'Authorization': 'Bearer ' + token } });
+        if (csResp.ok) claimStatus = await csResp.json();
+      } catch(x) {}
+    } else {
+      try {
+        var csResp2 = await fetch('/api/events/' + eventId + '/claim-status');
+        if (csResp2.ok) claimStatus = await csResp2.json();
       } catch(x) {}
     }
 
@@ -226,6 +271,9 @@ async function loadEvent() {
       '</div>' +
     '</div>';
 
+    // Claim CTA
+    html += buildClaimCta(e);
+
     document.getElementById('page').innerHTML = html;
     lucide.createIcons();
     loadSidecarCount(e.id);
@@ -307,6 +355,89 @@ function copyShareLink() {
   navigator.clipboard.writeText(msg);
   showToast('Link copied!', 'success');
 }
+
+function buildClaimCta(e) {
+  if (!claimStatus) return '';
+  // Already claimed by current user
+  if (claimStatus.is_mine) {
+    return '<div class="claim-cta claim-mine">' +
+      '<div class="claim-cta-body"><h3>✓ Your Event</h3><p>You\'re the verified organiser of this event.</p></div>' +
+      '<a href="/event-dashboard.html?id=' + e.id + '" class="btn-claim" style="background:#059669">Go to Dashboard →</a>' +
+    '</div>';
+  }
+  // My pending claim
+  if (claimStatus.is_my_pending) {
+    return '<div class="claim-cta claim-pending-box">' +
+      '<div class="claim-cta-body"><h3>⏳ Claim pending verification</h3><p>Check your email for a verification link. ' + (claimStatus.is_flagship ? 'Flagship events also require manual admin approval.' : '') + '</p></div>' +
+    '</div>';
+  }
+  // Claimed by someone else — hide CTA entirely
+  if (claimStatus.is_claimed) return '';
+  // Pending by someone else
+  if (claimStatus.claim_pending) return '';
+  // Unclaimed — show CTA
+  return '<div class="claim-cta">' +
+    '<div class="claim-cta-body">' +
+      '<h3>📊 Are you the organiser of this event?</h3>' +
+      '<p>Claim your dashboard to unlock attendee intelligence and matching insights.' + (claimStatus.is_flagship ? ' Flagship events require manual approval (24h).' : '') + '</p>' +
+    '</div>' +
+    '<button class="btn-claim" onclick="openClaimModal()">Claim Event →</button>' +
+  '</div>';
+}
+
+function openClaimModal() {
+  if (!token) { window.location.href = '/auth.html'; return; }
+  document.getElementById('claimModal').classList.add('active');
+}
+function closeClaimModal() { document.getElementById('claimModal').classList.remove('active'); }
+
+document.addEventListener('click', function(e) {
+  if (e.target === document.getElementById('claimModal')) closeClaimModal();
+});
+
+document.getElementById('claimForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  var btn = document.getElementById('claimSubmitBtn');
+  var errEl = document.getElementById('claimError');
+  errEl.style.display = 'none';
+  btn.disabled = true; btn.textContent = 'Sending...';
+
+  var email = document.getElementById('claimEmail').value.trim();
+  var role = document.getElementById('claimRole').value.trim();
+  var website = document.getElementById('claimWebsite').value.trim();
+
+  // Client-side: block consumer domains
+  var domain = email.split('@')[1] || '';
+  var blocked = ['gmail.com','hotmail.com','yahoo.com','outlook.com','live.com','icloud.com','me.com'];
+  if (blocked.indexOf(domain.toLowerCase()) !== -1) {
+    errEl.textContent = 'Please use your work email address, not a personal email.';
+    errEl.style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Send Verification Email';
+    return;
+  }
+
+  try {
+    var resp = await fetch('/api/events/' + eventId + '/claim', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ organiser_email: email, organiser_role: role, website: website })
+    });
+    var data = await resp.json();
+    if (resp.ok) {
+      document.getElementById('claimFormBody').style.display = 'none';
+      document.getElementById('claimSuccessBody').style.display = 'block';
+      document.getElementById('claimSuccessEmail').textContent = email;
+    } else {
+      errEl.textContent = data.error || 'Something went wrong. Please try again.';
+      errEl.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'Send Verification Email';
+    }
+  } catch(err) {
+    errEl.textContent = 'Connection error. Please try again.';
+    errEl.style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Send Verification Email';
+  }
+});
 
 function parseArr(v) { if (!v) return []; if (Array.isArray(v)) return v; try { return JSON.parse(v); } catch(e) { return []; } }
 function esc(s) { if (!s) return ''; var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
@@ -691,6 +822,41 @@ document.addEventListener('keydown', function(e) {
   }
 });
 </script>
+
+<!-- Claim Event Modal -->
+<div class="modal-overlay" id="claimModal">
+  <div class="modal">
+    <h2>Claim this event</h2>
+    <p class="modal-sub">Verify you're the organiser to unlock full attendee intelligence.</p>
+    <div id="claimFormBody">
+      <form id="claimForm">
+        <div class="form-group">
+          <label class="form-label">Your work email at this organisation *</label>
+          <input type="email" class="form-input" id="claimEmail" required placeholder="you@eventdomain.com">
+          <div class="form-hint">Must match the event's official website domain. No Gmail/Hotmail.</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Your role at this event *</label>
+          <input type="text" class="form-input" id="claimRole" required placeholder="e.g. Event Director, Founder, Head of Partnerships">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Official event website *</label>
+          <input type="url" class="form-input" id="claimWebsite" required placeholder="https://yourevent.com">
+        </div>
+        <div class="modal-error" id="claimError"></div>
+        <div class="modal-actions">
+          <button type="button" class="modal-btn cancel" onclick="closeClaimModal()">Cancel</button>
+          <button type="submit" class="modal-btn primary" id="claimSubmitBtn">Send Verification Email</button>
+        </div>
+      </form>
+    </div>
+    <div id="claimSuccessBody" class="modal-success" style="display:none">
+      <div class="modal-success-icon">📬</div>
+      <h3>Check your inbox</h3>
+      <p>We've sent a verification link to <strong id="claimSuccessEmail"></strong>.<br>The link expires in 24 hours.</p>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>
