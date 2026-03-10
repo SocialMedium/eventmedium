@@ -267,6 +267,7 @@ router.post('/chat', authenticateToken, async function(req, res) {
     var data = await resp.json();
     var reply = data.content[0].text;
 
+    var canisterData = null;
     var canisterMatch = reply.match(/\[CANISTER_READY\]([\s\S]*?)\[\/CANISTER_READY\]/);
     if (canisterMatch) {
       try {
