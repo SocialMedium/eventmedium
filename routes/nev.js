@@ -279,9 +279,10 @@ router.post('/chat', authenticateToken, async function(req, res) {
           temperature: 0
         })
       });
-      if (extractResp.ok) {
-        var extractData = await extractResp.json();
-        var extractText = extractData.content[0].text.trim();
+      var extractRaw = await extractResp.json();
+      console.log("Extract API response:", JSON.stringify(extractRaw).slice(0, 200));
+      if (extractRaw.content && extractRaw.content[0]) {
+        var extractText = extractRaw.content[0].text.trim();
         extractText = extractText.replace(/^[^{]*/, "").replace(/[^}]*$/, "");
         canisterData = JSON.parse(extractText);
         if (canisterData.themes) canisterData.themes = normalizeThemes(canisterData.themes);
