@@ -136,19 +136,7 @@ Everything else improves match quality but isn't required to start.`;
     base += '\n\nEXPERT CONTEXT:\n' + playbook.global_instructions;
   }
 
-  // Inject follow-up patterns based on conversation context
-  if (playbook.follow_up_patterns) {
-    base += '\n\nFOLLOW-UP PATTERNS — pick ONE question only, never a list:';
-    
-    Object.keys(playbook.follow_up_patterns).forEach(function(type) {
-      var pattern = playbook.follow_up_patterns[type];
-      base += '\n\nIf ' + pattern.trigger + ':';
-      base += '\nBest questions (pick ONE): ' + pattern.questions.slice(0, 4).join(' | ');
-      if (pattern.probing_signals) {
-        base += '\nProbing signals: ' + pattern.probing_signals.slice(0, 3).join(' | ');
-      }
-    });
-  }
+  // follow-up patterns disabled
 
   // Inject theme expertise
   if (playbook.theme_expertise && conversationContext) {
@@ -202,11 +190,13 @@ OUTPUT FORMAT — the CANISTER_READY block comes FIRST, before your reply:
 
 Use empty strings and empty arrays for unknown fields. Update as conversation progresses. The user won't see this block.
 
-ABSOLUTE FINAL RULES — NO EXCEPTIONS:
-- Your entire reply must be 3 sentences or fewer.
-- ONE question mark maximum. Delete any others.
-- ZERO bullet points, ZERO numbered lists, ZERO bold text.
-- The CANISTER_READY block is MANDATORY on every response. If you skip it, matching breaks.`;
+ABSOLUTE FINAL RULES - THESE OVERRIDE EVERYTHING ABOVE:
+- Your visible reply is MAX 2 sentences. One short acknowledgement, one question. That is all.
+- ONE question mark only. If you wrote more than one, delete all but the last.
+- ZERO bullets. ZERO numbered lists. ZERO bold. ZERO headers. Plain text only.
+- NEVER repeat back what the user just said.
+- NEVER use: Great, Perfect, Excellent, Awesome, Fantastic, Got it, Absolutely.
+- The CANISTER_READY block is MANDATORY on every response.`;
 }
 
 // ── POST /api/nev/chat ──
