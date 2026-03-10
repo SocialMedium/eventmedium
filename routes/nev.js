@@ -164,11 +164,13 @@ router.post('/chat', authenticateToken, async function(req, res) {
       reply = reply.replace(/\[CANISTER_READY\][\s\S]*?\[\/CANISTER_READY\]/, '').trim();
     // Hard truncate: keep only the single question sentence
     var nevSentences = reply.match(/[^.!?]+[.!?]+/g) || [reply];
-    var questionSentence = null;
-    for (var si = 0; si < nevSentences.length; si++) {
-      if (nevSentences[si].indexOf('?') !== -1) { questionSentence = nevSentences[si].trim(); break; }
+    // Keep only the question sentence
+    var qIdx = reply.indexOf('?');
+    if (qIdx !== -1) {
+      var beforeQ = reply.slice(0, qIdx + 1);
+      var sentencesBeforeQ = beforeQ.match(/[^.!?]+[.!?]+/g) || [beforeQ];
+      reply = sentencesBeforeQ[sentencesBeforeQ.length - 1].trim();
     }
-    if (questionSentence) { reply = questionSentence; }
     }
 
     // If no canister from CANISTER_READY, extract separately
@@ -188,7 +190,7 @@ router.post('/chat', authenticateToken, async function(req, res) {
         var extData = await extResp.json();
         if (extData.content && extData.content[0] && extData.content[0].text) {
           var extText = extData.content[0].text.trim();
-          var parsed = JSON.parse(extText);
+          var extClean = extText.replace(/```json/g,"").replace(/```/g,"").trim(); var parsed = JSON.parse(extClean);
           if (parsed.stakeholder_type || (parsed.themes && parsed.themes.length)) {
             canisterData = parsed;
             console.log('Extraction succeeded:', JSON.stringify(canisterData));
