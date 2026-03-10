@@ -162,17 +162,13 @@ router.post('/chat', authenticateToken, async function(req, res) {
 
       // Strip the canister block from the visible reply
       reply = reply.replace(/\[CANISTER_READY\][\s\S]*?\[\/CANISTER_READY\]/, '').trim();
-    // Hard truncate: keep only the single question sentence
-    var nevSentences = reply.match(/[^.!?]+[.!?]+/g) || [reply];
-    // Keep only the question sentence
-    var qIdx = reply.indexOf('?');
-    if (qIdx !== -1) {
-      var beforeQ = reply.slice(0, qIdx + 1);
-      var sentencesBeforeQ = beforeQ.match(/[^.!?]+[.!?]+/g) || [beforeQ];
-      reply = sentencesBeforeQ[sentencesBeforeQ.length - 1].trim();
+    // Keep only the question sentence (strip all preamble)
+    var allSentences = reply.match(/[^.!?]+[.!?]+/g) || [reply];
+    var qSentence = null;
+    for (var si = 0; si < allSentences.length; si++) {
+      if (allSentences[si].indexOf('?') !== -1) { qSentence = allSentences[si].trim(); break; }
     }
-    }
-
+    if (qSentence) { reply = qSentence; }
     // If no canister from CANISTER_READY, extract separately
     if (!canisterData && anthropicMessages && anthropicMessages.length > 0) {
       try {
