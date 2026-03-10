@@ -264,8 +264,6 @@ router.post('/chat', authenticateToken, async function(req, res) {
 
     var data = await resp.json();
     var reply = data.content[0].text;
-    // Strip markdown formatting Nev should never produce
-    reply = reply.replace(/^[s]*[-*•]s+/gm, '').replace(/^[s]*d+.s+/gm, '').replace(/**(.*?)**/g, '$1').replace(/^#{1,4}s+/gm, '');
 
     // Extract canister data
     var canisterData = null;
