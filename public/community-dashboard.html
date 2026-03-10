@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Community Dashboard — EventMedium</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>
+:root{
+  --bg:#ffffff;--bg2:#f8f8fa;--bg3:#f0f0f4;
+  --heading:#1a1a2e;--accent:#6366f1;--accent2:#4f46e5;--accent-light:rgba(99,102,241,0.08);
+  --text:#1a1a2e;--text2:#555;--text3:#999;
+  --border:rgba(0,0,0,0.06);--border2:rgba(0,0,0,0.1);
+  --green:#059669;--greenL:rgba(5,150,105,0.08);
+  --amber:#d97706;--amberL:rgba(217,119,6,0.08);
+  --red:#dc2626;--redL:rgba(220,38,38,0.08);
+  --blue:#2563eb;--blueL:rgba(37,99,235,0.08);
+  --purple:#7c3aed;--orange:#ea580c;
+  --sans:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+  --max:1400px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--sans);background:var(--bg2);color:var(--text);min-height:100vh}
+
+/* ── Header ── */
+.header{background:linear-gradient(135deg,var(--bg) 0%,var(--bg2) 100%);border-bottom:1px solid var(--border);padding:28px 36px 24px}
+.header-inner{max-width:var(--max);margin:0 auto}
+.header-row{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px}
+.logo{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;color:var(--heading);text-decoration:none;margin-bottom:6px}
+.logo .logodot{width:20px;height:20px;border-radius:5px;background:linear-gradient(135deg,var(--accent),var(--accent2))}
+.logo span{color:var(--accent)}
+.title{font-size:22px;font-weight:700;letter-spacing:-0.03em;color:var(--heading)}
+.subtitle{font-size:13px;color:var(--text3);margin-top:2px}
+.pill{display:inline-block;padding:3px 12px;border-radius:20px;font-size:11px;font-weight:600}
+.pill-green{background:var(--greenL);color:var(--green)}
+.pill-accent{background:var(--accent-light);color:var(--accent)}
+
+/* ── KPI Cards ── */
+.kpi-row{max-width:var(--max);margin:20px auto 0;display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.kpi-card{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px 16px;transition:all 0.2s;cursor:default}
+.kpi-card:hover{border-color:rgba(99,102,241,0.2);box-shadow:0 2px 12px rgba(99,102,241,0.06)}
+.kpi-val{font-size:24px;font-weight:700;line-height:1;color:var(--heading)}
+.kpi-label{font-size:10px;font-weight:600;letter-spacing:0.8px;text-transform:uppercase;color:var(--text3);margin-top:6px}
+
+/* ── Body ── */
+.body{max-width:var(--max);margin:0 auto;padding:28px 36px}
+.tabs{display:flex;gap:0;border-bottom:2px solid var(--border2);margin-bottom:28px}
+.tab{padding:10px 22px 12px;font-size:14px;font-weight:500;cursor:pointer;border:none;background:transparent;color:var(--text3);font-family:var(--sans);border-bottom:2px solid transparent;margin-bottom:-2px;transition:all 0.15s}
+.tab.active{font-weight:700;color:var(--accent);border-bottom-color:var(--accent)}
+.tab:hover{color:var(--heading)}
+
+/* ── Cards ── */
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:16px;margin-bottom:16px}
+.grid-full{margin-bottom:16px}
+.card{background:linear-gradient(160deg,var(--bg) 0%,var(--bg2) 100%);border:1px solid var(--border);border-radius:12px;padding:24px;transition:border-color 0.2s}
+.card:hover{border-color:rgba(99,102,241,0.12)}
+.card-t{font-size:11px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:var(--text3);margin-bottom:18px}
+
+/* ── Insight boxes ── */
+.insight{padding:14px 16px;background:linear-gradient(135deg,var(--accent-light),rgba(79,70,229,0.06));border-radius:8px;border-left:3px solid var(--accent);margin-top:16px}
+.insight-label{font-size:10px;font-weight:700;color:var(--accent);margin-bottom:4px;letter-spacing:0.5px;text-transform:uppercase}
+.insight-text{font-size:13px;color:var(--text2);line-height:1.6}
+
+/* ── Tables ── */
+.tbl-head{display:grid;padding:0 0 10px;border-bottom:2px solid var(--border2);margin-bottom:4px;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3)}
+.tbl-row{display:grid;padding:10px 0;border-bottom:1px solid var(--border);align-items:center;font-size:13px}
+.tbl-row:last-child{border-bottom:none}
+.tbl-row:hover{background:var(--bg2)}
+
+/* ── Bars ── */
+.bar-track{position:relative;height:6px;background:var(--bg3);border-radius:3px;overflow:hidden}
+.bar-fill{position:absolute;left:0;top:0;height:100%;border-radius:3px}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;vertical-align:middle}
+.r{text-align:right}
+.mono{font-family:var(--mono);font-size:12px}
+.chart-wrap{position:relative;height:220px;margin-bottom:8px}
+
+/* ── Metrics ── */
+.metric-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.metric-box{background:linear-gradient(135deg,var(--bg2),var(--bg));border-radius:8px;padding:14px;border:1px solid var(--border)}
+.metric-val{font-size:22px;font-weight:700;color:var(--heading)}
+.metric-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-top:4px}
+
+/* ── Tags ── */
+.tag{display:inline-block;font-size:10px;padding:2px 8px;border-radius:10px;margin:2px}
+.tag-accent{background:var(--accent);color:#fff;opacity:0.85}
+.tag-red{background:rgba(220,38,38,0.12);color:var(--red)}
+.tag-green{background:rgba(5,150,105,0.12);color:var(--green)}
+
+/* ── States ── */
+.loading{text-align:center;padding:80px;color:var(--text3);font-size:15px}
+.empty-section{text-align:center;padding:40px;color:var(--text3);font-size:14px}
+.tab-content{display:none}.tab-content.active{display:block}
+
+/* ── Access code display ── */
+.code-display{display:inline-flex;align-items:center;gap:10px;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;padding:8px 16px}
+.code-val{font-family:var(--mono);font-size:18px;font-weight:700;letter-spacing:4px;color:var(--heading)}
+.copy-btn{font-size:11px;font-weight:600;color:var(--accent);cursor:pointer;background:none;border:none;font-family:var(--sans);padding:2px 6px;border-radius:4px}
+.copy-btn:hover{background:var(--accent-light)}
+
+/* ── Footer ── */
+.footer{border-top:1px solid var(--border);padding-top:18px;margin-top:40px;display:flex;justify-content:space-between;font-size:12px;color:var(--text3)}
+
+/* ── Back button ── */
+.btn-back{display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(99,102,241,0.3);background:linear-gradient(135deg,rgba(99,102,241,0.04),rgba(79,70,229,0.08));border-radius:8px;padding:8px 18px;cursor:pointer;color:var(--accent);font-size:13px;font-weight:600;font-family:var(--sans);text-decoration:none;transition:all 0.2s}
+.btn-back:hover{background:linear-gradient(135deg,rgba(99,102,241,0.08),rgba(79,70,229,0.14));border-color:var(--accent)}
+
+/* ── Search/filter ── */
+.search{background:var(--bg);border:1px solid var(--border2);border-radius:8px;padding:8px 14px;color:var(--text);font-size:13px;font-family:var(--sans);outline:none;width:220px}
+.search:focus{border-color:var(--accent)}
+
+@media(max-width:900px){
+  .grid{grid-template-columns:1fr}
+  .kpi-row{grid-template-columns:repeat(3,1fr)}
+  .header{padding:20px 16px 16px}
+  .body{padding:20px 16px}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <div class="header-row">
+      <div>
+        <a href="/" class="logo"><span class="logodot"></span>Event <span>Medium</span></a>
+        <h1 class="title" id="communityTitle">Loading…</h1>
+        <div class="subtitle" id="communitySubtitle">Community Owner Dashboard</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <div class="code-display" id="codeDisplay" style="display:none">
+          <span style="font-size:10px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:var(--text3)">Access Code</span>
+          <span class="code-val" id="codeVal"></span>
+          <button class="copy-btn" onclick="copyCode()">Copy</button>
+        </div>
+        <span class="pill pill-green">Owner</span>
+        <span style="font-size:12px;color:var(--text3);font-family:var(--mono)" id="dateLabel"></span>
+        <a href="/communities.html" class="btn-back">← Communities</a>
+      </div>
+    </div>
+    <div class="kpi-row" id="kpiRow"><div class="loading" style="grid-column:1/-1">Loading…</div></div>
+  </div>
+</div>
+
+<div class="body">
+  <div class="tabs">
+    <button class="tab active" data-tab="overview">Overview</button>
+    <button class="tab" data-tab="members">Members</button>
+    <button class="tab" data-tab="matches">Matches</button>
+    <button class="tab" data-tab="insights">Insights</button>
+  </div>
+  <div id="overview" class="tab-content active"></div>
+  <div id="members" class="tab-content"></div>
+  <div id="matches" class="tab-content"></div>
+  <div id="insights" class="tab-content"></div>
+  <div class="footer">
+    <span>EventMedium.ai · Community Owner View</span>
+    <span style="font-family:var(--mono)" id="footerSlug"></span>
+  </div>
+</div>
+
+<script>
+var token = localStorage.getItem('auth_token');
+if (!token) window.location.href = '/auth.html';
+
+var params = new URLSearchParams(window.location.search);
+var SLUG = params.get('slug');
+if (!SLUG) window.location.href = '/communities.html';
+
+document.getElementById('dateLabel').textContent = new Date().toLocaleDateString();
+document.getElementById('footerSlug').textContent = SLUG;
+
+document.querySelectorAll('.tab').forEach(function(t) {
+  t.addEventListener('click', function() {
+    document.querySelectorAll('.tab').forEach(function(x) { x.classList.remove('active'); });
+    document.querySelectorAll('.tab-content').forEach(function(x) { x.classList.remove('active'); });
+    t.classList.add('active');
+    document.getElementById(t.dataset.tab).classList.add('active');
+  });
+});
+
+var TC = {founder:'#ea580c',investor:'#6366f1',corporate:'#2563eb',researcher:'#059669',advisor:'#7c3aed',operator:'#be185d',unknown:'#999'};
+var ACCENT='#6366f1',BLUE='#2563eb',AMBER='#d97706',RED='#dc2626',GREEN='#059669',PURPLE='#7c3aed',ORANGE='#ea580c';
+
+function esc(s){if(!s)return '';var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+function pct(v,dec){dec=dec||0;return(v*100).toFixed(dec)+'%'}
+function fmtDate(s){if(!s)return '—';return new Date(s).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}
+function fmtDateShort(s){if(!s)return '—';return new Date(s).toLocaleDateString('en-US',{month:'short',day:'numeric'})}
+function barTrack(pv,color){return '<div class="bar-track"><div class="bar-fill" style="width:'+pv+'%;background:linear-gradient(90deg,'+color+','+color+'cc)"></div></div>'}
+function dot(c){return '<span class="dot" style="background:'+c+'"></span>'}
+function insight(text){return '<div class="insight"><div class="insight-label">Signal</div><div class="insight-text">'+text+'</div></div>'}
+function tcol(type){return TC[(type||'unknown').toLowerCase()]||'#999'}
+function typePill(type){if(!type)return '<span style="color:var(--text3);font-size:11px">—</span>';var c=tcol(type);return '<span style="background:'+c+'18;color:'+c+';font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600">'+esc(type)+'</span>';}
+
+Chart.defaults.font.family="system-ui,-apple-system,sans-serif";
+Chart.defaults.font.size=11;Chart.defaults.color='#999';
+Chart.defaults.plugins.legend.display=false;
+Chart.defaults.scale.grid={color:'#f0f0f4'};Chart.defaults.scale.ticks={color:'#999'};
+
+var D = null;
+var _charts = [];
+
+function destroyCharts(){_charts.forEach(function(c){try{c.destroy();}catch(e){}});_charts=[];}
+
+function copyCode(){
+  var code = document.getElementById('codeVal').textContent;
+  navigator.clipboard.writeText(code).then(function(){
+    var btn = document.querySelector('.copy-btn');
+    var orig = btn.textContent;
+    btn.textContent = 'Copied!';
+    setTimeout(function(){btn.textContent=orig;},1500);
+  });
+}
+
+async function load(){
+  try{
+    var resp = await fetch('/api/communities/'+SLUG+'/dashboard', {
+      headers:{'Authorization':'Bearer '+token}
+    });
+    if(!resp.ok){
+      var err = await resp.json().catch(function(){return{error:'Unknown error'};});
+      throw new Error(err.error||'Failed: '+resp.status);
+    }
+    D = await resp.json();
+    renderHeader();
+    renderKPIs();
+    renderOverview();
+    renderMembers();
+    renderMatches();
+    renderInsights();
+  }catch(e){
+    console.error(e);
+    document.getElementById('kpiRow').innerHTML='<div class="loading" style="grid-column:1/-1;color:var(--red)">'+esc(e.message)+' · <a href="/auth.html" style="color:var(--accent)">Sign in again</a></div>';
+  }
+}
+
+function renderHeader(){
+  document.title = esc(D.community.name) + ' — EventMedium';
+  document.getElementById('communityTitle').textContent = D.community.name;
+  if(D.community.description){
+    document.getElementById('communitySubtitle').textContent = D.community.description;
+  }
+  if(D.community.access_code){
+    document.getElementById('codeVal').textContent = D.community.access_code;
+    document.getElementById('codeDisplay').style.display = 'inline-flex';
+  }
+}
+
+// ══════════════════════════════
+// KPIs
+// ══════════════════════════════
+function renderKPIs(){
+  var k = D.kpi;
+  var revealRate = k.matches > 0 ? k.revealed/k.matches : 0;
+  var mutualRate = k.matches > 0 ? k.mutual/k.matches : 0;
+  var items = [
+    {v:k.members, l:'Members', c:''},
+    {v:k.events, l:'Events', c:''},
+    {v:k.matches, l:'Matches', c:ACCENT},
+    {v:k.mutual, l:'Mutual Accepts', c:AMBER},
+    {v:k.revealed, l:'Reveals', c:GREEN},
+    {v:k.avgScore>0 ? pct(k.avgScore,0) : '—', l:'Avg Score', c:''}
+  ];
+  document.getElementById('kpiRow').innerHTML = items.map(function(i){
+    return '<div class="kpi-card"><div class="kpi-val" style="color:'+(i.c||'var(--heading)')+'">'+esc(''+i.v)+'</div><div class="kpi-label">'+i.l+'</div></div>';
+  }).join('');
+}
+
+// ══════════════════════════════
+// OVERVIEW TAB
+// ══════════════════════════════
+function renderOverview(){
+  var el = document.getElementById('overview');
+  destroyCharts();
+  var html = '';
+
+  // ── Events row ──
+  html += '<div class="grid-full"><div class="card"><div class="card-t">Events</div>';
+  if(D.events.length){
+    html += '<div style="overflow-x:auto"><div class="tbl-head" style="grid-template-columns:1fr 80px 55px 55px 55px 55px 55px;min-width:560px"><span>Event</span><span class="r">Date</span><span class="r">Regs</span><span class="r">Matches</span><span class="r">Mutual</span><span class="r">Reveals</span><span class="r">Avg</span></div>';
+    D.events.forEach(function(e){
+      var avg = e.avg_score ? pct(parseFloat(e.avg_score),0) : '—';
+      var mutualC = parseInt(e.mutual_count)>0 ? GREEN : 'var(--text3)';
+      html += '<div class="tbl-row" style="grid-template-columns:1fr 80px 55px 55px 55px 55px 55px;min-width:560px">';
+      html += '<span style="font-weight:600">'+esc(e.name)+'</span>';
+      html += '<span class="r mono" style="color:var(--text3)">'+fmtDateShort(e.event_date)+'</span>';
+      html += '<span class="r mono">'+e.reg_count+'</span>';
+      html += '<span class="r mono" style="color:'+ACCENT+'">'+e.match_count+'</span>';
+      html += '<span class="r mono" style="color:'+mutualC+'">'+e.mutual_count+'</span>';
+      html += '<span class="r mono" style="color:'+GREEN+'">'+e.revealed_count+'</span>';
+      html += '<span class="r mono">'+avg+'</span>';
+      html += '</div>';
+    });
+    html += '</div>';
+    html += insight('Each event is an independent matching pool. Mutual accepts require both users to accept the match.');
+  } else {
+    html += '<div class="empty-section">No events yet. <a href="/communities.html" style="color:var(--accent)">Create your first event.</a></div>';
+  }
+  html += '</div></div>';
+
+  // ── Member types + Growth ──
+  html += '<div class="grid">';
+  html += '<div class="card"><div class="card-t">Member Composition</div>';
+  if(D.typeBreakdown.length){
+    html += '<div class="chart-wrap" style="height:200px"><canvas id="typeChart"></canvas></div>';
+    html += '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px">';
+    D.typeBreakdown.forEach(function(t){
+      var c = tcol(t.stakeholder_type);
+      html += '<div style="display:flex;align-items:center;gap:5px">'+dot(c)+'<span style="font-size:11px;color:var(--text2)">'+esc(t.stakeholder_type||'unknown')+' <span class="mono">'+t.count+'</span></span></div>';
+    });
+    html += '</div>';
+  } else {
+    html += '<div class="empty-section">No profile data yet — members appear once they complete onboarding.</div>';
+  }
+  html += '</div>';
+
+  html += '<div class="card"><div class="card-t">Member Growth</div>';
+  if(D.growth.length > 1){
+    html += '<div class="chart-wrap"><canvas id="growthChart"></canvas></div>';
+    var total = D.growth.reduce(function(s,g){return s+parseInt(g.count);},0);
+    html += '<div style="font-size:11px;color:var(--text3);margin-top:6px">'+total+' members · '+D.growth.length+' week'+( D.growth.length===1?'':'s')+' of data</div>';
+  } else if(D.growth.length === 1) {
+    html += '<div class="empty-section">'+D.kpi.members+' member'+(D.kpi.members===1?'':'s')+' joined. Growth chart appears after multiple join dates.</div>';
+  } else {
+    html += '<div class="empty-section">No members yet.</div>';
+  }
+  html += '</div></div>';
+
+  // ── Funnel ──
+  html += '<div class="grid-full"><div class="card"><div class="card-t">Network Funnel</div>';
+  var k = D.kpi;
+  var funnel = [
+    {l:'Members', v:k.members, c:ACCENT},
+    {l:'Matches Generated', v:k.matches, c:BLUE},
+    {l:'Mutual Accepts', v:k.mutual, c:AMBER},
+    {l:'Reveals', v:k.revealed, c:GREEN}
+  ];
+  var maxF = k.members || 1;
+  html += '<div style="max-width:600px">';
+  funnel.forEach(function(f,i){
+    var pv = maxF > 0 ? (f.v/maxF*100) : 0;
+    var drop = i > 0 && funnel[i-1].v > 0 ? ((funnel[i-1].v - f.v)/funnel[i-1].v*100).toFixed(0) : null;
+    html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">';
+    html += '<span style="font-size:11px;color:var(--text3);width:120px;text-align:right">'+f.l+'</span>';
+    html += '<div style="flex:1">'+barTrack(pv,f.c)+'</div>';
+    html += '<span class="mono" style="width:32px;text-align:right">'+f.v+'</span>';
+    if(drop!==null) html += '<span class="mono" style="width:38px;font-size:10px;color:'+(parseInt(drop)>50?RED:'var(--text3)')+'">−'+drop+'%</span>';
+    else html += '<span style="width:38px"></span>';
+    html += '</div>';
+  });
+  html += '</div>';
+  html += insight('Large drops between stages highlight friction. Members → Matches requires events with match runs. Matches → Mutual requires engaged members.');
+  html += '</div></div>';
+
+  el.innerHTML = html;
+
+  // Doughnut — member types
+  if(D.typeBreakdown.length){
+    var typeChart = new Chart(document.getElementById('typeChart'),{
+      type:'doughnut',
+      data:{
+        labels:D.typeBreakdown.map(function(t){return (t.stakeholder_type||'unknown').charAt(0).toUpperCase()+(t.stakeholder_type||'unknown').slice(1)}),
+        datasets:[{
+          data:D.typeBreakdown.map(function(t){return parseInt(t.count)}),
+          backgroundColor:D.typeBreakdown.map(function(t){return tcol(t.stakeholder_type)}),
+          borderWidth:0,spacing:2
+        }]
+      },
+      options:{responsive:true,maintainAspectRatio:false,cutout:'55%',plugins:{legend:{display:true,position:'right',labels:{boxWidth:10,padding:10,font:{size:11}}}}}
+    });
+    _charts.push(typeChart);
+  }
+
+  // Line — member growth
+  if(D.growth.length > 1){
+    var cumulative = [];
+    var running = 0;
+    D.growth.forEach(function(g){running+=parseInt(g.count);cumulative.push(running);});
+    var growthChart = new Chart(document.getElementById('growthChart'),{
+      type:'line',
+      data:{
+        labels:D.growth.map(function(g){return fmtDateShort(g.week)}),
+        datasets:[
+          {label:'Cumulative',data:cumulative,borderColor:ACCENT,backgroundColor:ACCENT+'22',fill:true,tension:0.3,borderWidth:2,pointRadius:3},
+          {label:'New/week',data:D.growth.map(function(g){return parseInt(g.count)}),borderColor:BLUE,backgroundColor:BLUE+'22',fill:true,tension:0.3,borderWidth:2,pointRadius:3}
+        ]
+      },
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'top',labels:{boxWidth:10,padding:12,font:{size:11}}}},scales:{y:{beginAtZero:true,border:{display:false}},x:{border:{display:false}}}}
+    });
+    _charts.push(growthChart);
+  }
+}
+
+// ══════════════════════════════
+// MEMBERS TAB
+// ══════════════════════════════
+function renderMembers(){
+  var el = document.getElementById('members');
+  var html = '';
+
+  html += '<div class="grid-full"><div class="card">';
+  html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">';
+  html += '<div class="card-t" style="margin-bottom:0">Members ('+D.members.length+')</div>';
+  html += '<input class="search" id="memberSearch" placeholder="Search name or company…" oninput="filterMembers()">';
+  html += '</div>';
+
+  if(D.members.length){
+    html += '<div style="overflow-x:auto"><div class="tbl-head" style="grid-template-columns:1fr 120px 120px 90px 90px;min-width:480px"><span>Name</span><span>Company</span><span>Type</span><span>Role</span><span class="r">Joined</span></div>';
+    html += '<div id="memberRows">';
+    D.members.forEach(function(m){
+      html += memberRow(m);
+    });
+    html += '</div></div>';
+    html += insight('Members with stakeholder profiles are eligible for matching. Encourage members to complete their Nev profile.');
+  } else {
+    html += '<div class="empty-section">No members yet. Share the access code to get started.</div>';
+  }
+  html += '</div></div>';
+
+  el.innerHTML = html;
+}
+
+function memberRow(m){
+  var typeC = tcol(m.stakeholder_type);
+  return '<div class="tbl-row" style="grid-template-columns:1fr 120px 120px 90px 90px;min-width:480px" data-name="'+(m.name||'').toLowerCase()+'" data-company="'+(m.company||'').toLowerCase()+'">'
+    +'<span style="font-weight:600">'+esc(m.name||'—')+'</span>'
+    +'<span style="font-size:12px;color:var(--text2)">'+esc(m.company||'—')+'</span>'
+    +typePill(m.stakeholder_type)
+    +'<span style="font-size:11px;color:var(--text3)">'+esc(m.role||'member')+'</span>'
+    +'<span class="r mono" style="color:var(--text3)">'+fmtDateShort(m.joined_at)+'</span>'
+    +'</div>';
+}
+
+function filterMembers(){
+  var q = (document.getElementById('memberSearch').value||'').toLowerCase();
+  var rows = document.querySelectorAll('#memberRows .tbl-row');
+  rows.forEach(function(r){
+    var name = r.dataset.name||'';
+    var company = r.dataset.company||'';
+    r.style.display = (!q || name.includes(q) || company.includes(q)) ? '' : 'none';
+  });
+}
+
+// ══════════════════════════════
+// MATCHES TAB
+// ══════════════════════════════
+function renderMatches(){
+  var el = document.getElementById('matches');
+  var html = '';
+
+  // Per-event match summary
+  html += '<div class="grid">';
+  D.events.forEach(function(e){
+    if(!parseInt(e.match_count)) return;
+    var mutRate = parseInt(e.match_count) > 0 ? parseInt(e.mutual_count)/parseInt(e.match_count) : 0;
+    var rvlRate = parseInt(e.match_count) > 0 ? parseInt(e.revealed_count)/parseInt(e.match_count) : 0;
+    html += '<div class="card"><div class="card-t">'+esc(e.name)+'</div>';
+    html += '<div class="metric-grid">';
+    [{l:'Matches',v:e.match_count,c:ACCENT},{l:'Mutual',v:e.mutual_count,c:AMBER},{l:'Revealed',v:e.revealed_count,c:GREEN},{l:'Avg Score',v:e.avg_score?pct(parseFloat(e.avg_score),0):'—',c:''}].forEach(function(m){
+      html += '<div class="metric-box"><div class="metric-val" style="color:'+(m.c||'var(--heading)')+'">'+esc(''+m.v)+'</div><div class="metric-label">'+m.l+'</div></div>';
+    });
+    html += '</div>';
+    html += '<div style="margin-top:14px">';
+    html += '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-bottom:4px"><span>Mutual rate</span><span class="mono">'+pct(mutRate,0)+'</span></div>'+barTrack(mutRate*100,AMBER);
+    html += '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-top:8px;margin-bottom:4px"><span>Reveal rate</span><span class="mono">'+pct(rvlRate,0)+'</span></div>'+barTrack(rvlRate*100,GREEN);
+    html += '</div></div>';
+  });
+  html += '</div>';
+
+  // Full match list
+  html += '<div class="grid-full"><div class="card">';
+  html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">';
+  html += '<div class="card-t" style="margin-bottom:0">All Matches ('+D.matches.length+')</div>';
+  html += '<input class="search" id="matchSearch" placeholder="Search name or event…" oninput="filterMatches()">';
+  html += '</div>';
+
+  if(D.matches.length){
+    html += '<div style="overflow-x:auto">';
+    html += '<div class="tbl-head" style="grid-template-columns:1fr 1fr 90px 65px 75px 70px;min-width:620px"><span>Person A</span><span>Person B</span><span>Event</span><span class="r">Score</span><span class="r">Status</span><span class="r">Date</span></div>';
+    html += '<div id="matchRows">';
+    D.matches.forEach(function(m){
+      html += matchRow(m);
+    });
+    html += '</div></div>';
+    html += insight('Status: Pending = neither decided. Partial = one accepted. Mutual = both accepted. Revealed = contact details exchanged.');
+  } else {
+    html += '<div class="empty-section">No matches yet. Matches are generated when events have multiple registered members with profiles.</div>';
+  }
+  html += '</div></div>';
+
+  el.innerHTML = html;
+}
+
+function matchStatus(m){
+  if(m.revealed_at) return {label:'Revealed',color:GREEN};
+  if(m.user_a_decision==='accept'&&m.user_b_decision==='accept') return {label:'Mutual',color:AMBER};
+  if(m.user_a_decision==='accept'||m.user_b_decision==='accept') return {label:'Partial',color:BLUE};
+  return {label:'Pending',color:'var(--text3)'};
+}
+
+function matchRow(m){
+  var status = matchStatus(m);
+  var score = m.score_total ? pct(parseFloat(m.score_total),0) : '—';
+  var scoreC = m.score_total >= 0.7 ? GREEN : m.score_total >= 0.5 ? AMBER : 'var(--text3)';
+  var aLabel = esc(m.user_a_name||'—') + (m.user_a_company?'<span style="font-size:10px;color:var(--text3)"> · '+esc(m.user_a_company)+'</span>':'');
+  var bLabel = esc(m.user_b_name||'—') + (m.user_b_company?'<span style="font-size:10px;color:var(--text3)"> · '+esc(m.user_b_company)+'</span>':'');
+  var nameKey = ((m.user_a_name||'')+(m.user_b_name||'')).toLowerCase();
+  var eventKey = (m.event_name||'').toLowerCase();
+  return '<div class="tbl-row" style="grid-template-columns:1fr 1fr 90px 65px 75px 70px;min-width:620px" data-key="'+nameKey+' '+eventKey+'">'
+    +'<span>'+dot(tcol(m.type_a))+' <span style="font-size:12px">'+aLabel+'</span></span>'
+    +'<span>'+dot(tcol(m.type_b))+' <span style="font-size:12px">'+bLabel+'</span></span>'
+    +'<span style="font-size:11px;color:var(--text3)">'+esc(m.event_name||'—')+'</span>'
+    +'<span class="r mono" style="color:'+scoreC+'">'+score+'</span>'
+    +'<span class="r" style="font-size:11px;font-weight:600;color:'+status.color+'">'+status.label+'</span>'
+    +'<span class="r mono" style="color:var(--text3)">'+fmtDateShort(m.created_at)+'</span>'
+    +'</div>';
+}
+
+function filterMatches(){
+  var q = (document.getElementById('matchSearch').value||'').toLowerCase();
+  var rows = document.querySelectorAll('#matchRows .tbl-row');
+  rows.forEach(function(r){
+    var key = r.dataset.key||'';
+    r.style.display = (!q || key.includes(q)) ? '' : 'none';
+  });
+}
+
+// ══════════════════════════════
+// INSIGHTS TAB
+// ══════════════════════════════
+function renderInsights(){
+  var el = document.getElementById('insights');
+  var html = '';
+
+  // Themes + Seeking + Offering columns
+  html += '<div class="grid-full"><div class="card"><div class="card-t">Member Canister Intelligence</div>';
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px">';
+
+  // Themes
+  html += '<div><div style="font-size:10px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:var(--text3);margin-bottom:10px">Top Themes</div>';
+  if(D.topThemes.length){
+    var maxT = D.topThemes[0].count;
+    D.topThemes.forEach(function(t){
+      html += '<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="font-size:12px">'+esc(t.item)+'</span><span class="mono" style="color:'+ACCENT+'">'+t.count+'</span></div>'+barTrack(maxT>0?t.count/maxT*100:0,ACCENT)+'</div>';
+    });
+  } else { html += '<div style="font-size:12px;color:var(--text3)">No theme data — members need completed profiles.</div>'; }
+  html += '</div>';
+
+  // Seeking
+  html += '<div><div style="font-size:10px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:var(--text3);margin-bottom:10px">'+dot(RED)+' Seeking</div>';
+  if(D.topSeeking.length){
+    var maxS = D.topSeeking[0].count;
+    D.topSeeking.forEach(function(s){
+      html += '<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="font-size:12px">'+esc(s.item)+'</span><span class="mono" style="color:'+RED+'">'+s.count+'</span></div>'+barTrack(maxS>0?s.count/maxS*100:0,RED)+'</div>';
+    });
+  } else { html += '<div style="font-size:12px;color:var(--text3)">No data yet.</div>'; }
+  html += '</div>';
+
+  // Offering
+  html += '<div><div style="font-size:10px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:var(--text3);margin-bottom:10px">'+dot(GREEN)+' Offering</div>';
+  if(D.topOffering.length){
+    var maxO = D.topOffering[0].count;
+    D.topOffering.forEach(function(o){
+      html += '<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="font-size:12px">'+esc(o.item)+'</span><span class="mono" style="color:'+GREEN+'">'+o.count+'</span></div>'+barTrack(maxO>0?o.count/maxO*100:0,GREEN)+'</div>';
+    });
+  } else { html += '<div style="font-size:12px;color:var(--text3)">No data yet.</div>'; }
+  html += '</div>';
+
+  html += '</div>';
+  html += insight('Themes drive semantic matching. High overlap in seeking without corresponding offering = friction. Recruit members whose offering fills the gaps.');
+  html += '</div></div>';
+
+  // Seeking vs Offering gap chart
+  var gapItems = [];
+  var seekMap = {};
+  D.topSeeking.forEach(function(s){seekMap[s.item]=s.count;});
+  D.topOffering.forEach(function(o){
+    if(seekMap[o.item]||seekMap[o.item]===0){
+      gapItems.push({label:o.item,seeking:seekMap[o.item]||0,offering:o.count});
+      delete seekMap[o.item];
+    }
+  });
+  Object.entries(seekMap).forEach(function(e){gapItems.push({label:e[0],seeking:e[1],offering:0});});
+  gapItems.sort(function(a,b){return (b.seeking-b.offering)-(a.seeking-a.offering);});
+  gapItems = gapItems.slice(0,10);
+
+  html += '<div class="grid">';
+  html += '<div class="card"><div class="card-t">Seeking vs Offering Gap</div>';
+  if(gapItems.length){
+    html += '<div class="chart-wrap" style="height:260px"><canvas id="gapChart"></canvas></div>';
+    html += '<div style="display:flex;gap:16px;font-size:11px;color:var(--text3);margin-top:6px">'+dot(RED)+' Seeking &nbsp;'+dot(GREEN)+' Offering</div>';
+    html += insight('Large gaps signal recruitment opportunities — find members whose offering fills unmet demand.');
+  } else {
+    html += '<div class="empty-section">Gap chart appears once members complete profiles.</div>';
+  }
+  html += '</div>';
+
+  // Archetype composition bar
+  html += '<div class="card"><div class="card-t">Archetype Distribution</div>';
+  if(D.typeBreakdown.length){
+    html += '<div class="chart-wrap" style="height:260px"><canvas id="archetypeChart"></canvas></div>';
+    html += insight('Healthy communities mix founders, investors, and advisors. Imbalanced composition reduces match quality — recruit underrepresented types.');
+  } else {
+    html += '<div class="empty-section">No profile data yet.</div>';
+  }
+  html += '</div></div>';
+
+  // Match score distribution if we have matches
+  if(D.matches.length){
+    var bands = {'0–40':0,'40–55':0,'55–70':0,'70–85':0,'85–100':0};
+    D.matches.forEach(function(m){
+      if(!m.score_total) return;
+      var s = m.score_total*100;
+      if(s<40) bands['0–40']++;
+      else if(s<55) bands['40–55']++;
+      else if(s<70) bands['55–70']++;
+      else if(s<85) bands['70–85']++;
+      else bands['85–100']++;
+    });
+
+    html += '<div class="grid-full"><div class="card"><div class="card-t">Match Score Distribution</div>';
+    html += '<div class="chart-wrap" style="height:180px"><canvas id="scoreDistChart"></canvas></div>';
+    html += insight('Scores above 70% are strong matches. If most scores cluster below 55%, members\' profiles may lack specificity — encourage more detailed Nev onboarding.');
+    html += '</div></div>';
+
+    el.innerHTML = html;
+
+    var scoreDistChart = new Chart(document.getElementById('scoreDistChart'),{
+      type:'bar',
+      data:{
+        labels:Object.keys(bands),
+        datasets:[{
+          data:Object.values(bands),
+          backgroundColor:[RED+'99',AMBER+'99',AMBER+'cc',GREEN+'99',GREEN+'cc'],
+          borderRadius:4,barPercentage:0.6
+        }]
+      },
+      options:{responsive:true,maintainAspectRatio:false,scales:{y:{beginAtZero:true,border:{display:false},ticks:{stepSize:1}},x:{border:{display:false}}},plugins:{tooltip:{callbacks:{label:function(ctx){return ctx.raw+' matches'}}}}}
+    });
+    _charts.push(scoreDistChart);
+  } else {
+    el.innerHTML = html;
+  }
+
+  // Gap chart
+  if(gapItems.length){
+    var gapChart = new Chart(document.getElementById('gapChart'),{
+      type:'bar',
+      data:{
+        labels:gapItems.map(function(g){return g.label}),
+        datasets:[
+          {label:'Seeking',data:gapItems.map(function(g){return g.seeking}),backgroundColor:RED+'cc',borderRadius:3,barPercentage:0.4},
+          {label:'Offering',data:gapItems.map(function(g){return g.offering}),backgroundColor:GREEN+'cc',borderRadius:3,barPercentage:0.4}
+        ]
+      },
+      options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{display:false},y:{border:{display:false}}}}
+    });
+    _charts.push(gapChart);
+  }
+
+  // Archetype bar
+  if(D.typeBreakdown.length){
+    var archetypeChart = new Chart(document.getElementById('archetypeChart'),{
+      type:'bar',
+      data:{
+        labels:D.typeBreakdown.map(function(t){return (t.stakeholder_type||'unknown').charAt(0).toUpperCase()+(t.stakeholder_type||'unknown').slice(1)}),
+        datasets:[{
+          data:D.typeBreakdown.map(function(t){return parseInt(t.count)}),
+          backgroundColor:D.typeBreakdown.map(function(t){return tcol(t.stakeholder_type)+'cc'}),
+          borderRadius:4,barPercentage:0.6
+        }]
+      },
+      options:{responsive:true,maintainAspectRatio:false,scales:{y:{beginAtZero:true,border:{display:false},ticks:{stepSize:1}},x:{border:{display:false}}},plugins:{tooltip:{callbacks:{label:function(ctx){return ctx.raw+' members'}}}}}
+    });
+    _charts.push(archetypeChart);
+  }
+}
+
+load();
+</script>
+</body>
+</html>

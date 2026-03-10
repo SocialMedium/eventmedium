@@ -326,6 +326,152 @@ router.post('/:slug/regenerate-code', authenticateToken, async function(req, res
   }
 });
 
+// ── GET /api/communities/:slug/dashboard ── owner-only analytics dashboard
+router.get('/:slug/dashboard', authenticateToken, async function(req, res) {
+  try {
+    var community = await dbGet(
+      `SELECT c.*,
+        (SELECT COUNT(*) FROM community_members WHERE community_id = c.id) as member_count
+       FROM communities c WHERE c.slug = $1 AND c.is_active = true`,
+      [req.params.slug]
+    );
+    if (!community) return res.status(404).json({ error: 'Community not found' });
+
+    var membership = await dbGet(
+      'SELECT role FROM community_members WHERE community_id = $1 AND user_id = $2',
+      [community.id, req.user.id]
+    );
+    if (!membership || membership.role !== 'owner') {
+      return res.status(403).json({ error: 'Only community owners can access the dashboard' });
+    }
+
+    // Members with profiles
+    var members = await dbAll(
+      `SELECT u.name, u.company, sp.stakeholder_type, cm.role, cm.joined_at
+       FROM community_members cm
+       JOIN users u ON u.id = cm.user_id
+       LEFT JOIN stakeholder_profiles sp ON sp.user_id = u.id
+       WHERE cm.community_id = $1
+       ORDER BY cm.joined_at DESC`,
+      [community.id]
+    );
+
+    // Events in community with per-event match stats
+    var events = await dbAll(
+      `SELECT e.id, e.name, e.event_date, e.city,
+         (SELECT COUNT(*) FROM event_registrations WHERE event_id = e.id AND status = 'active') as reg_count,
+         (SELECT COUNT(*) FROM event_matches WHERE event_id = e.id) as match_count,
+         (SELECT COUNT(*) FROM event_matches WHERE event_id = e.id
+            AND user_a_decision = 'accept' AND user_b_decision = 'accept') as mutual_count,
+         (SELECT COUNT(*) FROM event_matches WHERE event_id = e.id AND revealed_at IS NOT NULL) as revealed_count,
+         (SELECT ROUND(AVG(score_total)::numeric, 2) FROM event_matches WHERE event_id = e.id) as avg_score
+       FROM events e
+       WHERE e.community_id = $1
+       ORDER BY e.event_date DESC`,
+      [community.id]
+    );
+
+    // Aggregate match stats across all community events
+    var matchStats = await dbGet(
+      `SELECT
+         COUNT(*) as total,
+         COUNT(CASE WHEN user_a_decision = 'accept' AND user_b_decision = 'accept' THEN 1 END) as mutual,
+         COUNT(CASE WHEN revealed_at IS NOT NULL THEN 1 END) as revealed,
+         ROUND(AVG(score_total)::numeric, 3) as avg_score
+       FROM event_matches em
+       JOIN events e ON e.id = em.event_id
+       WHERE e.community_id = $1`,
+      [community.id]
+    );
+
+    // Full match list with user names (last 100)
+    var matches = await dbAll(
+      `SELECT em.id, e.name as event_name, e.event_date,
+         ua.name as user_a_name, ua.company as user_a_company,
+         ub.name as user_b_name, ub.company as user_b_company,
+         spa.stakeholder_type as type_a, spb.stakeholder_type as type_b,
+         em.score_total, em.user_a_decision, em.user_b_decision, em.revealed_at, em.created_at
+       FROM event_matches em
+       JOIN events e ON e.id = em.event_id
+       JOIN users ua ON ua.id = em.user_a_id
+       JOIN users ub ON ub.id = em.user_b_id
+       LEFT JOIN stakeholder_profiles spa ON spa.user_id = em.user_a_id
+       LEFT JOIN stakeholder_profiles spb ON spb.user_id = em.user_b_id
+       WHERE e.community_id = $1
+       ORDER BY em.created_at DESC
+       LIMIT 100`,
+      [community.id]
+    );
+
+    // Archetype breakdown of members
+    var typeBreakdown = await dbAll(
+      `SELECT COALESCE(sp.stakeholder_type, 'unknown') as stakeholder_type, COUNT(*) as count
+       FROM community_members cm
+       LEFT JOIN stakeholder_profiles sp ON sp.user_id = cm.user_id
+       WHERE cm.community_id = $1
+       GROUP BY sp.stakeholder_type
+       ORDER BY count DESC`,
+      [community.id]
+    );
+
+    // Weekly member growth
+    var growth = await dbAll(
+      `SELECT DATE_TRUNC('week', joined_at)::date as week, COUNT(*) as count
+       FROM community_members
+       WHERE community_id = $1
+       GROUP BY week
+       ORDER BY week ASC`,
+      [community.id]
+    );
+
+    // Theme / intent / offering aggregates from member canisters
+    var canisterData = await dbAll(
+      `SELECT sp.themes, sp.intent, sp.offering
+       FROM community_members cm
+       JOIN stakeholder_profiles sp ON sp.user_id = cm.user_id
+       WHERE cm.community_id = $1`,
+      [community.id]
+    );
+
+    var themeCounts = {}, seekCounts = {}, offerCounts = {};
+    canisterData.forEach(function(row) {
+      (Array.isArray(row.themes) ? row.themes : []).forEach(function(t) { themeCounts[t] = (themeCounts[t] || 0) + 1; });
+      (Array.isArray(row.intent) ? row.intent : []).forEach(function(i) { seekCounts[i] = (seekCounts[i] || 0) + 1; });
+      (Array.isArray(row.offering) ? row.offering : []).forEach(function(o) { offerCounts[o] = (offerCounts[o] || 0) + 1; });
+    });
+
+    function topN(obj, n) {
+      return Object.entries(obj)
+        .sort(function(a, b) { return b[1] - a[1]; })
+        .slice(0, n)
+        .map(function(e) { return { item: e[0], count: e[1] }; });
+    }
+
+    res.json({
+      community: community,
+      kpi: {
+        members: parseInt(community.member_count) || 0,
+        events: events.length,
+        matches: parseInt(matchStats.total) || 0,
+        mutual: parseInt(matchStats.mutual) || 0,
+        revealed: parseInt(matchStats.revealed) || 0,
+        avgScore: parseFloat(matchStats.avg_score) || 0
+      },
+      members: members,
+      events: events,
+      matches: matches,
+      typeBreakdown: typeBreakdown,
+      growth: growth,
+      topThemes: topN(themeCounts, 10),
+      topSeeking: topN(seekCounts, 8),
+      topOffering: topN(offerCounts, 8)
+    });
+  } catch (err) {
+    console.error('Community dashboard error:', err);
+    res.status(500).json({ error: 'Failed to load community dashboard' });
+  }
+});
+
 module.exports = { router: router };
 
 // -- DELETE /api/communities/:id -- delete community (owner only)
