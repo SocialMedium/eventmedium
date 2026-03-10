@@ -263,9 +263,9 @@ router.post('/opening', authenticateToken, async function(req, res) {
       }
       opening += ' Anything new I should know about?';
     } else if (user) {
-      opening = 'Hey ' + user.name + '! I\'m Nev, your networking concierge. I\'m going to ask you a few questions so I can find the right people for you at events. Let\'s start simple — what do you do, and what are you working on right now?';
+      opening = 'Hey ' + user.name + '! I\'m Nev, your networking concierge. A few quick questions and I\'ll start matching you with the right people at events. Just say 'done' whenever you're ready to stop — more context means sharper matches, but a few answers is enough to get started. Let\'s start — what do you do, and what are you working on right now?';
     } else {
-      opening = 'Hey there! I\'m Nev, your networking concierge. Tell me a bit about yourself — what do you do, and what are you working on?';
+      opening = 'Hey there! I\'m Nev, your networking concierge. A few quick questions and I\'ll start matching you with the right people at events. Just say 'done' whenever you're ready to stop — more context means sharper matches, but a few answers is enough to get started. Tell me a bit about yourself — what do you do, and what are you working on?';
     }
 
     res.json({ reply: opening, is_returning: !!existingProfile });
