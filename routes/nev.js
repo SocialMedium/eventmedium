@@ -265,7 +265,30 @@ router.post('/chat', authenticateToken, async function(req, res) {
     var data = await resp.json();
     var reply = data.content[0].text;
 
-    // Extract canister data
+    // Second call: extract canister data independently
+    var canisterData = null;
+    try {
+      var extractResp = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "x-api-key": ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: MODEL,
+          system: "Extract profile data from this conversation. Return ONLY a raw JSON object with keys: stakeholder_type (one of: founder/investor/researcher/corporate/advisor/operator or empty string), themes (array of strings), intent (array of strings), offering (array of strings), context (string), geography (string), deal_details (object). No markdown, no explanation.",
+          messages: [...anthropicMessages, { role: "assistant", content: reply }],
+          max_tokens: 300,
+          temperature: 0
+        })
+      });
+      if (extractResp.ok) {
+        var extractData = await extractResp.json();
+        var extractText = extractData.content[0].text.trim();
+        extractText = extractText.replace(/^[^{]*/, "").replace(/[^}]*$/, "");
+        canisterData = JSON.parse(extractText);
+        if (canisterData.themes) canisterData.themes = normalizeThemes(canisterData.themes);
+        ["stakeholder_type","geography","context"].forEach(function(k){ if(canisterData[k]==="...") canisterData[k]=""; });
+        ["themes","intent","offering"].forEach(function(k){ if(canisterData[k] && canisterData[k][0]==="...") canisterData[k]=[]; });
+      }
+    } catch(extractErr) { console.error("Extraction error:", extractErr); }
     var canisterData = null;
     var canisterMatch = reply.match(/\[CANISTER_READY\]([\s\S]*?)\[\/CANISTER_READY\]/);
     if (canisterMatch) {
