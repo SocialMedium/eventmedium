@@ -289,7 +289,7 @@ router.post('/chat', authenticateToken, async function(req, res) {
         ["themes","intent","offering"].forEach(function(k){ if(canisterData[k] && canisterData[k][0]==="...") canisterData[k]=[]; });
       }
     } catch(extractErr) { console.error("Extraction error:", extractErr); }
-    var canisterData = null;
+    // legacy block disabled
     var canisterMatch = reply.match(/\[CANISTER_READY\]([\s\S]*?)\[\/CANISTER_READY\]/);
     if (canisterMatch) {
       try {
