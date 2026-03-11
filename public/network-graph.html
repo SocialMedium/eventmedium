@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Network — Event Medium</title>
 <script src="https://d3js.org/d3.v7.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson@3/dist/topojson.min.js"></script>
 <link rel="icon" type="image/png" href="/images/em-logo.png">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -121,6 +122,15 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
 #emptyState h3{font-size:18px;font-weight:700;color:var(--text);margin-bottom:8px}
 #emptyState p{font-size:13px;color:var(--text2);line-height:1.6;max-width:300px}
 
+/* ── Geo map layer ── */
+.geo-land{fill:rgba(255,255,255,0.03);stroke:rgba(255,255,255,0.07);stroke-width:0.4}
+.geo-graticule{fill:none;stroke:rgba(255,255,255,0.03);stroke-width:0.3}
+.geo-city-halo{pointer-events:none}
+.geo-city{cursor:pointer}
+.geo-city-label{font-size:10px;font-weight:500;fill:rgba(255,255,255,0.4);text-anchor:middle;pointer-events:none}
+.geo-corridor{fill:none;stroke-linecap:round;pointer-events:none}
+.geo-event{cursor:pointer}
+
 /* ── Edge shimmer animation ── */
 @keyframes edgeShimmer{
   0%{stroke-dashoffset:0}100%{stroke-dashoffset:-40}
@@ -176,6 +186,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
       <button class="mode-pill active" data-mode="me" onclick="setMode('me')">My Network</button>
       <button class="mode-pill" data-mode="context" onclick="setMode('context')">Community / Event</button>
       <button class="mode-pill" data-mode="global" onclick="setMode('global')">Global Network</button>
+      <button class="mode-pill" data-mode="geo" onclick="setMode('geo')">Geo Map</button>
     </div>
     <div id="contextWrap">
       <select id="contextSel" onchange="loadContext()">
@@ -207,6 +218,15 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
   <!-- starfield bg -->
   <rect id="starfieldRect" width="100%" height="100%" fill="#080c14"/>
   <g id="stars"></g>
+  <!-- geo map layer (hidden until geo mode) -->
+  <g id="geo-g" style="display:none">
+    <g id="geo-map-g"></g>
+    <g id="geo-corridors-g"></g>
+    <g id="geo-halos-g"></g>
+    <g id="geo-cities-g"></g>
+    <g id="geo-events-g"></g>
+    <g id="geo-labels-g"></g>
+  </g>
   <!-- main graph group (zoom target) -->
   <g id="graph-g">
     <g id="edges-g"></g>
@@ -368,6 +388,12 @@ async function setMode(m) {
   cw.style.display = m === 'context' ? 'flex' : 'none';
   ticker.style.display = m === 'global' ? 'flex' : 'none';
 
+  // Toggle geo layer vs force graph layer
+  document.getElementById('geo-g').style.display = m === 'geo' ? null : 'none';
+  document.getElementById('graph-g').style.display = m === 'geo' ? 'none' : null;
+  document.getElementById('legend').style.display = m === 'geo' ? 'none' : null;
+  document.getElementById('filters').style.display = m === 'geo' ? 'none' : null;
+
   activeFilters.clear();
   renderFilters();
   clearGraph();
@@ -378,6 +404,8 @@ async function setMode(m) {
     await loadContexts();
   } else if (m === 'global') {
     await loadGlobal();
+  } else if (m === 'geo') {
+    await loadGeo();
   }
 }
 
@@ -726,6 +754,276 @@ function applyFilters(nodes, edges) {
     return allowed.has(sid) && allowed.has(tid);
   });
   return { nodes: filteredNodes, edges: filteredEdges };
+}
+
+// ── Geo Map ───────────────────────────────────────────────────────────────────
+
+var CITY_LATLON = {
+  'London':[51.51,-0.13],'New York':[40.71,-74.01],'San Francisco':[37.77,-122.42],
+  'Los Angeles':[34.05,-118.24],'Chicago':[41.88,-87.63],'Boston':[42.36,-71.06],
+  'Washington':[38.91,-77.04],'Miami':[25.76,-80.19],'Seattle':[47.61,-122.33],
+  'Austin':[30.27,-97.74],'Toronto':[43.65,-79.38],'Vancouver':[49.28,-123.12],
+  'Montreal':[45.50,-73.57],'Paris':[48.86,2.35],'Berlin':[52.52,13.41],
+  'Amsterdam':[52.37,4.90],'Stockholm':[59.33,18.06],'Oslo':[59.91,10.75],
+  'Copenhagen':[55.68,12.57],'Helsinki':[60.17,24.94],'Zurich':[47.38,8.54],
+  'Geneva':[46.20,6.15],'Vienna':[48.21,16.37],'Prague':[50.08,14.44],
+  'Budapest':[47.50,19.04],'Warsaw':[52.23,21.01],'Dublin':[53.33,-6.25],
+  'Edinburgh':[55.95,-3.19],'Madrid':[40.42,-3.70],'Barcelona':[41.39,2.15],
+  'Lisbon':[38.72,-9.14],'Rome':[41.90,12.50],'Milan':[45.47,9.19],
+  'Athens':[37.98,23.73],'Istanbul':[41.01,28.96],'Kyiv':[50.45,30.52],
+  'Dubai':[25.20,55.27],'Abu Dhabi':[24.47,54.37],'Riyadh':[24.69,46.72],
+  'Tel Aviv':[32.09,34.79],'Cairo':[30.04,31.24],'Lagos':[6.52,3.38],
+  'Nairobi':[1.29,36.82],'Johannesburg':[-26.20,28.04],'Cape Town':[-33.93,18.42],
+  'Casablanca':[33.59,-7.62],'Accra':[5.56,-0.20],
+  'Mumbai':[19.08,72.88],'Delhi':[28.61,77.21],'Bangalore':[12.97,77.59],
+  'Singapore':[1.35,103.82],'Kuala Lumpur':[3.14,101.69],'Bangkok':[13.75,100.52],
+  'Jakarta':[-6.21,106.85],'Manila':[14.60,120.98],'Ho Chi Minh':[10.82,106.63],
+  'Taipei':[25.04,121.56],'Hong Kong':[22.32,114.17],'Shanghai':[31.23,121.47],
+  'Beijing':[39.91,116.39],'Seoul':[37.57,126.98],'Tokyo':[35.68,139.69],
+  'Osaka':[34.69,135.50],'Sydney':[-33.87,151.21],'Melbourne':[-37.81,144.96],
+  'Brisbane':[-27.47,153.02],'Perth':[-31.95,115.86],'Auckland':[-36.85,174.76],
+  'São Paulo':[-23.55,-46.63],'Buenos Aires':[-34.60,-58.38],'Bogotá':[4.71,-74.07],
+  'Mexico City':[19.43,-99.13],'Lima':[-12.05,-77.04],'Santiago':[-33.46,-70.65],
+  'Denver':[39.74,-104.98],'Phoenix':[33.45,-112.07],'Atlanta':[33.75,-84.39],
+  'Dallas':[32.78,-96.80],'Houston':[29.76,-95.37],'Philadelphia':[39.95,-75.17],
+};
+function latlon(name) {
+  if (!name) return null;
+  var t = name.trim();
+  if (CITY_LATLON[t]) return CITY_LATLON[t];
+  var low = t.toLowerCase();
+  for (var k in CITY_LATLON) { if (k.toLowerCase().startsWith(low.split(' ')[0])) return CITY_LATLON[k]; }
+  return null;
+}
+
+var geoProjection = null;
+var geoZoom = null;
+var geoData = null;
+
+async function loadGeo() {
+  showLoading(); hideEmpty();
+
+  // Fetch network data (anonymised global clusters)
+  var data = null;
+  try {
+    var r = await fetch('/api/network/graph');
+    if (r.ok) data = await r.json();
+  } catch(e) {}
+
+  // Build geo_clusters if not returned
+  if (data && (!data.geo_clusters || !data.geo_clusters.length)) {
+    var cm = {};
+    (data.members || []).forEach(function(m) {
+      var c = m.geography; if (!c) return;
+      if (!cm[c]) cm[c] = { city:c, member_count:0, event_count:0, theme_freq:{}, arc_freq:{}, total_matches:0 };
+      cm[c].member_count++; cm[c].total_matches += (m.match_count||0);
+      if (m.stakeholder_type) cm[c].arc_freq[m.stakeholder_type] = (cm[c].arc_freq[m.stakeholder_type]||0)+1;
+      (m.themes||[]).forEach(function(t){ cm[c].theme_freq[t]=(cm[c].theme_freq[t]||0)+1; });
+    });
+    (data.events||[]).forEach(function(e){
+      var c=e.city; if(!c) return;
+      if(!cm[c]) cm[c]={city:c,member_count:0,event_count:0,theme_freq:{},arc_freq:{},total_matches:0};
+      cm[c].event_count++;
+    });
+    data.geo_clusters = Object.values(cm).map(function(c){
+      return { city:c.city, member_count:c.member_count, event_count:c.event_count, total_matches:c.total_matches,
+        top_themes: Object.keys(c.theme_freq).sort(function(a,b){return c.theme_freq[b]-c.theme_freq[a];}).slice(0,3).map(function(t){return{theme:t,count:c.theme_freq[t]};}),
+        archetype_breakdown: Object.keys(c.arc_freq).sort(function(a,b){return c.arc_freq[b]-c.arc_freq[a];}).map(function(t){return{type:t,count:c.arc_freq[t]};}) };
+    }).filter(function(c){ return latlon(c.city); });
+  }
+
+  // Fallback if API unavailable
+  if (!data || !data.geo_clusters || !data.geo_clusters.length) {
+    data = {
+      geo_clusters:[
+        {city:'London',member_count:24,event_count:2,total_matches:31,top_themes:[{theme:'Climate Tech',count:8},{theme:'FinTech',count:6}],archetype_breakdown:[{type:'investor',count:10},{type:'founder',count:9}]},
+        {city:'New York',member_count:19,event_count:2,total_matches:22,top_themes:[{theme:'FinTech',count:9},{theme:'AI',count:5}],archetype_breakdown:[{type:'investor',count:9},{type:'operator',count:6}]},
+        {city:'San Francisco',member_count:17,event_count:1,total_matches:18,top_themes:[{theme:'AI',count:10},{theme:'HealthTech',count:4}],archetype_breakdown:[{type:'founder',count:10},{type:'investor',count:5}]},
+        {city:'Berlin',member_count:13,event_count:1,total_matches:14,top_themes:[{theme:'Climate Tech',count:7},{theme:'Enterprise SaaS',count:4}],archetype_breakdown:[{type:'founder',count:8},{type:'operator',count:4}]},
+        {city:'Singapore',member_count:11,event_count:1,total_matches:15,top_themes:[{theme:'FinTech',count:6},{theme:'AI',count:4}],archetype_breakdown:[{type:'investor',count:6},{type:'founder',count:4}]},
+        {city:'Dubai',member_count:9,event_count:0,total_matches:9,top_themes:[{theme:'FinTech',count:5}],archetype_breakdown:[{type:'investor',count:7}]},
+        {city:'Sydney',member_count:8,event_count:0,total_matches:7,top_themes:[{theme:'Climate Tech',count:4}],archetype_breakdown:[{type:'founder',count:5}]},
+        {city:'Toronto',member_count:7,event_count:0,total_matches:6,top_themes:[{theme:'AI',count:4}],archetype_breakdown:[{type:'researcher',count:4}]},
+        {city:'Paris',member_count:7,event_count:0,total_matches:5,top_themes:[{theme:'Climate Tech',count:4}],archetype_breakdown:[{type:'investor',count:4}]},
+        {city:'Tokyo',member_count:5,event_count:0,total_matches:4,top_themes:[{theme:'Robotics',count:3}],archetype_breakdown:[{type:'corporate',count:3}]},
+        {city:'Amsterdam',member_count:5,event_count:0,total_matches:4,top_themes:[{theme:'Enterprise SaaS',count:3}],archetype_breakdown:[{type:'founder',count:3}]},
+        {city:'Mumbai',member_count:4,event_count:0,total_matches:3,top_themes:[{theme:'FinTech',count:3}],archetype_breakdown:[{type:'founder',count:3}]},
+      ],
+      events:[
+        {id:1,name:'Climate Finance Summit',city:'London',event_date:'2026-04-12',themes:['Climate Tech','Finance'],registered_count:42},
+        {id:2,name:'Deep Tech Forum',city:'Berlin',event_date:'2026-05-08',themes:['DeepTech','AI'],registered_count:38},
+        {id:3,name:'Asia Founders Week',city:'Singapore',event_date:'2026-04-28',themes:['FinTech'],registered_count:61},
+        {id:4,name:'Impact Investors NYC',city:'New York',event_date:'2026-03-22',themes:['Impact'],registered_count:29},
+      ],
+      corridors:[
+        {from:'London',to:'New York',match_count:12,avg_score:.72},
+        {from:'New York',to:'San Francisco',match_count:10,avg_score:.74},
+        {from:'London',to:'Singapore',match_count:8,avg_score:.69},
+        {from:'Berlin',to:'London',match_count:7,avg_score:.67},
+        {from:'Dubai',to:'London',match_count:6,avg_score:.65},
+        {from:'Singapore',to:'Sydney',match_count:5,avg_score:.66},
+        {from:'Toronto',to:'New York',match_count:4,avg_score:.68},
+        {from:'Paris',to:'London',match_count:4,avg_score:.64},
+      ],
+      meta:{total_members:129,total_events:4,total_corridors:8}
+    };
+  }
+
+  geoData = data;
+  hideLoading();
+  renderGeo();
+}
+
+function renderGeo() {
+  var S = svgSize();
+  ['geo-map-g','geo-corridors-g','geo-halos-g','geo-cities-g','geo-events-g','geo-labels-g'].forEach(function(id){
+    d3.select('#'+id).selectAll('*').remove();
+  });
+
+  // Projection — Natural Earth, fitted to viewport
+  geoProjection = d3.geoNaturalEarth1()
+    .fitSize([S.w, S.h], { type: 'Sphere' });
+  var path = d3.geoPath().projection(geoProjection);
+
+  // Ocean background
+  d3.select('#geo-map-g').append('path')
+    .datum({ type: 'Sphere' })
+    .attr('d', path)
+    .attr('fill', 'rgba(255,255,255,0.02)')
+    .attr('stroke', 'rgba(255,255,255,0.05)')
+    .attr('stroke-width', 0.5);
+
+  // Graticule grid
+  d3.select('#geo-map-g').append('path')
+    .datum(d3.geoGraticule()())
+    .attr('class', 'geo-graticule')
+    .attr('d', path);
+
+  // Country outlines — load or skip gracefully
+  d3.json('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json').then(function(world) {
+    var countries = topojson.feature(world, world.objects.countries);
+    d3.select('#geo-map-g').selectAll('.geo-land')
+      .data(countries.features).enter()
+      .append('path').attr('class', 'geo-land').attr('d', path);
+  }).catch(function() { /* no country outlines, graceful */ });
+
+  function proj(cityName) {
+    var ll = latlon(cityName);
+    return ll ? geoProjection([ll[1], ll[0]]) : null;
+  }
+
+  var clusters = geoData.geo_clusters.filter(function(c){ return latlon(c.city); });
+  var maxM = d3.max(clusters, function(c){ return c.member_count; }) || 1;
+  var rScale = d3.scaleSqrt().domain([0, maxM]).range([8, 40]);
+  var maxCorr = d3.max(geoData.corridors, function(c){ return c.match_count; }) || 1;
+
+  // ── Corridors (faint, under halos) ────────────────────────────────────────
+  var visSet = new Set(clusters.map(function(c){ return c.city; }));
+  geoData.corridors.forEach(function(corr) {
+    if (!visSet.has(corr.from) || !visSet.has(corr.to)) return;
+    var a = proj(corr.from), b = proj(corr.to);
+    if (!a || !b) return;
+    var mx = (a[0]+b[0])/2, my = (a[1]+b[1])/2 - Math.hypot(b[0]-a[0],b[1]-a[1]) * 0.18;
+    var strong = corr.avg_score >= 0.65;
+    var sw = 0.6 + (corr.match_count / maxCorr) * 2.5;
+    d3.select('#geo-corridors-g').append('path')
+      .attr('class', 'geo-corridor')
+      .attr('d', 'M'+a[0]+','+a[1]+' Q'+mx+','+my+' '+b[0]+','+b[1])
+      .attr('stroke', strong ? '#6366f1' : 'rgba(255,255,255,0.12)')
+      .attr('stroke-width', sw)
+      .attr('stroke-dasharray', strong ? 'none' : '3 6')
+      .attr('opacity', strong ? 0.45 : 0.25);
+  });
+
+  // ── Soft city halos (theme-coloured glow) ─────────────────────────────────
+  clusters.forEach(function(c) {
+    var xy = proj(c.city); if (!xy) return;
+    var r = rScale(c.member_count);
+    var topTheme = c.top_themes && c.top_themes[0] ? c.top_themes[0].theme : null;
+    var col = topTheme ? themeColor(topTheme) : '#6366f1';
+    d3.select('#geo-halos-g').append('circle')
+      .attr('class', 'geo-city-halo')
+      .attr('cx', xy[0]).attr('cy', xy[1])
+      .attr('r', r + 28)
+      .attr('fill', col)
+      .attr('fill-opacity', 0.07)
+      .attr('filter', 'url(#glow)');
+  });
+
+  // ── City circles ──────────────────────────────────────────────────────────
+  clusters.forEach(function(c) {
+    var xy = proj(c.city); if (!xy) return;
+    var r = rScale(c.member_count);
+    var topType = c.archetype_breakdown && c.archetype_breakdown[0] ? c.archetype_breakdown[0].type : 'unknown';
+    var col = stypeColor(topType);
+
+    var g = d3.select('#geo-cities-g').append('g')
+      .attr('class', 'geo-city')
+      .attr('transform', 'translate('+xy[0]+','+xy[1]+')')
+      .on('mouseenter', function(evt) {
+        var topThemes = (c.top_themes||[]).slice(0,3).map(function(t){ return '<span class="tt-chip" style="background:'+themeColor(t.theme)+'30;color:'+themeColor(t.theme)+'">'+t.theme+'</span>'; }).join('');
+        showTip(evt, '<div class="tt-title">'+c.city+'</div>'+
+          '<div class="tt-row"><span>Members</span><span class="tt-val">'+c.member_count+'</span></div>'+
+          (c.event_count ? '<div class="tt-row"><span>Events</span><span class="tt-val">'+c.event_count+'</span></div>' : '')+
+          (c.total_matches ? '<div class="tt-row"><span>Matches</span><span class="tt-val">'+c.total_matches+'</span></div>' : '')+
+          (topThemes ? '<div style="margin-top:5px">'+topThemes+'</div>' : ''));
+      })
+      .on('mousemove', moveTip)
+      .on('mouseleave', hideTip);
+
+    // Outer pulse ring
+    g.append('circle').attr('r', r + 4)
+      .attr('fill', 'none').attr('stroke', col).attr('stroke-width', 0.8).attr('opacity', 0.3);
+
+    // Main circle
+    g.append('circle').attr('r', r)
+      .attr('fill', col + '20').attr('stroke', col).attr('stroke-width', 1.2).attr('opacity', 0.85);
+
+    // Member count (only show if r is big enough)
+    if (r >= 14) {
+      g.append('text').attr('text-anchor', 'middle').attr('dominant-baseline', 'middle')
+        .attr('font-size', Math.min(11, r * 0.38) + 'px').attr('font-weight', '600')
+        .attr('fill', 'rgba(255,255,255,0.7)').attr('pointer-events', 'none')
+        .text(c.member_count);
+    }
+  });
+
+  // ── City labels ───────────────────────────────────────────────────────────
+  // Only label top 15 cities by member count to avoid clutter
+  clusters.slice(0, 15).forEach(function(c) {
+    var xy = proj(c.city); if (!xy) return;
+    var r = rScale(c.member_count);
+    d3.select('#geo-labels-g').append('text')
+      .attr('class', 'geo-city-label')
+      .attr('x', xy[0]).attr('y', xy[1] + r + 13)
+      .text(c.city);
+  });
+
+  // ── Event markers ─────────────────────────────────────────────────────────
+  (geoData.events || []).forEach(function(ev) {
+    var cl = clusters.find(function(c){ return c.city === ev.city; });
+    if (!cl) return;
+    var xy = proj(ev.city); if (!xy) return;
+    var r = rScale(cl.member_count);
+    // Small diamond offset from city
+    var ox = xy[0] + (r + 10), oy = xy[1] - (r + 10);
+    var topTheme = ev.themes && ev.themes[0] ? ev.themes[0] : 'AI';
+    var col = themeColor(topTheme);
+    var g = d3.select('#geo-events-g').append('g')
+      .attr('class', 'geo-event')
+      .attr('transform', 'translate('+ox+','+oy+')')
+      .on('mouseenter', function(evt){
+        showTip(evt, '<div class="tt-title">'+ev.name+'</div>'+
+          '<div class="tt-row"><span>City</span><span class="tt-val">'+ev.city+'</span></div>'+
+          (ev.registered_count ? '<div class="tt-row"><span>Registered</span><span class="tt-val">'+ev.registered_count+'</span></div>' : '')+
+          (ev.themes ? '<div style="margin-top:4px">'+ev.themes.slice(0,2).map(function(t){return '<span class="tt-chip" style="background:'+themeColor(t)+'30;color:'+themeColor(t)+'">'+t+'</span>';}).join('')+'</div>' : ''));
+      })
+      .on('mousemove', moveTip).on('mouseleave', hideTip);
+    // Small rotated square (diamond)
+    g.append('rect').attr('width', 8).attr('height', 8)
+      .attr('x', -4).attr('y', -4).attr('transform', 'rotate(45)')
+      .attr('fill', col + '30').attr('stroke', col).attr('stroke-width', 1.2);
+  });
 }
 
 // ── Share view ────────────────────────────────────────────────────────────────
