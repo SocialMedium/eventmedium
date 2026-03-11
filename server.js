@@ -75,6 +75,7 @@ app.use('/api/messages', require('./routes/messages').router);
 app.use('/api/notifications', require('./routes/notifications').router);
 
 app.use('/api/graph', require('./routes/graph').router);
+app.use('/api/network', require('./routes/network'));
 app.use('/api/admin', require('./routes/dashboard'));
 app.use('/api/privacy', require('./routes/privacy'));
 
