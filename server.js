@@ -87,7 +87,21 @@ app.get("/c/:slug", function(req, res) {
   res.sendFile(path.join(__dirname, "public", "community.html"));
 });
 
-// ── Scheduled matching: 3x daily (8am, 1pm, 6pm UTC) ──
+// ── Schema migrations (safe to run on every startup) ──────────────────────────
+async function runMigrations() {
+  try {
+    var { dbRun } = require('./db');
+    await dbRun('ALTER TABLE event_matches ADD COLUMN IF NOT EXISTS community_id INTEGER REFERENCES communities(id)');
+    await dbRun("ALTER TABLE event_matches ADD COLUMN IF NOT EXISTS scope_type TEXT DEFAULT 'event'");
+    await dbRun('ALTER TABLE users ADD COLUMN IF NOT EXISTS last_global_match TIMESTAMP');
+    console.log('[Migrations] Schema up to date');
+  } catch(err) {
+    console.error('[Migrations] Error:', err);
+  }
+}
+runMigrations();
+
+// ── Scheduled matching: 3x daily (8am, 1pm, 6pm UTC) ──────────────────────────
 function scheduleMatching() {
   var MATCH_HOURS = [8, 13, 18]; // UTC
   setInterval(async function() {
@@ -97,20 +111,71 @@ function scheduleMatching() {
     console.log('[Scheduler] Running matching cycle at ' + new Date().toISOString());
     try {
       var { generateMatchesForUser } = require('./routes/matches');
-      var events = await require('./db').dbAll(
+      var db = require('./db');
+
+      // 1. Event-scoped matches — events within 30 days
+      var events = await db.dbAll(
         "SELECT e.id FROM events e WHERE e.event_date >= CURRENT_DATE AND e.event_date <= CURRENT_DATE + INTERVAL '30 days'"
       );
       for (var i = 0; i < events.length; i++) {
-        var regs = await require('./db').dbAll(
+        var regs = await db.dbAll(
           "SELECT user_id FROM event_registrations WHERE event_id = $1 AND status = 'active'",
           [events[i].id]
         );
         for (var j = 0; j < regs.length; j++) {
-          try {
-            await generateMatchesForUser(regs[j].user_id, events[i].id);
-          } catch(e) { /* skip individual failures */ }
+          try { await generateMatchesForUser(regs[j].user_id, { type: 'event', id: events[i].id }); } catch(e) {}
         }
         if (regs.length) console.log('[Scheduler] Event ' + events[i].id + ': processed ' + regs.length + ' users');
+      }
+
+      // 2. Community-scoped matches — all active communities
+      var communities = await db.dbAll("SELECT id FROM communities WHERE is_active = true");
+      for (var i = 0; i < communities.length; i++) {
+        var members = await db.dbAll(
+          "SELECT user_id FROM community_members WHERE community_id = $1", [communities[i].id]
+        );
+        for (var j = 0; j < members.length; j++) {
+          try { await generateMatchesForUser(members[j].user_id, { type: 'community', id: communities[i].id }); } catch(e) {}
+        }
+        if (members.length) console.log('[Scheduler] Community ' + communities[i].id + ': processed ' + members.length + ' users');
+      }
+
+      // 3. Location-scoped matches — city clusters of 3+ users
+      var cityRows = await db.dbAll(
+        "SELECT DISTINCT SPLIT_PART(geography, ',', 1) as city FROM stakeholder_profiles WHERE geography IS NOT NULL AND geography != ''"
+      );
+      for (var i = 0; i < cityRows.length; i++) {
+        var city = (cityRows[i].city || '').trim();
+        if (!city) continue;
+        var cityUsers = await db.dbAll(
+          "SELECT user_id FROM stakeholder_profiles WHERE geography ILIKE $1", [city + '%']
+        );
+        if (cityUsers.length < 3) continue;
+        for (var j = 0; j < cityUsers.length; j++) {
+          try { await generateMatchesForUser(cityUsers[j].user_id, { type: 'location', city: city }); } catch(e) {}
+        }
+        console.log('[Scheduler] Location ' + city + ': processed ' + cityUsers.length + ' users');
+      }
+
+      // 4. Global scope — users where last_global_match is null or >7 days AND other scopes are thin
+      var globalCandidates = await db.dbAll(
+        `SELECT u.id FROM users u JOIN stakeholder_profiles sp ON sp.user_id = u.id
+         WHERE (u.last_global_match IS NULL OR u.last_global_match < NOW() - INTERVAL '7 days')
+         AND sp.stakeholder_type IS NOT NULL AND sp.themes IS NOT NULL LIMIT 20`
+      );
+      for (var i = 0; i < globalCandidates.length; i++) {
+        var uid = globalCandidates[i].id;
+        try {
+          var localCnt = await db.dbGet(
+            "SELECT COUNT(*)::int as cnt FROM event_matches WHERE (user_a_id = $1 OR user_b_id = $1) AND scope_type IN ('event','community')",
+            [uid]
+          );
+          if ((localCnt && localCnt.cnt || 0) < 3) {
+            await generateMatchesForUser(uid, { type: 'global' });
+            await db.dbRun("UPDATE users SET last_global_match = NOW() WHERE id = $1", [uid]);
+            console.log('[Scheduler] Global run for user ' + uid);
+          }
+        } catch(e) {}
       }
     } catch(err) {
       console.error('[Scheduler] Matching cycle error:', err);

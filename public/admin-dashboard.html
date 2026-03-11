@@ -55,6 +55,9 @@ body{font-family:var(--sans);background:var(--bg2);color:var(--text);min-height:
 .card{background:linear-gradient(160deg,var(--bg) 0%,var(--bg2) 100%);border:1px solid var(--border);border-radius:12px;padding:24px;transition:border-color 0.2s}
 .card:hover{border-color:rgba(99,102,241,0.12)}
 .card-t{font-size:11px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:var(--text3);margin-bottom:18px}
+.matcher-scope-btn{padding:8px 16px;border:1.5px solid var(--border2);border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;background:var(--bg);color:var(--text2);font-family:var(--sans);transition:all 0.15s}
+.matcher-scope-btn:hover{border-color:var(--accent);color:var(--accent)}
+.matcher-scope-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
 
 /* ── Signal boxes ── */
 .insight{padding:14px 16px;background:linear-gradient(135deg,var(--accent-light),rgba(79,70,229,0.06));border-radius:8px;border-left:3px solid var(--accent);margin-top:16px}
@@ -174,6 +177,59 @@ var TC = {founder:'#ea580c',investor:'#6366f1',corporate:'#2563eb',researcher:'#
 var ACCENT='#6366f1',BLUE='#2563eb',AMBER='#d97706',RED='#dc2626',GREEN='#059669',PURPLE='#7c3aed';
 
 function esc(s){if(!s)return '';var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+
+// ── Matcher trigger helpers ──────────────────────────────────────────────────
+var _matcherScope = 'event';
+function setMatcherScope(scope) {
+  _matcherScope = scope;
+  document.querySelectorAll('.matcher-scope-btn').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.scope === scope);
+  });
+  var ef = document.getElementById('matcherEventField');
+  var cf = document.getElementById('matcherCommunityField');
+  var lf = document.getElementById('matcherLocationFields');
+  if (ef) ef.style.display     = scope === 'event'     ? 'block' : 'none';
+  if (cf) cf.style.display     = scope === 'community' ? 'block' : 'none';
+  if (lf) lf.style.display     = scope === 'location'  ? 'flex'  : 'none';
+}
+async function runMatcher() {
+  var status = document.getElementById('matcherStatus');
+  if (status) { status.textContent = 'Running…'; status.style.color = 'var(--text3)'; }
+  var body = {};
+  if (_matcherScope === 'event') {
+    var v = document.getElementById('matcherEventId') && document.getElementById('matcherEventId').value;
+    if (!v) { if (status) status.textContent = 'Enter an Event ID.'; return; }
+    body.event_id = parseInt(v);
+  } else if (_matcherScope === 'community') {
+    var v = document.getElementById('matcherCommunityId') && document.getElementById('matcherCommunityId').value;
+    if (!v) { if (status) status.textContent = 'Enter a Community ID.'; return; }
+    body.community_id = parseInt(v);
+  } else if (_matcherScope === 'location') {
+    var city = document.getElementById('matcherCity') && document.getElementById('matcherCity').value;
+    if (!city) { if (status) status.textContent = 'Enter a city.'; return; }
+    body.scope = 'location';
+    body.city  = city;
+    body.country = document.getElementById('matcherCountry') && document.getElementById('matcherCountry').value;
+  } else {
+    body.scope = 'global';
+  }
+  try {
+    var r = await fetch('/api/matches/admin/generate-bulk', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    var d = await r.json();
+    if (status) {
+      status.style.color = r.ok ? 'var(--green)' : 'var(--red)';
+      status.textContent = r.ok
+        ? 'Done — ' + d.users + ' users, ' + d.matches_generated + ' matches generated.'
+        : 'Error: ' + (d.error || 'Unknown');
+    }
+  } catch(e) {
+    if (status) { status.style.color = 'var(--red)'; status.textContent = 'Network error.'; }
+  }
+}
 function pct(v){return(v*100).toFixed(0)+'%'}
 function pill(text,color){return '<span class="pill" style="background:'+color+'14;color:'+color+'">'+esc(text)+'</span>'}
 function insight(text){return '<div class="insight"><div class="insight-label">Signal</div><div class="insight-text">'+text+'</div></div>'}
@@ -224,6 +280,26 @@ function renderKPIs(){
 function renderMatching(){
   var el=document.getElementById('matching');
   var html='';
+
+  // ── Matcher Trigger ──
+  html+='<div class="grid-full"><div class="card" style="margin-bottom:16px"><div class="card-t">Run Matcher</div>';
+  html+='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px" id="matcherScopeBtns">';
+  html+='<button class="matcher-scope-btn active" data-scope="event" onclick="setMatcherScope(\'event\')">This Event</button>';
+  html+='<button class="matcher-scope-btn" data-scope="community" onclick="setMatcherScope(\'community\')">This Community</button>';
+  html+='<button class="matcher-scope-btn" data-scope="location" onclick="setMatcherScope(\'location\')">By Location</button>';
+  html+='<button class="matcher-scope-btn" data-scope="global" onclick="setMatcherScope(\'global\')">Global</button>';
+  html+='</div>';
+  html+='<div id="matcherInputs" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px">';
+  html+='<div id="matcherEventField"><label style="font-size:11px;font-weight:600;color:var(--text3);display:block;margin-bottom:4px">Event ID</label><input id="matcherEventId" type="number" placeholder="e.g. 5" style="padding:8px 12px;border:1px solid var(--border2);border-radius:8px;font-size:13px;width:140px;font-family:var(--sans)"></div>';
+  html+='<div id="matcherCommunityField" style="display:none"><label style="font-size:11px;font-weight:600;color:var(--text3);display:block;margin-bottom:4px">Community ID</label><input id="matcherCommunityId" type="number" placeholder="e.g. 1" style="padding:8px 12px;border:1px solid var(--border2);border-radius:8px;font-size:13px;width:140px;font-family:var(--sans)"></div>';
+  html+='<div id="matcherLocationFields" style="display:none;gap:10px">';
+  html+='<div><label style="font-size:11px;font-weight:600;color:var(--text3);display:block;margin-bottom:4px">City</label><input id="matcherCity" type="text" placeholder="e.g. Sydney" style="padding:8px 12px;border:1px solid var(--border2);border-radius:8px;font-size:13px;width:140px;font-family:var(--sans)"></div>';
+  html+='<div><label style="font-size:11px;font-weight:600;color:var(--text3);display:block;margin-bottom:4px">Country</label><input id="matcherCountry" type="text" placeholder="e.g. AU" style="padding:8px 12px;border:1px solid var(--border2);border-radius:8px;font-size:13px;width:90px;font-family:var(--sans)"></div>';
+  html+='</div>';
+  html+='</div>';
+  html+='<button onclick="runMatcher()" style="padding:10px 22px;background:var(--accent);color:#fff;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--sans)">Run Matcher</button>';
+  html+='<span id="matcherStatus" style="margin-left:12px;font-size:13px;color:var(--text3)"></span>';
+  html+='</div></div>';
 
   // ── Canister Intelligence ──
   html+='<div class="grid-full"><div class="card"><div class="card-t">Canister Intelligence — What\'s in the Network</div>';

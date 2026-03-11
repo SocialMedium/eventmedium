@@ -815,6 +815,24 @@ async function loadExisting() {
 
 // ── Get Nev's opening ──
 async function loadOpening() {
+  // Check for update mode with geography focus
+  var urlParams = new URLSearchParams(window.location.search);
+  var updateMode  = urlParams.get('mode') === 'update';
+  var focusGeo    = urlParams.get('focus') === 'geography';
+  var destination = urlParams.get('destination') || '';
+
+  if (updateMode && focusGeo) {
+    var openingMsg;
+    if (destination) {
+      openingMsg = "I can see you're thinking about " + destination + " — are you travelling there for a specific event or just exploring the scene there? I'll scan for strong matches in that area.";
+    } else {
+      openingMsg = "Where are you based right now, and are you travelling anywhere in the next 90 days for work? I'll scan for signal wherever you're headed.";
+    }
+    addMessage(openingMsg, 'nev');
+    conversation.push({ role: 'assistant', content: openingMsg });
+    return;
+  }
+
   showTyping();
   try {
     var resp = await fetch('/api/nev/opening', {

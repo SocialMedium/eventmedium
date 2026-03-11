@@ -662,91 +662,138 @@ function cosineSimilarity(a, b) {
 // GENERATE MATCHES FOR A USER AT AN EVENT
 // ══════════════════════════════════════════════════════
 
-async function generateMatchesForUser(userId, eventId, options) {
+async function generateMatchesForUser(userId, context, options) {
+  // Backward compat: if context is a number, treat as event id
+  if (typeof context === 'number') context = { type: 'event', id: context };
   options = options || {};
   var threshold = options.threshold || 0.45;
   var candidateLimit = options.candidateLimit || 50;
-  // ── Stage 1: Candidate selection via Qdrant ANN ──
-  // Get all registrants for this event
-  var registrants = await dbAll(
-    "SELECT user_id FROM event_registrations WHERE event_id = $1 AND user_id != $2 AND status = 'active'",
-    [eventId, userId]
-  );
-  if (!registrants.length) return [];
-  var registrantIds = registrants.map(function(r) { return r.user_id; });
-  var maxMatches = options.maxMatches || (registrantIds.length > 1000 ? 20 : registrantIds.length > 200 ? 12 : 8);
 
+  // ── Resolve candidate pool by scope type ──
+  var candidateIds = [];
+
+  if (context.type === 'event') {
+    var rows = await dbAll(
+      "SELECT user_id FROM event_registrations WHERE event_id = $1 AND user_id != $2 AND status = 'active'",
+      [context.id, userId]
+    );
+    candidateIds = rows.map(function(r) { return r.user_id; });
+
+  } else if (context.type === 'community') {
+    var rows = await dbAll(
+      "SELECT user_id FROM community_members WHERE community_id = $1 AND user_id != $2",
+      [context.id, userId]
+    );
+    candidateIds = rows.map(function(r) { return r.user_id; });
+
+  } else if (context.type === 'location') {
+    var locRows = await dbAll(
+      "SELECT user_id FROM stakeholder_profiles WHERE user_id != $1 AND geography ILIKE $2",
+      [userId, '%' + context.city + '%']
+    );
+    var evtRows = await dbAll(
+      `SELECT DISTINCT er.user_id FROM event_registrations er
+       JOIN events e ON e.id = er.event_id
+       WHERE er.user_id != $1 AND er.status = 'active'
+       AND e.city ILIKE $2 AND e.event_date > NOW() AND e.event_date < NOW() + INTERVAL '60 days'`,
+      [userId, context.city]
+    );
+    var seen = new Set(locRows.map(function(u) { return u.user_id; }));
+    evtRows.forEach(function(u) { if (!seen.has(u.user_id)) { seen.add(u.user_id); locRows.push(u); } });
+    candidateIds = locRows.map(function(u) { return u.user_id; });
+
+  } else if (context.type === 'global') {
+    var alreadyMatched = await dbAll(
+      "SELECT CASE WHEN user_a_id = $1 THEN user_b_id ELSE user_a_id END as oid FROM event_matches WHERE user_a_id = $1 OR user_b_id = $1",
+      [userId]
+    );
+    var excluded = new Set(alreadyMatched.map(function(m) { return m.oid; }));
+    excluded.add(userId);
+    var allProfiled = await dbAll(
+      "SELECT user_id FROM stakeholder_profiles WHERE stakeholder_type IS NOT NULL AND themes IS NOT NULL"
+    );
+    candidateIds = allProfiled.map(function(u) { return u.user_id; }).filter(function(id) { return !excluded.has(id); });
+  }
+
+  if (!candidateIds.length) return [];
+
+  // ── Stage 1: ANN candidate selection (fast path) ──
   var candidates = null;
   var precomputedSimilarity = {};
-
-  // Try ANN candidate selection (fast path)
   try {
-    candidates = await findCandidates(userId, registrantIds, candidateLimit);
+    candidates = await findCandidates(userId, candidateIds, candidateLimit);
     if (candidates && candidates.length > 0) {
-      // Store pre-computed similarities to avoid re-fetching vectors in scoreMatch
-      candidates.forEach(function(c) {
-        precomputedSimilarity[c.user_id] = c.similarity;
-      });
-      console.log('Stage 1 ANN: ' + candidates.length + ' candidates from ' + registrantIds.length + ' registrants');
+      candidates.forEach(function(c) { precomputedSimilarity[c.user_id] = c.similarity; });
+      console.log('[Matcher] ANN: ' + candidates.length + ' candidates from ' + candidateIds.length + ' (' + context.type + ')');
     } else {
-      candidates = null; // fall through to full scan
+      candidates = null;
     }
   } catch(e) {
-    console.error('ANN candidate selection failed, falling back to full scan:', e.message);
+    console.error('[Matcher] ANN failed, falling back:', e.message);
     candidates = null;
   }
 
-  // Fallback: if no vectors in Qdrant, score all registrants (slow path)
-  var pairsToScore = candidates
-    ? candidates.map(function(c) { return c.user_id; })
-    : registrantIds;
+  var pairsToScore = candidates ? candidates.map(function(c) { return c.user_id; }) : candidateIds;
+  if (!candidates) console.log('[Matcher] Fallback: scoring all ' + pairsToScore.length + ' (' + context.type + ')');
 
-  if (!candidates) {
-    console.log('Stage 1 fallback: scoring all ' + pairsToScore.length + ' registrants');
-  }
-
-  // ── Stage 2: Full scoring on candidates only ──
+  // ── Stage 2: Full scoring ──
   var matches = [];
   var scoreOptions = Object.assign({}, options, { precomputedSimilarity: precomputedSimilarity });
+  var eventIdForScore = context.type === 'event' ? context.id : null;
 
   for (var i = 0; i < pairsToScore.length; i++) {
     var otherId = pairsToScore[i];
 
-    // Boundary guard: don't mix test and real users
+    // Don't mix test and real users
     var selfUser = await dbGet('SELECT auth_provider FROM users WHERE id = $1', [userId]);
     var otherUser = await dbGet('SELECT auth_provider FROM users WHERE id = $1', [otherId]);
     if (selfUser && otherUser) {
-      var selfIsTest = selfUser.auth_provider === 'test';
-      var otherIsTest = otherUser.auth_provider === 'test';
-      if (selfIsTest !== otherIsTest) continue;
+      if ((selfUser.auth_provider === 'test') !== (otherUser.auth_provider === 'test')) continue;
     }
 
-    // Skip if match already exists
-    var existing = await dbGet(
-      "SELECT id FROM event_matches WHERE event_id = $1 AND ((user_a_id = $2 AND user_b_id = $3) OR (user_a_id = $3 AND user_b_id = $2))",
-      [eventId, userId, otherId]
-    );
+    // Duplicate check per scope
+    var existing = null;
+    if (context.type === 'event') {
+      existing = await dbGet(
+        "SELECT id FROM event_matches WHERE event_id = $1 AND ((user_a_id = $2 AND user_b_id = $3) OR (user_a_id = $3 AND user_b_id = $2))",
+        [context.id, userId, otherId]
+      );
+    } else if (context.type === 'community') {
+      existing = await dbGet(
+        "SELECT id FROM event_matches WHERE community_id = $1 AND ((user_a_id = $2 AND user_b_id = $3) OR (user_a_id = $3 AND user_b_id = $2))",
+        [context.id, userId, otherId]
+      );
+    } else {
+      existing = await dbGet(
+        "SELECT id FROM event_matches WHERE scope_type = $1 AND ((user_a_id = $2 AND user_b_id = $3) OR (user_a_id = $3 AND user_b_id = $2))",
+        [context.type, userId, otherId]
+      );
+    }
     if (existing) continue;
 
-    var result = await scoreMatch(userId, otherId, eventId, scoreOptions);
+    var result = await scoreMatch(userId, otherId, eventIdForScore, scoreOptions);
     if (!result || result.score_total < threshold) continue;
-
     matches.push({ result: result, otherId: otherId });
   }
 
-  // Sort by score and cap at top N per user
-  // Sort by score descending
   matches.sort(function(a, b) { return b.result.score_total - a.result.score_total; });
 
-  // Insert ALL above-threshold matches into DB (frontend caps display)
+  // ── Insert matches ──
+  var eventId   = context.type === 'event'     ? context.id : null;
+  var commId    = context.type === 'community' ? context.id : null;
+  var scopeType = context.type;
 
-  // Insert top matches into DB
   for (var m = 0; m < matches.length; m++) {
     var mr = matches[m].result;
     await dbRun(
-      "INSERT INTO event_matches (event_id, user_a_id, user_b_id, score_total, score_semantic, score_theme, score_intent, score_stakeholder, score_capital, score_signal_convergence, score_timing, score_constraint_complementarity, match_reasons, signal_context, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) ON CONFLICT (event_id, user_a_id, user_b_id) DO NOTHING",
+      `INSERT INTO event_matches
+         (event_id, community_id, scope_type, user_a_id, user_b_id,
+          score_total, score_semantic, score_theme, score_intent, score_stakeholder,
+          score_capital, score_signal_convergence, score_timing, score_constraint_complementarity,
+          match_reasons, signal_context, status)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)`,
       [
-        eventId, userId, matches[m].otherId,
+        eventId, commId, scopeType, userId, matches[m].otherId,
         mr.score_total, mr.score_semantic, mr.score_theme, mr.score_intent,
         mr.score_stakeholder, mr.score_capital,
         mr.score_signal_convergence, mr.score_timing, mr.score_constraint_complementarity,
@@ -765,15 +812,25 @@ async function generateMatchesForUser(userId, eventId, options) {
 // ── GET /api/matches/mine ── all matches for current user
 router.get('/mine', authenticateToken, async function(req, res) {
   try {
-    var limit = Math.min(parseInt(req.query.limit) || 8, 50);
+    var limit = Math.min(parseInt(req.query.limit) || 50, 100);
     var offset = parseInt(req.query.offset) || 0;
-    var eventId = req.query.event_id ? parseInt(req.query.event_id) : null;
+    var eventId     = req.query.event_id     ? parseInt(req.query.event_id)     : null;
+    var communityId = req.query.community_id ? parseInt(req.query.community_id) : null;
+    var scopeType   = req.query.scope_type   || null;
 
     var whereClause = '(em.user_a_id = $1 OR em.user_b_id = $1)';
     var params = [req.user.id];
     if (eventId) {
       whereClause += ' AND em.event_id = $' + (params.length + 1);
       params.push(eventId);
+    }
+    if (communityId) {
+      whereClause += ' AND em.community_id = $' + (params.length + 1);
+      params.push(communityId);
+    }
+    if (scopeType) {
+      whereClause += ' AND em.scope_type = $' + (params.length + 1);
+      params.push(scopeType);
     }
 
     var countResult = await dbGet(
@@ -786,23 +843,35 @@ router.get('/mine', authenticateToken, async function(req, res) {
         CASE WHEN em.user_a_id = $1 THEN em.user_b_id ELSE em.user_a_id END as other_user_id,
         CASE WHEN em.user_a_id = $1 THEN em.user_a_decision ELSE em.user_b_decision END as my_decision,
         CASE WHEN em.user_a_id = $1 THEN em.user_b_decision ELSE em.user_a_decision END as their_decision,
-        e.name as event_name, e.event_date
+        e.name as event_name, e.event_date,
+        c.name as community_name
        FROM event_matches em
-       JOIN events e ON e.id = em.event_id
+       LEFT JOIN events e ON e.id = em.event_id
+       LEFT JOIN communities c ON c.id = em.community_id
        WHERE ` + whereClause + `
        ORDER BY em.score_total DESC
        LIMIT $` + (params.length - 1) + ` OFFSET $` + params.length,
       params
     );
 
-    // For revealed matches, include other user's info
+    // Attach context and revealed user info to each match
     for (var i = 0; i < matches.length; i++) {
-      if (matches[i].status === 'revealed') {
+      var m = matches[i];
+      // Build context object
+      if (m.event_id) {
+        m.context = { type: 'event', id: m.event_id, name: m.event_name };
+      } else if (m.community_id) {
+        m.context = { type: 'community', id: m.community_id, name: m.community_name };
+      } else {
+        m.context = { type: m.scope_type || 'global' };
+      }
+      // Revealed user info
+      if (m.status === 'revealed') {
         var otherUser = await dbGet(
           'SELECT u.name, u.company, u.avatar_url, sp.stakeholder_type, sp.themes, sp.focus_text, sp.geography FROM users u LEFT JOIN stakeholder_profiles sp ON sp.user_id = u.id WHERE u.id = $1',
-          [matches[i].other_user_id]
+          [m.other_user_id]
         );
-        matches[i].other_user = otherUser;
+        m.other_user = otherUser;
       }
     }
 
@@ -817,6 +886,212 @@ router.get('/mine', authenticateToken, async function(req, res) {
   } catch (err) {
     console.error('Get matches error:', err);
     res.status(500).json({ error: 'Failed to load matches' });
+  }
+});
+
+// ── GET /api/matches/contextual ── progressive scope feed ─────────────────────
+router.get('/contextual', authenticateToken, async function(req, res) {
+  try {
+    var userId = req.user.id;
+
+    var profile = await dbGet(
+      'SELECT geography, stakeholder_type FROM stakeholder_profiles WHERE user_id = $1', [userId]
+    );
+    var userCity = profile && profile.geography ? profile.geography.split(',')[0].trim() : null;
+
+    var myEvents = await dbAll(
+      `SELECT e.id, e.name FROM event_registrations er
+       JOIN events e ON e.id = er.event_id
+       WHERE er.user_id = $1 AND er.status = 'active' AND e.event_date >= NOW() - INTERVAL '90 days'
+       ORDER BY e.event_date DESC LIMIT 5`,
+      [userId]
+    );
+
+    var myCommunities = await dbAll(
+      `SELECT c.id, c.name FROM community_members cm
+       JOIN communities c ON c.id = cm.community_id
+       WHERE cm.user_id = $1 AND c.is_active = true ORDER BY c.name LIMIT 5`,
+      [userId]
+    );
+
+    // Fetch flat match rows for a given WHERE fragment
+    async function fetchMatches(extraWhere, extraParams) {
+      var params = [userId].concat(extraParams || []);
+      var where = '(em.user_a_id = $1 OR em.user_b_id = $1)' + (extraWhere ? ' AND ' + extraWhere : '');
+      return dbAll(
+        `SELECT em.id, em.score_total, em.status, em.scope_type, em.event_id, em.community_id,
+                em.match_reasons, em.signal_context, em.user_a_decision, em.user_b_decision,
+                em.user_a_id, em.user_b_id, em.created_at
+         FROM event_matches em WHERE ` + where + ' ORDER BY em.score_total DESC LIMIT 20',
+        params
+      );
+    }
+
+    function quality(rows) {
+      var strong = rows.filter(function(m) { return parseFloat(m.score_total) >= 0.65; }).length;
+      if (strong >= 3) return 'strong';
+      if (strong >= 1 || rows.length >= 3) return 'moderate';
+      return 'thin';
+    }
+
+    var scopes = [];
+
+    // Event scopes
+    for (var i = 0; i < myEvents.length; i++) {
+      var ev = myEvents[i];
+      var rows = await fetchMatches('em.event_id = $2', [ev.id]);
+      var q = quality(rows);
+      scopes.push({ type: 'event', id: ev.id, label: ev.name, matches: rows.slice(0, 8), count: rows.length, quality: q, thin: q === 'thin' });
+    }
+
+    // Community scopes
+    for (var i = 0; i < myCommunities.length; i++) {
+      var comm = myCommunities[i];
+      var rows = await fetchMatches('em.community_id = $2', [comm.id]);
+      var q = quality(rows);
+      scopes.push({ type: 'community', id: comm.id, label: comm.name, matches: rows.slice(0, 8), count: rows.length, quality: q, thin: q === 'thin' });
+    }
+
+    // Location scope
+    if (userCity) {
+      var rows = await fetchMatches("em.scope_type = 'location'");
+      var q = quality(rows);
+      scopes.push({ type: 'location', label: userCity, city: userCity, matches: rows.slice(0, 8), count: rows.length, quality: q, thin: q === 'thin' });
+    }
+
+    // Global scope
+    var globalRows = await fetchMatches("em.scope_type = 'global'");
+    var globalQ = quality(globalRows);
+    scopes.push({ type: 'global', label: 'Global Network', matches: globalRows.slice(0, 8), count: globalRows.length, quality: globalQ, thin: globalQ === 'thin' });
+
+    // Determine active scope (deepest non-thin)
+    var activeScope = 'global';
+    for (var i = 0; i < scopes.length; i++) {
+      if (!scopes[i].thin) { activeScope = scopes[i].type; break; }
+    }
+
+    // ── Recommended contexts ──────────────────────────────────────────────────
+    var recommended = [];
+    try {
+      var allPairs = await dbAll(
+        `SELECT CASE WHEN user_a_id = $1 THEN user_b_id ELSE user_a_id END as oid,
+                score_total FROM event_matches WHERE user_a_id = $1 OR user_b_id = $1`,
+        [userId]
+      );
+      if (allPairs.length > 0) {
+        var matchedIds = allPairs.map(function(p) { return p.oid; });
+        var scoreMap = {};
+        allPairs.forEach(function(p) {
+          var s = parseFloat(p.score_total);
+          if (!scoreMap[p.oid] || s > scoreMap[p.oid]) scoreMap[p.oid] = s;
+        });
+
+        var myEventIds   = new Set(myEvents.map(function(e) { return e.id; }));
+        var myCommIds    = new Set(myCommunities.map(function(c) { return c.id; }));
+
+        var nameRows = await dbAll('SELECT id, name FROM users WHERE id = ANY($1)', [matchedIds]);
+        var nameMap  = {};
+        nameRows.forEach(function(u) { nameMap[u.id] = u.name; });
+        function inits(uid) {
+          var n = nameMap[uid];
+          return n ? n.trim().split(/\s+/).map(function(p) { return p[0] || ''; }).slice(0,2).join('').toUpperCase() : '?';
+        }
+
+        // Recommended events
+        var evRows = await dbAll(
+          `SELECT e.id, e.name, e.city, e.event_date, er.user_id as uid
+           FROM event_registrations er JOIN events e ON e.id = er.event_id
+           WHERE er.user_id = ANY($1) AND er.status = 'active'
+           AND e.event_date >= CURRENT_DATE AND e.event_date <= CURRENT_DATE + INTERVAL '90 days'`,
+          [matchedIds]
+        );
+        var evGrp = {};
+        evRows.forEach(function(r) {
+          if (myEventIds.has(r.id)) return;
+          if (!evGrp[r.id]) evGrp[r.id] = { id: r.id, name: r.name, city: r.city, date: r.event_date, uids: [] };
+          evGrp[r.id].uids.push(r.uid);
+        });
+        Object.values(evGrp).forEach(function(eg) {
+          if (eg.uids.length < 2) return;
+          eg.uids.sort(function(a, b) { return (scoreMap[b]||0) - (scoreMap[a]||0); });
+          var top = eg.uids.slice(0, 3);
+          recommended.push({ type: 'event', id: eg.id, name: eg.name, city: eg.city, date: eg.date,
+            match_count: eg.uids.length, top_score: scoreMap[top[0]]||0,
+            preview: top.map(inits), _s: eg.uids.length * (scoreMap[top[0]]||0), cta: 'register' });
+        });
+
+        // Recommended communities
+        var commRows = await dbAll(
+          `SELECT c.id, c.name, cm.user_id as uid FROM community_members cm
+           JOIN communities c ON c.id = cm.community_id
+           WHERE cm.user_id = ANY($1) AND c.is_active = true`, [matchedIds]
+        );
+        var commGrp = {};
+        commRows.forEach(function(r) {
+          if (myCommIds.has(r.id)) return;
+          if (!commGrp[r.id]) commGrp[r.id] = { id: r.id, name: r.name, uids: [] };
+          commGrp[r.id].uids.push(r.uid);
+        });
+        Object.values(commGrp).forEach(function(cg) {
+          if (cg.uids.length < 2) return;
+          cg.uids.sort(function(a, b) { return (scoreMap[b]||0) - (scoreMap[a]||0); });
+          var top = cg.uids.slice(0, 3);
+          recommended.push({ type: 'community', id: cg.id, name: cg.name,
+            match_count: cg.uids.length, top_score: scoreMap[top[0]]||0,
+            preview: top.map(inits), _s: cg.uids.length * (scoreMap[top[0]]||0), cta: 'join' });
+        });
+
+        // Recommended locations
+        if (userCity) {
+          var geoRows = await dbAll(
+            'SELECT user_id, geography FROM stakeholder_profiles WHERE user_id = ANY($1)', [matchedIds]
+          );
+          var cityGrp = {};
+          geoRows.forEach(function(p) {
+            if (!p.geography) return;
+            var c = p.geography.split(',')[0].trim();
+            if (c.toLowerCase() === userCity.toLowerCase()) return;
+            if (!cityGrp[c]) cityGrp[c] = [];
+            cityGrp[c].push(p.user_id);
+          });
+          Object.keys(cityGrp).forEach(function(city) {
+            var uids = cityGrp[city];
+            if (uids.length < 3) return;
+            uids.sort(function(a, b) { return (scoreMap[b]||0) - (scoreMap[a]||0); });
+            var top = uids.slice(0, 3);
+            recommended.push({ type: 'location', city: city,
+              match_count: uids.length, top_score: scoreMap[top[0]]||0,
+              preview: top.map(inits), _s: uids.length * (scoreMap[top[0]]||0), cta: 'travel' });
+          });
+        }
+      }
+    } catch(e) { console.error('[contextual] recommended error:', e); }
+
+    recommended.sort(function(a, b) { return (b._s||0) - (a._s||0); });
+    recommended = recommended.slice(0, 3).map(function(r) { delete r._s; return r; });
+
+    // Trigger nev nudge if everything is thin
+    if (scopes.every(function(s) { return s.thin; })) {
+      try {
+        var recent = await dbGet(
+          "SELECT id FROM notifications WHERE user_id = $1 AND type = 'nev_nudge' AND created_at > NOW() - INTERVAL '7 days'",
+          [userId]
+        );
+        if (!recent) {
+          await dbRun(
+            "INSERT INTO notifications (user_id, type, title, body, link) VALUES ($1,$2,$3,$4,$5)",
+            [userId, 'nev_nudge', "Let's sharpen your matches",
+             "Tell me where you're travelling next and I'll scan for signal there.",
+             '/onboard.html?mode=update&focus=geography']
+          );
+        }
+      } catch(e) {}
+    }
+
+    res.json({ active_scope: activeScope, scopes: scopes, recommended: recommended });
+  } catch(err) {
+    console.error('[contextual] error:', err);
+    res.status(500).json({ error: 'Failed to load contextual matches' });
   }
 });
 
@@ -883,30 +1158,51 @@ router.post('/:matchId/decide', authenticateToken, async function(req, res) {
   }
 });
 
-// ── POST /api/admin/generate-matches-bulk ── trigger matching for an event
+// ── POST /api/matches/admin/generate-bulk ── trigger matching for any scope
 router.post('/admin/generate-bulk', authenticateToken, async function(req, res) {
   try {
-    // TODO: add admin role check
-    var { event_id, threshold } = req.body;
-    if (!event_id) return res.status(400).json({ error: 'event_id required' });
+    var { event_id, community_id, scope, city, country, threshold } = req.body;
+    var context, users;
 
-    var registrants = await dbAll(
-      "SELECT user_id FROM event_registrations WHERE event_id = $1 AND status = 'active'",
-      [event_id]
-    );
-
-    var totalMatches = 0;
-    for (var i = 0; i < registrants.length; i++) {
-      var matches = await generateMatchesForUser(
-        registrants[i].user_id, event_id,
-        { threshold: threshold || 0.4, enrichWithSignals: true }
+    if (event_id) {
+      context = { type: 'event', id: parseInt(event_id) };
+      users = await dbAll(
+        "SELECT user_id FROM event_registrations WHERE event_id = $1 AND status = 'active'",
+        [event_id]
       );
-      totalMatches += matches.length;
+    } else if (community_id) {
+      context = { type: 'community', id: parseInt(community_id) };
+      users = await dbAll("SELECT user_id FROM community_members WHERE community_id = $1", [community_id]);
+    } else if (scope === 'location') {
+      if (!city) return res.status(400).json({ error: 'city required for location scope' });
+      context = { type: 'location', city: city, country: country || null };
+      users = await dbAll(
+        "SELECT user_id FROM stakeholder_profiles WHERE geography ILIKE $1",
+        ['%' + city + '%']
+      );
+    } else if (scope === 'global') {
+      context = { type: 'global' };
+      users = await dbAll(
+        "SELECT user_id FROM stakeholder_profiles WHERE stakeholder_type IS NOT NULL AND themes IS NOT NULL"
+      );
+    } else {
+      return res.status(400).json({ error: 'Provide event_id, community_id, scope=location (with city), or scope=global' });
     }
 
-    res.json({ event_id: event_id, registrants: registrants.length, matches_generated: totalMatches });
+    var totalMatches = 0;
+    for (var i = 0; i < users.length; i++) {
+      try {
+        var matches = await generateMatchesForUser(
+          users[i].user_id, context,
+          { threshold: threshold || 0.4, enrichWithSignals: true }
+        );
+        totalMatches += matches.length;
+      } catch(e) { console.error('[generate-bulk] user ' + users[i].user_id + ':', e.message); }
+    }
+
+    res.json({ context: context, users: users.length, matches_generated: totalMatches });
   } catch (err) {
-    console.error('Bulk match generation error:', err);
+    console.error('[generate-bulk] Error:', err);
     res.status(500).json({ error: 'Match generation failed' });
   }
 });
