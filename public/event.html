@@ -395,48 +395,51 @@ document.addEventListener('click', function(e) {
   if (e.target === document.getElementById('claimModal')) closeClaimModal();
 });
 
-document.getElementById('claimForm').addEventListener('submit', async function(e) {
-  e.preventDefault();
-  var btn = document.getElementById('claimSubmitBtn');
-  var errEl = document.getElementById('claimError');
-  errEl.style.display = 'none';
-  btn.disabled = true; btn.textContent = 'Sending...';
+document.addEventListener('DOMContentLoaded', function() {
+  var claimFormEl = document.getElementById('claimForm');
+  if (claimFormEl) claimFormEl.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var btn = document.getElementById('claimSubmitBtn');
+    var errEl = document.getElementById('claimError');
+    errEl.style.display = 'none';
+    btn.disabled = true; btn.textContent = 'Sending...';
 
-  var email = document.getElementById('claimEmail').value.trim();
-  var role = document.getElementById('claimRole').value.trim();
-  var website = document.getElementById('claimWebsite').value.trim();
+    var email = document.getElementById('claimEmail').value.trim();
+    var role = document.getElementById('claimRole').value.trim();
+    var website = document.getElementById('claimWebsite').value.trim();
 
-  // Client-side: block consumer domains
-  var domain = email.split('@')[1] || '';
-  var blocked = ['gmail.com','hotmail.com','yahoo.com','outlook.com','live.com','icloud.com','me.com'];
-  if (blocked.indexOf(domain.toLowerCase()) !== -1) {
-    errEl.textContent = 'Please use your work email address, not a personal email.';
-    errEl.style.display = 'block';
-    btn.disabled = false; btn.textContent = 'Send Verification Email';
-    return;
-  }
+    // Client-side: block consumer domains
+    var domain = email.split('@')[1] || '';
+    var blocked = ['gmail.com','hotmail.com','yahoo.com','outlook.com','live.com','icloud.com','me.com'];
+    if (blocked.indexOf(domain.toLowerCase()) !== -1) {
+      errEl.textContent = 'Please use your work email address, not a personal email.';
+      errEl.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'Send Verification Email';
+      return;
+    }
 
-  try {
-    var resp = await fetch('/api/events/' + eventId + '/claim', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-      body: JSON.stringify({ organiser_email: email, organiser_role: role, website: website })
-    });
-    var data = await resp.json();
-    if (resp.ok) {
-      document.getElementById('claimFormBody').style.display = 'none';
-      document.getElementById('claimSuccessBody').style.display = 'block';
-      document.getElementById('claimSuccessEmail').textContent = email;
-    } else {
-      errEl.textContent = data.error || 'Something went wrong. Please try again.';
+    try {
+      var resp = await fetch('/api/events/' + eventId + '/claim', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ organiser_email: email, organiser_role: role, website: website })
+      });
+      var data = await resp.json();
+      if (resp.ok) {
+        document.getElementById('claimFormBody').style.display = 'none';
+        document.getElementById('claimSuccessBody').style.display = 'block';
+        document.getElementById('claimSuccessEmail').textContent = email;
+      } else {
+        errEl.textContent = data.error || 'Something went wrong. Please try again.';
+        errEl.style.display = 'block';
+        btn.disabled = false; btn.textContent = 'Send Verification Email';
+      }
+    } catch(err) {
+      errEl.textContent = 'Connection error. Please try again.';
       errEl.style.display = 'block';
       btn.disabled = false; btn.textContent = 'Send Verification Email';
     }
-  } catch(err) {
-    errEl.textContent = 'Connection error. Please try again.';
-    errEl.style.display = 'block';
-    btn.disabled = false; btn.textContent = 'Send Verification Email';
-  }
+  });
 });
 
 function parseArr(v) { if (!v) return []; if (Array.isArray(v)) return v; try { return JSON.parse(v); } catch(e) { return []; } }
