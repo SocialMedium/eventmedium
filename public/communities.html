@@ -63,6 +63,19 @@ body{font-family:var(--font);color:var(--txt);background:var(--bg);-webkit-font-
 .comm-card:hover{border-color:var(--p);box-shadow:var(--shadowL);transform:translateY(-2px)}
 .delete-comm-btn{position:absolute;top:10px;right:10px;background:none;border:none;color:#ccc;font-size:16px;cursor:pointer;padding:2px 6px;border-radius:6px;line-height:1}
 .delete-comm-btn:hover{background:#fee2e2;color:#ef4444}
+.edit-comm-btn{position:absolute;top:10px;right:38px;background:none;border:none;color:#ccc;font-size:12px;font-weight:600;cursor:pointer;padding:2px 8px;border-radius:6px;line-height:1.6;font-family:var(--font)}
+.edit-comm-btn:hover{background:var(--pL);color:var(--p)}
+/* Edit modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:900;align-items:center;justify-content:center;padding:24px}
+.modal-overlay.open{display:flex}
+.modal-box{background:#fff;border-radius:16px;padding:28px;width:100%;max-width:460px;box-shadow:0 24px 64px rgba(0,0,0,0.18)}
+.modal-box h3{font-size:17px;font-weight:700;margin-bottom:20px}
+.modal-field{margin-bottom:16px}
+.modal-field label{display:block;font-size:11px;font-weight:700;color:var(--txtL);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px}
+.modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px}
+.modal-cancel-btn{padding:9px 18px;border:1px solid var(--bdr);border-radius:8px;font-size:13px;font-weight:600;background:#fff;color:var(--txtL);cursor:pointer;font-family:var(--font)}
+.modal-save-btn{padding:9px 22px;border:none;border-radius:8px;font-size:13px;font-weight:600;background:var(--p);color:#fff;cursor:pointer;font-family:var(--font)}
+.modal-save-btn:disabled{opacity:0.5;cursor:not-allowed}
 .comm-name{font-size:1.05rem;font-weight:700;margin-bottom:4px}
 .comm-desc{font-size:13px;color:var(--txtL);margin-bottom:12px;line-height:1.5}
 .comm-meta{display:flex;gap:16px;font-size:12px;color:var(--txtXL)}
@@ -259,11 +272,15 @@ function setCommType(type) {
       var deleteBtn = c.role === 'owner'
         ? '<button class="delete-comm-btn" onclick="event.stopPropagation();deleteCommunity(' + c.id + ',this)" title="Delete">&#x2715;</button>'
         : '';
+      var editBtn = c.role === 'owner'
+        ? '<button class="edit-comm-btn" onclick="event.stopPropagation();openEditCommunityModal(' + c.id + ',' + JSON.stringify(c.name) + ',' + JSON.stringify(c.description || '') + ')" title="Edit">Edit</button>'
+        : '';
       var dashBtn = c.role === 'owner'
         ? '<a class="dash-btn" href="/community-dashboard.html?slug=' + c.slug + '" onclick="event.stopPropagation()">Dashboard</a>'
         : '';
       return '<div class="comm-card" style="position:relative" onclick="window.location.href=\'/community.html?slug=' + c.slug + '\'">' +
         deleteBtn +
+        editBtn +
         badge +
         '<div class="comm-name">' + esc(c.name) + '</div>' +
         '<div class="comm-desc">' + esc(c.description || '') + '</div>' +
@@ -357,6 +374,46 @@ function copyField(id) {
   if (btn) { var orig = btn.textContent; btn.textContent = 'Copied!'; setTimeout(function() { btn.textContent = orig; }, 1500); }
 }
 
+var _editCommId = null;
+function openEditCommunityModal(id, name, desc) {
+  _editCommId = id;
+  document.getElementById('ecName').value = name || '';
+  document.getElementById('ecDesc').value = desc || '';
+  document.getElementById('ecError').style.display = 'none';
+  document.getElementById('ecSaveBtn').disabled = false;
+  document.getElementById('ecSaveBtn').textContent = 'Save Changes';
+  document.getElementById('editCommModal').classList.add('open');
+}
+
+function closeEditCommunityModal() {
+  document.getElementById('editCommModal').classList.remove('open');
+  _editCommId = null;
+}
+
+async function submitEditCommunity() {
+  var name = document.getElementById('ecName').value.trim();
+  var desc = document.getElementById('ecDesc').value.trim();
+  var errEl = document.getElementById('ecError');
+  var btn = document.getElementById('ecSaveBtn');
+  if (!name) { errEl.textContent = 'Name is required.'; errEl.style.display = 'block'; return; }
+  btn.disabled = true; btn.textContent = 'Saving…';
+  var token = localStorage.getItem('auth_token');
+  try {
+    var r = await fetch('/api/communities/' + _editCommId, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ name: name, description: desc })
+    });
+    var data = await r.json();
+    if (!r.ok) { errEl.textContent = data.error || 'Failed to save.'; errEl.style.display = 'block'; btn.disabled = false; btn.textContent = 'Save Changes'; return; }
+    closeEditCommunityModal();
+    window.location.reload();
+  } catch(e) {
+    errEl.textContent = 'Connection error.'; errEl.style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Save Changes';
+  }
+}
+
 async function deleteCommunity(id, btn) {
   var token = localStorage.getItem('auth_token');
   if (!window.confirm('Delete this community? This cannot be undone.')) return;
@@ -368,6 +425,26 @@ async function deleteCommunity(id, btn) {
   } catch(e) { alert('Delete failed'); }
 }
 </script>
+<!-- Edit Community Modal -->
+<div class="modal-overlay" id="editCommModal" onclick="if(event.target===this) closeEditCommunityModal()">
+  <div class="modal-box">
+    <h3>Edit Community</h3>
+    <div class="modal-field">
+      <label>Community Name</label>
+      <input type="text" id="ecName" class="form-input">
+    </div>
+    <div class="modal-field">
+      <label>Description</label>
+      <textarea id="ecDesc" class="form-input" rows="3" style="resize:vertical"></textarea>
+    </div>
+    <div id="ecError" style="color:#ef4444;font-size:13px;margin-top:4px;display:none"></div>
+    <div class="modal-actions">
+      <button class="modal-cancel-btn" onclick="closeEditCommunityModal()">Cancel</button>
+      <button class="modal-save-btn" id="ecSaveBtn" onclick="submitEditCommunity()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
 <script src="/js/nav.js"></script>
 </body>
 </html>

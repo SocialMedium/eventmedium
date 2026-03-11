@@ -93,6 +93,7 @@ async function runMigrations() {
   try {
     var { dbRun } = require('./db');
     await dbRun('ALTER TABLE event_matches ADD COLUMN IF NOT EXISTS community_id INTEGER REFERENCES communities(id)');
+    await dbRun("ALTER TABLE communities ADD COLUMN IF NOT EXISTS comm_type TEXT DEFAULT 'open'");
     await dbRun("ALTER TABLE event_matches ADD COLUMN IF NOT EXISTS scope_type TEXT DEFAULT 'event'");
     await dbRun('ALTER TABLE users ADD COLUMN IF NOT EXISTS last_global_match TIMESTAMP');
     await dbRun(`CREATE TABLE IF NOT EXISTS nev_messages (
