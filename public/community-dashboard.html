@@ -432,6 +432,12 @@ body{font-family:var(--sans);background:var(--bg2);color:var(--text);min-height:
       <label>Description</label>
       <textarea id="ceDesc" placeholder="What is this event about?"></textarea>
     </div>
+    <div class="form-row" style="margin-top:12px">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;text-transform:none;letter-spacing:0;font-weight:500;color:var(--text)">
+        <input type="checkbox" id="cePublic" style="accent-color:var(--accent);width:16px;height:16px">
+        Make this event publicly visible (non-members can discover and register)
+      </label>
+    </div>
     <div id="ceError" style="color:#dc2626;font-size:13px;margin-top:8px;display:none"></div>
     <div class="modal-actions">
       <button class="modal-cancel" onclick="closeCreateEvent()">Cancel</button>
@@ -458,6 +464,12 @@ body{font-family:var(--sans);background:var(--bg2);color:var(--text);min-height:
         <label>City</label>
         <input type="text" id="eeCity">
       </div>
+    </div>
+    <div class="form-row" style="margin-top:12px">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;text-transform:none;letter-spacing:0;font-weight:500;color:var(--text)">
+        <input type="checkbox" id="eePublic" style="accent-color:var(--accent);width:16px;height:16px">
+        Publicly visible (non-members can discover and register)
+      </label>
     </div>
     <div id="eeError" style="color:#dc2626;font-size:13px;margin-top:8px;display:none"></div>
     <div class="modal-actions">
@@ -1073,12 +1085,12 @@ function renderEventsTable(evts, el) {
     var reg = parseInt(e.registration_count) || 0;
     return '<div class="evt-card">'
       +'<div class="evt-card-main">'
-      +'<div class="evt-card-name">'+esc(e.name)+'</div>'
+      +'<div class="evt-card-name">'+esc(e.name)+(e.is_public ? ' <span style="font-size:10px;font-weight:600;color:var(--accent);background:var(--accent-light);padding:2px 6px;border-radius:4px;margin-left:6px;vertical-align:middle">PUBLIC</span>' : ' <span style="font-size:10px;font-weight:600;color:var(--text3);background:var(--bg);padding:2px 6px;border-radius:4px;margin-left:6px;vertical-align:middle">MEMBERS ONLY</span>')+'</div>'
       +'<div class="evt-card-meta">'+esc(d)+' · '+esc(loc)+'</div>'
       +'</div>'
       +'<div class="evt-card-stat"><div class="evt-card-count">'+reg+'</div><div class="evt-card-count-lbl">Registrations</div></div>'
       +'<div class="evt-card-actions">'
-      +'<button class="btn-sm" onclick=\'openEditEvent('+e.id+','+JSON.stringify(e.name)+','+JSON.stringify(e.event_date||'')+','+JSON.stringify(e.city||'')+')\'>'
+      +'<button class="btn-sm" onclick=\'openEditEvent('+e.id+','+JSON.stringify(e.name)+','+JSON.stringify(e.event_date||'')+','+JSON.stringify(e.city||'')+ ','+(e.is_public ? 'true' : 'false')+')\'>'
       +'Edit</button>'
       +'<button class="btn-sm" style="color:var(--red);border-color:rgba(220,38,38,0.2)" onclick=\'openDeleteEvent('+e.id+','+JSON.stringify(e.name)+')\'>'
       +'Delete</button>'
@@ -1137,7 +1149,8 @@ async function submitCreateEvent() {
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
       body: JSON.stringify({ name: name, event_date: date, city: city, country: country,
         expected_attendees: attendees ? parseInt(attendees) : null,
-        themes: themes, description: desc, community_id: D.community.id })
+        themes: themes, description: desc, community_id: D.community.id,
+        is_public: document.getElementById('cePublic').checked })
     });
     var data = await r.json();
     if (!r.ok) { errEl.textContent = data.error || 'Failed to create event.'; errEl.style.display='block'; btn.disabled=false; btn.textContent='Create Event'; return; }
@@ -1152,11 +1165,12 @@ async function submitCreateEvent() {
 }
 
 // ── Edit Event modal ──────────────────────────────────────────────────────────
-function openEditEvent(id, name, date, city) {
+function openEditEvent(id, name, date, city, isPublic) {
   document.getElementById('eeId').value = id;
   document.getElementById('eeName').value = name || '';
   document.getElementById('eeDate').value = date ? date.substring(0,10) : '';
   document.getElementById('eeCity').value = city || '';
+  document.getElementById('eePublic').checked = !!isPublic;
   document.getElementById('eeError').style.display = 'none';
   document.getElementById('eeSubmitBtn').disabled = false;
   document.getElementById('eeSubmitBtn').textContent = 'Save Changes';
@@ -1180,7 +1194,7 @@ async function submitEditEvent() {
     var r = await fetch('/api/events/' + id, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
-      body: JSON.stringify({ name: name || null, event_date: date || null, city: city || null })
+      body: JSON.stringify({ name: name || null, event_date: date || null, city: city || null, is_public: document.getElementById('eePublic').checked })
     });
     var data = await r.json();
     if (!r.ok) { errEl.textContent = data.error || 'Failed to save.'; errEl.style.display='block'; btn.disabled=false; btn.textContent='Save Changes'; return; }

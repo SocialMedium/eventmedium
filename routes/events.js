@@ -39,7 +39,7 @@ router.get('/', optionalAuth, async function(req, res) {
       conditions.push('event_date >= CURRENT_DATE');
     }
 
-    conditions.push('community_id IS NULL');
+    conditions.push('(community_id IS NULL OR is_public = true)');
     var where = ' WHERE ' + conditions.join(' AND ');
     var lim = parseInt(limit) || 50;
     var off = parseInt(offset) || 0;
@@ -112,13 +112,15 @@ router.get('/recommended', authenticateToken, async function(req, res) {
       userFocus.split(/[\s,;]+/).forEach(function(w) { if (w.length > 3) userKeywords.add(w); });
     }
 
-    // Load upcoming events (include community events too)
+    // Load upcoming events — public events + community events user is a member of
     var events = await dbAll(
       `SELECT e.*,
         (SELECT COUNT(*) FROM event_registrations WHERE event_id = e.id AND status = 'active') as reg_count
        FROM events e
        WHERE e.event_date >= CURRENT_DATE
        AND e.id NOT IN (SELECT event_id FROM event_registrations WHERE user_id = $1 AND status = 'active')
+       AND (e.community_id IS NULL OR e.is_public = true
+            OR e.community_id IN (SELECT community_id FROM community_members WHERE user_id = $1))
        ORDER BY e.event_date ASC`,
       [req.user.id]
     );
@@ -450,6 +452,16 @@ router.get('/:id', optionalAuth, async function(req, res) {
     var event = await dbGet('SELECT * FROM events WHERE id = $1', [req.params.id]);
     if (!event) return res.status(404).json({ error: 'Event not found' });
 
+    // Community event visibility: members only, unless is_public
+    if (event.community_id && !event.is_public) {
+      if (!req.user) return res.status(403).json({ error: 'Sign in to view this community event' });
+      var membership = await dbGet(
+        'SELECT id FROM community_members WHERE community_id = $1 AND user_id = $2',
+        [event.community_id, req.user.id]
+      );
+      if (!membership) return res.status(403).json({ error: 'This event is only visible to community members' });
+    }
+
     var count = await dbGet(
       'SELECT COUNT(*) as count FROM event_registrations WHERE event_id = $1 AND status = $2',
       [event.id, 'active']
@@ -692,11 +704,17 @@ router.post('/', authenticateToken, async function(req, res) {
 router.patch('/:id', authenticateToken, async function(req, res) {
   try {
     var eventId = parseInt(req.params.id);
-    var { name, event_date, city, country, expected_attendees, themes, description } = req.body;
+    var { name, event_date, city, country, expected_attendees, themes, description, is_public } = req.body;
 
-    var event = await dbGet('SELECT owner_user_id FROM events WHERE id = $1', [eventId]);
+    var event = await dbGet('SELECT owner_user_id, community_id FROM events WHERE id = $1', [eventId]);
     if (!event) return res.status(404).json({ error: 'Event not found' });
-    if (event.owner_user_id !== req.user.id) return res.status(403).json({ error: 'Access denied' });
+    // Allow owner or community owner to edit
+    var canEdit = event.owner_user_id === req.user.id;
+    if (!canEdit && event.community_id) {
+      var comm = await dbGet('SELECT owner_user_id FROM communities WHERE id = $1', [event.community_id]);
+      if (comm && comm.owner_user_id === req.user.id) canEdit = true;
+    }
+    if (!canEdit) return res.status(403).json({ error: 'Access denied' });
 
     var result = await dbRun(
       `UPDATE events SET
@@ -707,11 +725,13 @@ router.patch('/:id', authenticateToken, async function(req, res) {
         expected_attendees = COALESCE($5, expected_attendees),
         themes = COALESCE($6, themes),
         description = COALESCE($7, description),
+        is_public = COALESCE($8, is_public),
         updated_at = NOW()
-       WHERE id = $8 RETURNING *`,
+       WHERE id = $9 RETURNING *`,
       [name || null, event_date || null, city || null, country || null,
        expected_attendees ? parseInt(expected_attendees) : null,
-       themes ? JSON.stringify(themes) : null, description || null, eventId]
+       themes ? JSON.stringify(themes) : null, description || null,
+       is_public !== undefined ? (is_public === true || is_public === 'true') : null, eventId]
     );
     res.json({ event: result.rows[0] });
   } catch (err) {
@@ -741,8 +761,17 @@ router.delete('/:id', authenticateToken, async function(req, res) {
 router.post('/:id/register', authenticateToken, async function(req, res) {
   try {
     var eventId = parseInt(req.params.id);
-    var event = await dbGet('SELECT id FROM events WHERE id = $1', [eventId]);
+    var event = await dbGet('SELECT id, community_id, is_public FROM events WHERE id = $1', [eventId]);
     if (!event) return res.status(404).json({ error: 'Event not found' });
+
+    // Community event: must be member or event must be public
+    if (event.community_id && !event.is_public) {
+      var membership = await dbGet(
+        'SELECT id FROM community_members WHERE community_id = $1 AND user_id = $2',
+        [event.community_id, req.user.id]
+      );
+      if (!membership) return res.status(403).json({ error: 'This event is only open to community members' });
+    }
 
     // Get user's profile for stakeholder_type and themes
     var profile = await dbGet(

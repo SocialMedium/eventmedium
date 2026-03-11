@@ -193,15 +193,17 @@ router.post('/:slug/events', authenticateToken, async function(req, res) {
     if (!name || !eventDate) return res.status(400).json({ error: 'Name and date required' });
 
     var eventSlug = slugify(name) + '-' + community.id;
+    var isPublic = b.is_public === true || b.is_public === 'true';
     var result = await dbRun(
-      `INSERT INTO events (name, slug, event_date, city, country, themes, community_id, expected_attendees)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
+      `INSERT INTO events (name, slug, event_date, city, country, themes, community_id, expected_attendees, is_public)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
       [
         name, eventSlug, eventDate,
         (b.city || '').trim(), (b.country || '').trim(),
         JSON.stringify(b.themes || []),
         community.id,
-        b.expected_attendees || 50
+        b.expected_attendees || 50,
+        isPublic
       ]
     );
 
