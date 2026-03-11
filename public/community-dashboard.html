@@ -223,6 +223,7 @@ body{font-family:var(--sans);background:var(--bg2);color:var(--text);min-height:
         <button class="btn btn-pri" id="createEvtBtn" onclick="openCreateEvent()" style="display:none">+ Create Event</button>
         <button class="btn" id="editCommBtn" onclick="openEditCommunity()" style="display:none">Edit</button>
         <button class="btn btn-danger" id="delCommBtn" onclick="openDeleteCommunity()" style="display:none">Delete</button>
+        <a class="btn" id="netMapBtn" href="#" style="display:none"><i data-lucide="share-2" style="width:14px;height:14px;vertical-align:-2px"></i> Network Map</a>
         <span class="pill pill-green" id="ownerPill" style="display:none">Owner</span>
         <a href="/communities.html" class="btn btn-back">← Communities</a>
       </div>
@@ -559,6 +560,10 @@ function renderHeader() {
   document.getElementById('createEvtBtn').style.display = 'inline-flex';
   document.getElementById('editCommBtn').style.display = 'inline-flex';
   document.getElementById('delCommBtn').style.display = 'inline-flex';
+  var nm = document.getElementById('netMapBtn');
+  nm.href = '/network-graph.html?mode=community&id=' + c.id;
+  nm.style.display = 'inline-flex';
+  if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
 function copyInvite() {

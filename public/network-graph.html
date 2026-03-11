@@ -753,7 +753,21 @@ function shareView() {
   var filters = params.get('filters');
   if (filters) filters.split(',').forEach(function(f) { if (f) activeFilters.add(f); });
 
-  if (modeParam === 'context') {
+  var id = params.get('id');
+  if ((modeParam === 'community' || modeParam === 'event') && id) {
+    await setMode('context');
+    var ctx = modeParam + ':' + id;
+    var sel = document.getElementById('contextSel');
+    // Add option if not already present (page may not have loaded contexts yet)
+    if (!sel.querySelector('option[value="' + ctx + '"]')) {
+      var opt = document.createElement('option');
+      opt.value = ctx;
+      opt.textContent = (modeParam === 'community' ? 'Community' : 'Event') + ' #' + id;
+      sel.appendChild(opt);
+    }
+    sel.value = ctx;
+    await loadContext();
+  } else if (modeParam === 'context') {
     await setMode('context');
     var ctx = params.get('ctx');
     if (ctx) {

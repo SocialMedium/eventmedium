@@ -170,7 +170,6 @@ body{font-family:var(--font);color:var(--txt);background:var(--bg);-webkit-font-
       <a href="/events.html" class="nav-link">Events</a>
       <a href="/matches.html" class="nav-link" id="navMatches">Matches</a>
       <a href="/inbox.html" class="nav-link">Inbox</a>
-      <a href="/network-graph.html" class="nav-link">Network</a>
       <a href="/canister.html" class="nav-link active">My Canister</a>
       <button class="nav-logout" onclick="logout()">Log out</button>
     </div>
@@ -244,6 +243,7 @@ async function loadCanister() {
       '<a href="/events.html" class="action-btn primary"><i data-lucide="calendar"></i> Browse Events</a>' +
       '<a href="/matches.html" class="action-btn"><i data-lucide="heart-handshake"></i> My Matches' + (pendingMatches.length ? ' (' + pendingMatches.length + ')' : '') + '</a>' +
       '<a href="/onboard.html" class="action-btn"><i data-lucide="bot"></i> Talk to Nev</a>' +
+      '<a href="/network-graph.html" class="action-btn"><i data-lucide="share-2"></i> Network Map</a>' +
       '<a href="/privacy.html" class="action-btn"><i data-lucide="shield"></i> Your Data</a>' +
     '</div>';
 

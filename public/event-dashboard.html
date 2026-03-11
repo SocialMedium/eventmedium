@@ -198,7 +198,10 @@ function render(isOwner) {
             (E.city ? '<span><i data-lucide="map-pin"></i>' + esc(E.city) + (E.country ? ', ' + esc(E.country) : '') + '</span>' : '') +
           '</div>' +
         '</div>' +
-        (isOwner ? '<a href="/event.html?id=' + E.id + '" class="nav-back" style="border:1px solid var(--bdr);border-radius:8px">View public page</a>' : '') +
+        (isOwner ? '<div style="display:flex;gap:8px;align-items:center">' +
+          '<a href="/network-graph.html?mode=event&id=' + E.id + '" class="nav-back" style="border:1px solid var(--bdr);border-radius:8px"><i data-lucide="share-2" style="width:14px;height:14px"></i> Network Map</a>' +
+          '<a href="/event.html?id=' + E.id + '" class="nav-back" style="border:1px solid var(--bdr);border-radius:8px">View public page</a>' +
+          '</div>' : '') +
       '</div>' +
     '</div>';
 
