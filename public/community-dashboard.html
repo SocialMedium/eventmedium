@@ -157,6 +157,7 @@ body{font-family:var(--sans);background:var(--bg2);color:var(--text);min-height:
 }
 @media(max-width:500px){.stat-row{grid-template-columns:1fr 1fr}}
 </style>
+<link rel="icon" type="image/png" href="/images/em-logo.png">
 </head>
 <body>
 
@@ -165,7 +166,7 @@ body{font-family:var(--sans);background:var(--bg2);color:var(--text);min-height:
   <div class="header-inner">
     <div class="header-row">
       <div>
-        <a href="/" class="logo"><span class="ld"></span>Event <em>Medium</em></a>
+        <a href="/" class="logo"><img src="/images/em-logo.png" alt="Event Medium" style="width:36px;height:36px;border-radius:8px;display:block;">Event <em>Medium</em></a>
         <h1 class="title" id="commTitle"><span class="skel" style="display:inline-block;width:220px;height:24px;border-radius:4px;vertical-align:middle"></span></h1>
         <div class="subtitle" id="commSub">&nbsp;</div>
       </div>
@@ -284,6 +285,7 @@ function esc(s){if(!s)return '';var d=document.createElement('div');d.textConten
 function pct(v,dp){dp=dp||0;return(v*100).toFixed(dp)+'%';}
 function relDate(s){if(!s)return '—';var d=Math.floor((Date.now()-new Date(s))/86400000);if(d<1)return 'today';if(d===1)return 'yesterday';if(d<7)return d+'d ago';if(d<30)return Math.floor(d/7)+'w ago';return Math.floor(d/30)+'mo ago';}
 function initials(n){return(n||'?').split(' ').map(function(p){return p[0]||'';}).slice(0,2).join('').toUpperCase()||'?';}
+function blurSurname(n){if(!n)return '—';var parts=n.trim().split(/\s+/);if(parts.length<2)return esc(n);var given=parts.slice(0,parts.length-1).join(' ');var sur=parts[parts.length-1];var rest=sur.slice(1);return esc(given)+' '+esc(sur.charAt(0))+(rest?'<span style="filter:blur(4px);user-select:none;letter-spacing:0">'+esc(rest)+'</span>':'');}
 function avColor(n){var c=['#6366f1','#059669','#d97706','#7c3aed','#2563eb','#ea580c','#0891b2','#be185d'];var h=0;for(var i=0;i<(n||'').length;i++)h=(h*31+n.charCodeAt(i))&0xffff;return c[h%c.length];}
 function polarXY(cx,cy,r,deg){var rad=deg*Math.PI/180;return{x:(cx+r*Math.cos(rad)).toFixed(2),y:(cy+r*Math.sin(rad)).toFixed(2)};}
 
@@ -781,7 +783,7 @@ function renderMTable() {
     var bg = avColor(m.name||'');
     html += '<div class="tbl-row" style="grid-template-columns:34px 1fr 110px 90px 80px;min-width:480px">'
       +'<div class="av" style="background:'+bg+'">'+esc(initials(m.name))+'</div>'
-      +'<div><div style="font-weight:600">'+esc(m.name||'—')+'</div>'
+      +'<div><div style="font-weight:600">'+blurSurname(m.name)+'</div>'
       +(m.company?'<div style="font-size:11px;color:var(--text3)">'+esc(m.company)+'</div>':'')+'</div>'
       +'<div>'+badge+'</div>'
       +'<div>'+prof+'</div>'

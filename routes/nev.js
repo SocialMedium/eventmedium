@@ -263,7 +263,7 @@ router.post('/opening', authenticateToken, async function(req, res) {
       }
       opening += ' Anything new I should know about? You can sign off anytime by saying done.';
     } else if (user) {
-      opening = 'Hey ' + user.name + '! I\'m Nev, your networking concierge. A few quick questions and I\'ll start matching you with the right people at events. Just say done whenever you are ready to stop — more context means sharper matches, but a few answers is enough to get started. Let\'s start — what do you do, and what are you working on right now?';
+      opening = 'Hi ' + user.name.split(' ')[0] + ' — I\'m Nev. I help match you with the right people at events. I\'ll ask a few quick questions — just say done whenever you want to stop. First up: what do you do, and what are you working on right now?';
     } else {
       opening = 'Hey there! I\'m Nev, your networking concierge. A few quick questions and I\'ll start matching you with the right people at events. Just say done whenever you are ready to stop — more context means sharper matches, but a few answers is enough to get started. Tell me a bit about yourself — what do you do, and what are you working on?';
     }

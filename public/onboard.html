@@ -159,34 +159,62 @@ body{font-family:var(--font);color:var(--txt);background:var(--bg);-webkit-font-
 .canister-saved .saved-secondary:hover{background:#ecfdf5}
 .canister-saved a i{width:14px;height:14px}
 
+/* Prevent bubble overflow on all screens */
+.msg{overflow-wrap:break-word;word-break:break-word}
+
 /* Mobile: stacked */
 @media(max-width:768px){
   .split{flex-direction:column}
   .chat-pane{border-right:none;flex:1;min-height:0}
-  .canister-pane{width:100%;max-height:40vh;border-top:1px solid var(--bdr);padding:16px}
+  .canister-pane{width:100%;max-height:38vh;border-top:1px solid var(--bdr);padding:16px}
   .canister-preview{position:static}
+  .done-bar-inner{flex-direction:column;gap:10px;align-items:flex-start}
+  .done-bar-actions{width:100%;justify-content:flex-start}
 }
 @media(max-width:640px){
-  .nev-header{padding:14px 16px 10px}
-  .messages{padding:0 16px 12px}
-  .input-wrap{padding:8px 16px 14px}
-  .msg{max-width:90%;padding:10px 12px;font-size:13px}
-  .canister-pane{padding:12px}
-  .canister-preview{padding:16px}
+  .nev-header{padding:12px 14px 8px}
+  .messages{padding:0 12px 12px}
+  /* 16px minimum prevents iOS Safari auto-zoom on input focus */
+  .chat-input{font-size:16px;padding:10px 12px}
+  .input-wrap{padding:6px 12px max(14px, env(safe-area-inset-bottom))}
+  .send-btn,.mic-btn{width:44px;height:44px}
+  .msg{max-width:92%;padding:10px 12px;font-size:14px}
+  .canister-pane{padding:10px;max-height:36vh}
+  .canister-preview{padding:14px}
+  .done-btn{padding:8px 14px;font-size:12px}
+  .nav-right .nav-link{display:none}
+  .nav-right .nav-link:last-child{display:flex}
+}
+@media(max-width:390px){
+  .messages{padding:0 10px 10px}
+  .input-wrap{padding:6px 10px max(12px, env(safe-area-inset-bottom))}
+  .msg{font-size:13px}
+  .canister-pane{max-height:34vh}
 }
 
 .signal-ready{display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,#ecfdf5,#d1fae5);border:1px solid #6ee7b7;border-radius:10px;padding:12px 14px;margin-top:12px;animation:msgIn 0.4s ease-out}
 .signal-ready-icon{width:32px;height:32px;border-radius:8px;background:#059669;color:white;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .signal-ready-title{font-size:13px;font-weight:700;color:#065f46}
 .signal-ready-sub{font-size:11px;color:#047857;margin-top:1px}
+
+/* ── Completion overlay ── */
+.completion-overlay{position:fixed;inset:0;height:100dvh;background:white;display:none;align-items:center;justify-content:center;z-index:200;opacity:0;transition:opacity 0.4s ease;padding:24px}
+.completion-overlay.visible{opacity:1}
+.completion-card{text-align:center;max-width:400px;width:100%}
+.completion-icon{width:80px;height:80px;border-radius:50%;background:var(--okL);display:flex;align-items:center;justify-content:center;margin:0 auto 24px;color:#059669}
+.completion-icon i{width:40px;height:40px}
+.completion-card h2{font-size:28px;font-weight:800;color:var(--txt);margin-bottom:12px;letter-spacing:-0.5px}
+.completion-card p{font-size:16px;color:var(--txtL);line-height:1.6;margin-bottom:32px}
+.completion-btn{display:inline-flex;align-items:center;padding:14px 32px;background:var(--p);color:white;font-size:15px;font-weight:600;border-radius:12px;text-decoration:none;transition:all 0.2s}
+.completion-btn:hover{background:var(--pD);transform:translateY(-1px)}
 </style>
-<link rel="stylesheet" href="/css/nav.css"></head>
+<link rel="stylesheet" href="/css/nav.css"><link rel="icon" type="image/png" href="/images/em-logo.png"></head>
 <body>
 
 <nav class="nav">
   <div class="nav-inner">
     <a href="/" class="nav-brand">
-      <div class="nav-logo"><i data-lucide="radio" style="width:16px;height:16px;color:var(--p)"></i></div>
+      <img src="/images/em-logo.png" alt="Event Medium" style="width:36px;height:36px;border-radius:8px;display:block;">
       <span class="nav-name">Event <span style="color:var(--p)">Medium</span></span>
     </a>
     <div class="nav-right">
@@ -336,9 +364,28 @@ body{font-family:var(--font);color:var(--txt);background:var(--bg);-webkit-font-
   </div>
 </div>
 
+<!-- Completion overlay — shown on canister signoff -->
+<div class="completion-overlay" id="completionOverlay">
+  <div class="completion-card">
+    <div class="completion-icon"><i data-lucide="check-circle"></i></div>
+    <h2>You're all set.</h2>
+    <p>Your canister is saved. Nev will find your people.</p>
+    <a href="/matches.html" class="completion-btn">View My Matches</a>
+  </div>
+</div>
+
 <script>
 var token = localStorage.getItem('auth_token');
 if (!token) window.location.href = '/auth.html';
+
+// Capture community params from URL and persist for post-canister auto-join
+(function() {
+  var params = new URLSearchParams(window.location.search);
+  var cid = params.get('community_id');
+  var ccode = params.get('community_code');
+  if (cid) localStorage.setItem('pending_community_id', cid);
+  if (ccode) localStorage.setItem('pending_community_code', ccode);
+})();
 
 // Configure marked for safe, clean rendering
 marked.setOptions({ breaks: true, gfm: true });
@@ -527,6 +574,17 @@ async function sendMessage() {
     addMessage(data.reply, 'nev');
     conversation.push({ role: 'assistant', content: data.reply });
 
+    // Show completion overlay on signoff
+    var isSignoff = data.canister_saved || (data.reply && (data.reply.indexOf('Good talk') !== -1 || data.reply.indexOf('canister is saved') !== -1));
+    if (isSignoff) {
+      setTimeout(function() {
+        var overlay = document.getElementById('completionOverlay');
+        overlay.style.display = 'flex';
+        lucide.createIcons();
+        setTimeout(function() { overlay.classList.add('visible'); }, 50);
+      }, 1200);
+    }
+
     if (data.canister_data) {
       updateLiveCanister(data.canister_data);
     }
@@ -698,6 +756,28 @@ async function saveCanister(data) {
 
     if (resp.ok && !canisterSaved) {
       canisterSaved = true;
+      // Auto-join community if arriving via community link
+      var pendingCode = localStorage.getItem('pending_community_code');
+      var joinedCommunity = false;
+      if (pendingCode) {
+        try {
+          var joinResp = await fetch('/api/communities/join', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body: JSON.stringify({ code: pendingCode })
+          });
+          if (joinResp.ok) {
+            joinedCommunity = true;
+            localStorage.removeItem('pending_community_code');
+            localStorage.removeItem('pending_community_id');
+          }
+        } catch(e) {
+          console.error('Community auto-join error:', e);
+        }
+      }
+      if (joinedCommunity) {
+        document.querySelector('#canisterSaved p').textContent = "Your canister is saved and you've joined the community. Nev will find your people.";
+      }
       document.getElementById('canisterSaved').style.display = 'block';
       document.getElementById('doneBar').style.display = 'block';
       lucide.createIcons();

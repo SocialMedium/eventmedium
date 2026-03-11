@@ -116,12 +116,13 @@ body{font-family:var(--font);color:var(--txt);background:var(--bg);-webkit-font-
 @media(max-width:600px){.share-row{flex-direction:column}.share-btn{justify-content:center}}
 
 </style>
+<link rel="icon" type="image/png" href="/images/em-logo.png">
 </head>
 <body>
 <nav class="nav">
   <div class="nav-inner">
     <a href="/" class="nav-brand">
-      <div class="nav-logo"><i data-lucide="radio" style="width:20px;height:20px;color:var(--p)"></i></div>
+      <img src="/images/em-logo.png" alt="Event Medium" style="width:36px;height:36px;border-radius:8px;display:block;">
       <span class="nav-name">Event <span style="color:var(--p)">Medium</span></span>
     </a>
     <div class="nav-links">
@@ -397,6 +398,23 @@ async function handleJoin() {
   if (!joinCode) {
     document.getElementById('joinMsg').innerHTML = '<span style="color:#ef4444">No access code available</span>';
     return;
+  }
+
+  // Check if user has a canister — if not, redirect to onboard first
+  try {
+    var profileResp = await fetch('/api/stakeholder/profile', {
+      headers: { Authorization: 'Bearer ' + token }
+    });
+    if (profileResp.ok) {
+      var profileData = await profileResp.json();
+      if (!profileData.profile) {
+        var communityId = communityData && communityData.id ? communityData.id : '';
+        window.location.href = '/onboard.html?community_id=' + encodeURIComponent(communityId) + '&community_code=' + encodeURIComponent(joinCode);
+        return;
+      }
+    }
+  } catch(e) {
+    console.error('Profile check error:', e);
   }
 
   var btn = document.getElementById('joinBtn');
