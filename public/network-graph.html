@@ -25,10 +25,11 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
   padding:0 20px;height:56px;gap:12px;
 }
 .tb-left{display:flex;align-items:center;gap:16px;min-width:0}
-.tb-brand{display:flex;align-items:center;gap:8px;text-decoration:none;color:var(--text);font-size:14px;font-weight:700;white-space:nowrap}
+.tb-brand{display:flex;align-items:center;gap:8px;text-decoration:none;color:var(--text);font-size:14px;font-weight:700;white-space:nowrap;flex-shrink:0}
 .tb-brand em{color:var(--accent);font-style:normal}
-.mode-pills{display:flex;background:rgba(255,255,255,0.04);border:1px solid var(--bar-border);border-radius:10px;padding:3px;gap:2px}
-.mode-pill{padding:6px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;background:transparent;color:var(--text2);font-family:var(--sans);transition:all 0.2s;white-space:nowrap}
+.mode-pills{display:flex;background:rgba(255,255,255,0.04);border:1px solid var(--bar-border);border-radius:10px;padding:3px;gap:2px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;flex-shrink:0}
+.mode-pills::-webkit-scrollbar{display:none}
+.mode-pill{padding:6px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;background:transparent;color:var(--text2);font-family:var(--sans);transition:all 0.2s;white-space:nowrap;flex-shrink:0}
 .mode-pill.active{background:var(--accent);color:#fff}
 .mode-pill:hover:not(.active){color:var(--text);background:rgba(255,255,255,0.06)}
 
@@ -151,9 +152,14 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
 .node-growing{animation:growthPulse 2s ease-in-out infinite}
 
 @media(max-width:640px){
-  .tb-brand em{display:none}
-  .mode-pill{padding:5px 10px;font-size:11px}
+  #topbar{height:auto;flex-wrap:wrap;padding:10px 14px;gap:8px;align-items:flex-start}
+  .tb-left{flex-direction:column;align-items:flex-start;width:100%;gap:8px}
+  .mode-pills{width:100%;max-width:100%}
+  .mode-pill{padding:6px 12px;font-size:12px}
+  .tb-right{display:none}
+  #graph{top:96px;height:calc(100vh - 96px)}
   #legend{display:none}
+  #filters{top:108px}
 }
 </style>
 </head>
@@ -335,8 +341,21 @@ function hideTip() { tip.style.opacity = '0'; }
 // ── Loading helpers ───────────────────────────────────────────────────────────
 function showLoading() { document.getElementById('loading').style.display = 'flex'; }
 function hideLoading() { document.getElementById('loading').style.display = 'none'; }
-function showEmpty() { document.getElementById('emptyState').style.display = 'block'; }
+function showEmpty() {
+  var el = document.getElementById('emptyState');
+  el.querySelector('h3').textContent = 'No connections yet';
+  el.querySelector('p').textContent = 'Register for events and complete your canister to start building your network graph.';
+  el.style.display = 'block';
+}
 function hideEmpty() { document.getElementById('emptyState').style.display = 'none'; }
+function showError(msg) {
+  hideLoading();
+  var el = document.getElementById('emptyState');
+  el.querySelector('h3').textContent = 'Unable to load network';
+  el.querySelector('p').textContent = msg;
+  el.style.display = 'block';
+  console.error('[graph]', msg);
+}
 
 // ── Mode switching ────────────────────────────────────────────────────────────
 async function setMode(m) {
@@ -369,10 +388,11 @@ async function loadMe() {
     var r = await fetch('/api/graph/me', { headers: { Authorization: 'Bearer ' + token } });
     var data = await r.json();
     hideLoading();
+    if (!r.ok || data.error) { showError(data.error || 'HTTP ' + r.status); return; }
     if (!data.nodes || data.nodes.length <= 1) { showEmpty(); return; }
     graphData = data;
     renderGraph(data, 'me');
-  } catch(e) { hideLoading(); showEmpty(); }
+  } catch(e) { showError('Connection error — ' + e.message); }
 }
 
 // ── Load: Contexts dropdown ───────────────────────────────────────────────────
@@ -380,6 +400,7 @@ async function loadContexts() {
   try {
     var r = await fetch('/api/graph/contexts', { headers: { Authorization: 'Bearer ' + token } });
     var data = await r.json();
+    if (!r.ok || data.error) { showError(data.error || 'HTTP ' + r.status); return; }
     var sel = document.getElementById('contextSel');
     sel.innerHTML = '<option value="">Select…</option>';
     (data.items || []).forEach(function(item) {
@@ -391,7 +412,7 @@ async function loadContexts() {
     if (!data.items || !data.items.length) {
       showEmpty();
     }
-  } catch(e) { showEmpty(); }
+  } catch(e) { showError('Connection error — ' + e.message); }
 }
 
 async function loadContext() {
@@ -405,10 +426,11 @@ async function loadContext() {
     var r = await fetch(url, { headers: { Authorization: 'Bearer ' + token } });
     var data = await r.json();
     hideLoading();
+    if (!r.ok || data.error) { showError(data.error || 'HTTP ' + r.status); return; }
     if (!data.nodes || !data.nodes.length) { showEmpty(); return; }
     graphData = data;
     renderGraph(data, 'context');
-  } catch(e) { hideLoading(); showEmpty(); }
+  } catch(e) { showError('Connection error — ' + e.message); }
 }
 
 // ── Load: Global Network ──────────────────────────────────────────────────────
@@ -418,11 +440,15 @@ async function loadGlobal() {
     var r = await fetch('/api/graph/global', { headers: { Authorization: 'Bearer ' + token } });
     var data = await r.json();
     hideLoading();
-    if (!data.nodes || !data.nodes.length) { showEmpty(); return; }
+    if (!r.ok || data.error) { showError('Unable to load global network — ' + (data.error || 'HTTP ' + r.status)); return; }
+    if (!data.nodes || !data.nodes.length) {
+      showError('Unable to load global network — no theme data yet. Complete canisters to populate the graph.');
+      return;
+    }
     graphData = data;
     renderTicker(data.stats || {});
     renderGraph(data, 'global');
-  } catch(e) { hideLoading(); showEmpty(); }
+  } catch(e) { showError('Unable to load global network — ' + e.message); }
 }
 
 // ── Ticker ────────────────────────────────────────────────────────────────────
