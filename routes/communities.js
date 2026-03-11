@@ -487,7 +487,6 @@ router.patch('/:id', authenticateToken, async function(req, res) {
     if (req.body.comm_type) { updates.push('comm_type = $' + idx); params.push(req.body.comm_type); idx++; }
 
     if (updates.length) {
-      updates.push('updated_at = NOW()');
       params.push(community.id);
       await dbRun('UPDATE communities SET ' + updates.join(', ') + ' WHERE id = $' + idx, params);
     }
