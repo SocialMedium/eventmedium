@@ -181,7 +181,7 @@ body{font-family:var(--font);color:var(--txt);background:var(--bg);-webkit-font-
       </button>
       <button class="type-btn" id="typeOfficial" onclick="setCommType('official')">
         <i data-lucide="shield-check" style="width:18px;height:18px"></i>
-        <div><strong>Official / Private</strong><span>Verified organization. Members must match email domain.</span></div>
+        <div><strong>Official / Private</strong><span>Verified organization. Community owner must match email domain.</span></div>
       </button>
     </div>
 
@@ -227,6 +227,14 @@ body{font-family:var(--font);color:var(--txt);background:var(--bg);-webkit-font-
 
 <script>
 function esc(s) { if (!s) return ''; var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+var commType = 'open';
+function setCommType(type) {
+  commType = type;
+  document.getElementById('typeOpen').classList.toggle('active', type === 'open');
+  document.getElementById('typeOfficial').classList.toggle('active', type === 'official');
+  document.getElementById('officialFields').style.display = type === 'official' ? 'block' : 'none';
+}
 
 // Load communities on page load
 (async function() {
@@ -305,7 +313,7 @@ async function createCommunity() {
     var resp = await fetch('/api/communities', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
-      body: JSON.stringify({ name: name, description: document.getElementById('commDesc').value.trim() })
+      body: JSON.stringify({ name: name, description: document.getElementById('commDesc').value.trim(), comm_type: commType })
     });
     var data = await resp.json();
     if (data.error) {
@@ -313,12 +321,6 @@ async function createCommunity() {
     } else {
       var shareUrl = window.location.origin + '/c/' + data.community.slug + '?code=' + data.community.access_code;
       var shareMsg = "I've set up private AI-powered matching for " + name + " on EventMedium.\n\nNo public profiles, no ads — just double-blind introductions with people who complement what you're building.\n\nJoin here: " + shareUrl;
-      var commType = "open";
-      function setCommType(type) {
-        commType = type;
-        document.getElementById("typeOpen").classList.toggle("active", type === "open");
-        document.getElementById("typeOfficial").classList.toggle("active", type === "official");
-      }
       var isOfficial = commType === "official";
       document.getElementById('createResult').innerHTML =
         '<div class="share-result">' +
@@ -341,6 +343,7 @@ async function createCommunity() {
         '</div>';
       document.getElementById('commName').value = '';
       document.getElementById('commDesc').value = '';
+      setCommType('open');
     }
   } catch(e) { document.getElementById('createResult').innerHTML = '<p style="color:#ef4444;margin-top:12px;font-size:13px">Error creating community</p>'; }
 }
