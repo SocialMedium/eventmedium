@@ -663,7 +663,7 @@ router.post('/', authenticateToken, async function(req, res) {
 router.patch('/:id', authenticateToken, async function(req, res) {
   try {
     var eventId = parseInt(req.params.id);
-    var { name, event_date, city } = req.body;
+    var { name, event_date, city, country, expected_attendees, themes, description } = req.body;
 
     var event = await dbGet('SELECT owner_user_id FROM events WHERE id = $1', [eventId]);
     if (!event) return res.status(404).json({ error: 'Event not found' });
@@ -674,14 +674,37 @@ router.patch('/:id', authenticateToken, async function(req, res) {
         name = COALESCE($1, name),
         event_date = COALESCE($2, event_date),
         city = COALESCE($3, city),
+        country = COALESCE($4, country),
+        expected_attendees = COALESCE($5, expected_attendees),
+        themes = COALESCE($6, themes),
+        description = COALESCE($7, description),
         updated_at = NOW()
-       WHERE id = $4 RETURNING *`,
-      [name || null, event_date || null, city || null, eventId]
+       WHERE id = $8 RETURNING *`,
+      [name || null, event_date || null, city || null, country || null,
+       expected_attendees ? parseInt(expected_attendees) : null,
+       themes ? JSON.stringify(themes) : null, description || null, eventId]
     );
     res.json({ event: result.rows[0] });
   } catch (err) {
     console.error('Edit event error:', err);
     res.status(500).json({ error: 'Failed to update event' });
+  }
+});
+
+// ── DELETE /api/events/:id ── (community owner deletes event)
+router.delete('/:id', authenticateToken, async function(req, res) {
+  try {
+    var eventId = parseInt(req.params.id);
+    var event = await dbGet('SELECT owner_user_id FROM events WHERE id = $1', [eventId]);
+    if (!event) return res.status(404).json({ error: 'Event not found' });
+    if (event.owner_user_id !== req.user.id) return res.status(403).json({ error: 'Access denied' });
+    await dbRun('DELETE FROM event_registrations WHERE event_id = $1', [eventId]);
+    await dbRun('DELETE FROM event_matches WHERE event_id = $1', [eventId]);
+    await dbRun('DELETE FROM events WHERE id = $1', [eventId]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Delete event error:', err);
+    res.status(500).json({ error: 'Failed to delete event' });
   }
 });
 

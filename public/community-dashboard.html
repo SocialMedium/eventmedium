@@ -189,6 +189,14 @@ body{font-family:var(--sans);background:var(--bg2);color:var(--text);min-height:
 .modal-submit{padding:9px 22px;border:none;border-radius:8px;font-size:13px;font-weight:600;background:var(--accent);color:#fff;cursor:pointer;font-family:var(--sans);transition:background 0.15s}
 .modal-submit:hover{background:var(--accent2)}
 .modal-submit:disabled{opacity:0.5;cursor:not-allowed}
+.btn-danger{color:var(--red);border-color:rgba(220,38,38,0.2)}
+.btn-danger:hover{background:var(--redL);border-color:var(--red);color:var(--red)}
+.modal-submit-danger{padding:9px 22px;border:none;border-radius:8px;font-size:13px;font-weight:600;background:var(--red);color:#fff;cursor:pointer;font-family:var(--sans);transition:background 0.15s}
+.modal-submit-danger:hover{background:#b91c1c}
+.modal-submit-danger:disabled{opacity:0.5;cursor:not-allowed}
+.type-toggle-sm{display:flex;gap:8px;margin-top:4px}
+.type-btn-sm{flex:1;padding:10px 12px;border:2px solid var(--border2);border-radius:8px;cursor:pointer;font-family:var(--sans);font-size:12px;font-weight:600;background:var(--bg);color:var(--text2);transition:all 0.15s;text-align:center}
+.type-btn-sm.active{border-color:var(--accent);background:var(--accent-light);color:var(--accent)}
 </style>
 <link rel="icon" type="image/png" href="/images/em-logo.png">
 </head>
@@ -213,6 +221,8 @@ body{font-family:var(--sans);background:var(--bg2);color:var(--text);min-height:
           Share
         </button>
         <button class="btn btn-pri" id="createEvtBtn" onclick="openCreateEvent()" style="display:none">+ Create Event</button>
+        <button class="btn" id="editCommBtn" onclick="openEditCommunity()" style="display:none">Edit</button>
+        <button class="btn btn-danger" id="delCommBtn" onclick="openDeleteCommunity()" style="display:none">Delete</button>
         <span class="pill pill-green" id="ownerPill" style="display:none">Owner</span>
         <a href="/communities.html" class="btn btn-back">← Communities</a>
       </div>
@@ -299,6 +309,89 @@ body{font-family:var(--sans);background:var(--bg2);color:var(--text);min-height:
   <div class="footer">
     <span>EventMedium.ai · Community Intelligence</span>
     <span class="mono" id="footerSlug"></span>
+  </div>
+</div>
+
+<!-- ── Edit Community Modal ── -->
+<div class="modal-bg" id="editCommModal">
+  <div class="modal">
+    <h3>Edit Community</h3>
+    <div class="form-row">
+      <label>Community Name</label>
+      <input type="text" id="ecName">
+    </div>
+    <div class="form-row">
+      <label>Description</label>
+      <textarea id="ecDesc"></textarea>
+    </div>
+    <div class="form-row">
+      <label>Community Type</label>
+      <div class="type-toggle-sm">
+        <button class="type-btn-sm active" id="ecTypeOpen" onclick="setEditCommType('open')">Open</button>
+        <button class="type-btn-sm" id="ecTypeOfficial" onclick="setEditCommType('official')">Official / Private</button>
+      </div>
+    </div>
+    <div id="ecError" style="color:#dc2626;font-size:13px;margin-top:8px;display:none"></div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeEditCommunity()">Cancel</button>
+      <button class="modal-submit" id="ecSubmitBtn" onclick="submitEditCommunity()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Delete Community Step 1 Modal ── -->
+<div class="modal-bg" id="delComm1Modal">
+  <div class="modal">
+    <h3>Delete community?</h3>
+    <p id="delComm1Msg" style="font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:20px"></p>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeDelComm1()">Cancel</button>
+      <button class="modal-submit" onclick="confirmDeleteCommunity()">Continue</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Delete Community Step 2 Modal ── -->
+<div class="modal-bg" id="delComm2Modal">
+  <div class="modal">
+    <h3>This cannot be undone</h3>
+    <p style="font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:16px">All member data, matches, and events linked to this community will be permanently deleted. Type the community name to confirm.</p>
+    <div class="form-row">
+      <label>Community Name</label>
+      <input type="text" id="delCommConfirm" placeholder="Type community name">
+    </div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeDelComm2()">Cancel</button>
+      <button class="modal-submit-danger" id="delCommFinalBtn" onclick="permanentlyDeleteCommunity()" disabled>Permanently Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Delete Event Step 1 Modal ── -->
+<div class="modal-bg" id="delEvt1Modal">
+  <div class="modal">
+    <h3>Delete event?</h3>
+    <p id="delEvt1Msg" style="font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:20px"></p>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeDelEvt1()">Cancel</button>
+      <button class="modal-submit" onclick="confirmDeleteEvent()">Continue</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Delete Event Step 2 Modal ── -->
+<div class="modal-bg" id="delEvt2Modal">
+  <div class="modal">
+    <h3>This cannot be undone</h3>
+    <p style="font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:16px">All registrations, matches, and attendee data for this event will be permanently deleted. Type the event name to confirm.</p>
+    <div class="form-row">
+      <label>Event Name</label>
+      <input type="text" id="delEvtConfirm" placeholder="Type event name">
+    </div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeDelEvt2()">Cancel</button>
+      <button class="modal-submit-danger" id="delEvtFinalBtn" onclick="permanentlyDeleteEvent()" disabled>Permanently Delete</button>
+    </div>
   </div>
 </div>
 
@@ -464,6 +557,8 @@ function renderHeader() {
   document.getElementById('shrBtn').style.display = 'inline-flex';
   document.getElementById('ownerPill').style.display = 'inline-block';
   document.getElementById('createEvtBtn').style.display = 'inline-flex';
+  document.getElementById('editCommBtn').style.display = 'inline-flex';
+  document.getElementById('delCommBtn').style.display = 'inline-flex';
 }
 
 function copyInvite() {
@@ -980,6 +1075,8 @@ function renderEventsTable(evts, el) {
       +'<div class="evt-card-actions">'
       +'<button class="btn-sm" onclick=\'openEditEvent('+e.id+','+JSON.stringify(e.name)+','+JSON.stringify(e.event_date||'')+','+JSON.stringify(e.city||'')+')\'>'
       +'Edit</button>'
+      +'<button class="btn-sm" style="color:var(--red);border-color:rgba(220,38,38,0.2)" onclick=\'openDeleteEvent('+e.id+','+JSON.stringify(e.name)+')\'>'
+      +'Delete</button>'
       +'</div>'
       +'</div>';
   }).join('');
@@ -1092,9 +1189,145 @@ async function submitEditEvent() {
   }
 }
 
+// ── Edit Community modal ──────────────────────────────────────────────────────
+var _editCommType = 'open';
+
+function setEditCommType(type) {
+  _editCommType = type;
+  document.getElementById('ecTypeOpen').classList.toggle('active', type === 'open');
+  document.getElementById('ecTypeOfficial').classList.toggle('active', type === 'official');
+}
+
+function openEditCommunity() {
+  var c = D.community;
+  document.getElementById('ecName').value = c.name || '';
+  document.getElementById('ecDesc').value = c.description || '';
+  setEditCommType(c.comm_type || 'open');
+  document.getElementById('ecError').style.display = 'none';
+  document.getElementById('ecSubmitBtn').disabled = false;
+  document.getElementById('ecSubmitBtn').textContent = 'Save Changes';
+  document.getElementById('editCommModal').classList.add('open');
+}
+
+function closeEditCommunity() {
+  document.getElementById('editCommModal').classList.remove('open');
+}
+
+async function submitEditCommunity() {
+  var name = document.getElementById('ecName').value.trim();
+  var desc = document.getElementById('ecDesc').value.trim();
+  var errEl = document.getElementById('ecError');
+  var btn = document.getElementById('ecSubmitBtn');
+  if (!name) { errEl.textContent = 'Name is required.'; errEl.style.display = 'block'; return; }
+  btn.disabled = true; btn.textContent = 'Saving…';
+  try {
+    var r = await fetch('/api/communities/' + D.community.id, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ name: name, description: desc, comm_type: _editCommType })
+    });
+    var data = await r.json();
+    if (!r.ok) { errEl.textContent = data.error || 'Failed to save.'; errEl.style.display = 'block'; btn.disabled = false; btn.textContent = 'Save Changes'; return; }
+    D.community.name = name;
+    D.community.description = desc;
+    D.community.comm_type = _editCommType;
+    renderHeader();
+    closeEditCommunity();
+  } catch(e) {
+    errEl.textContent = 'Connection error.'; errEl.style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Save Changes';
+  }
+}
+
+// ── Delete Community modals ───────────────────────────────────────────────────
+function openDeleteCommunity() {
+  document.getElementById('delComm1Msg').textContent =
+    'Are you sure you want to delete "' + D.community.name + '"? This will remove all members and events associated with this community.';
+  document.getElementById('delComm1Modal').classList.add('open');
+}
+
+function closeDelComm1() { document.getElementById('delComm1Modal').classList.remove('open'); }
+
+function confirmDeleteCommunity() {
+  closeDelComm1();
+  document.getElementById('delCommConfirm').value = '';
+  document.getElementById('delCommFinalBtn').disabled = true;
+  document.getElementById('delComm2Modal').classList.add('open');
+}
+
+function closeDelComm2() { document.getElementById('delComm2Modal').classList.remove('open'); }
+
+document.getElementById('delCommConfirm').addEventListener('input', function() {
+  document.getElementById('delCommFinalBtn').disabled = this.value !== D.community.name;
+});
+
+async function permanentlyDeleteCommunity() {
+  var btn = document.getElementById('delCommFinalBtn');
+  btn.disabled = true; btn.textContent = 'Deleting…';
+  try {
+    var r = await fetch('/api/communities/' + D.community.id, {
+      method: 'DELETE',
+      headers: { Authorization: 'Bearer ' + token }
+    });
+    var data = await r.json();
+    if (!r.ok) { alert(data.error || 'Delete failed.'); btn.disabled = false; btn.textContent = 'Permanently Delete'; return; }
+    window.location.href = '/communities.html';
+  } catch(e) {
+    alert('Connection error. Please try again.'); btn.disabled = false; btn.textContent = 'Permanently Delete';
+  }
+}
+
+// ── Delete Event modals ───────────────────────────────────────────────────────
+var _delEvtId = null, _delEvtName = null;
+
+function openDeleteEvent(id, name) {
+  _delEvtId = id; _delEvtName = name;
+  document.getElementById('delEvt1Msg').textContent =
+    'Are you sure you want to delete "' + name + '"? This will remove all registrations and matches associated with this event.';
+  document.getElementById('delEvt1Modal').classList.add('open');
+}
+
+function closeDelEvt1() { document.getElementById('delEvt1Modal').classList.remove('open'); }
+
+function confirmDeleteEvent() {
+  closeDelEvt1();
+  document.getElementById('delEvtConfirm').value = '';
+  document.getElementById('delEvtFinalBtn').disabled = true;
+  document.getElementById('delEvt2Modal').classList.add('open');
+}
+
+function closeDelEvt2() { document.getElementById('delEvt2Modal').classList.remove('open'); }
+
+document.getElementById('delEvtConfirm').addEventListener('input', function() {
+  document.getElementById('delEvtFinalBtn').disabled = this.value !== _delEvtName;
+});
+
+async function permanentlyDeleteEvent() {
+  var btn = document.getElementById('delEvtFinalBtn');
+  btn.disabled = true; btn.textContent = 'Deleting…';
+  try {
+    var r = await fetch('/api/events/' + _delEvtId, {
+      method: 'DELETE',
+      headers: { Authorization: 'Bearer ' + token }
+    });
+    var data = await r.json();
+    if (!r.ok) { alert(data.error || 'Delete failed.'); btn.disabled = false; btn.textContent = 'Permanently Delete'; return; }
+    closeDelEvt2();
+    _communityEvents = null;
+    renderEventsTab();
+  } catch(e) {
+    alert('Connection error. Please try again.'); btn.disabled = false; btn.textContent = 'Permanently Delete';
+  }
+}
+
 // Close modals on background click
 document.getElementById('createEvtModal').addEventListener('click', function(e){ if(e.target===this) closeCreateEvent(); });
 document.getElementById('editEvtModal').addEventListener('click', function(e){ if(e.target===this) closeEditEvent(); });
+document.getElementById('editCommModal').addEventListener('click', function(e){ if(e.target===this) closeEditCommunity(); });
+document.getElementById('delComm1Modal').addEventListener('click', function(e){ if(e.target===this) closeDelComm1(); });
+document.getElementById('delComm2Modal').addEventListener('click', function(e){ if(e.target===this) closeDelComm2(); });
+document.getElementById('delEvt1Modal').addEventListener('click', function(e){ if(e.target===this) closeDelEvt1(); });
+document.getElementById('delEvt2Modal').addEventListener('click', function(e){ if(e.target===this) closeDelEvt2(); });
 
 load();
 </script>

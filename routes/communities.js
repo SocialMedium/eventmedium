@@ -472,14 +472,46 @@ router.get('/:slug/dashboard', authenticateToken, async function(req, res) {
   }
 });
 
-module.exports = { router: router };
+// ── PATCH /api/communities/:id ── update community by ID (owner only)
+router.patch('/:id', authenticateToken, async function(req, res) {
+  try {
+    var community = await dbGet('SELECT id, owner_user_id FROM communities WHERE id = $1', [req.params.id]);
+    if (!community) return res.status(404).json({ error: 'Community not found' });
+    if (community.owner_user_id !== req.user.id) return res.status(403).json({ error: 'Not owner' });
 
-// -- DELETE /api/communities/:id -- delete community (owner only)
+    var updates = [];
+    var params = [];
+    var idx = 1;
+    if (req.body.name) { updates.push('name = $' + idx); params.push(req.body.name.trim()); idx++; }
+    if (req.body.description !== undefined) { updates.push('description = $' + idx); params.push(req.body.description.trim()); idx++; }
+    if (req.body.comm_type) { updates.push('comm_type = $' + idx); params.push(req.body.comm_type); idx++; }
+
+    if (updates.length) {
+      updates.push('updated_at = NOW()');
+      params.push(community.id);
+      await dbRun('UPDATE communities SET ' + updates.join(', ') + ' WHERE id = $' + idx, params);
+    }
+
+    res.json({ updated: true });
+  } catch (err) {
+    console.error('Update community error:', err);
+    res.status(500).json({ error: 'Failed to update community' });
+  }
+});
+
+// ── DELETE /api/communities/:id ── delete community (owner only)
 router.delete('/:id', authenticateToken, async function(req, res) {
   try {
     var community = await dbGet('SELECT * FROM communities WHERE id = $1', [req.params.id]);
     if (!community) return res.status(404).json({ error: 'Not found' });
     if (community.owner_user_id !== req.user.id) return res.status(403).json({ error: 'Not owner' });
+    // Cascade: registrations and matches for community events, then events, members, community
+    var evts = await dbAll('SELECT id FROM events WHERE community_id = $1', [req.params.id]);
+    for (var i = 0; i < evts.length; i++) {
+      await dbRun('DELETE FROM event_registrations WHERE event_id = $1', [evts[i].id]);
+      await dbRun('DELETE FROM event_matches WHERE event_id = $1', [evts[i].id]);
+    }
+    await dbRun('DELETE FROM events WHERE community_id = $1', [req.params.id]);
     await dbRun('DELETE FROM community_members WHERE community_id = $1', [req.params.id]);
     await dbRun('DELETE FROM communities WHERE id = $1', [req.params.id]);
     res.json({ success: true });
@@ -488,3 +520,5 @@ router.delete('/:id', authenticateToken, async function(req, res) {
     res.status(500).json({ error: 'Failed to delete' });
   }
 });
+
+module.exports = { router: router };
