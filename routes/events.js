@@ -89,10 +89,10 @@ router.get('/recommended', authenticateToken, async function(req, res) {
   try {
     // Load user profile
     var profile = await dbGet(
-      'SELECT stakeholder_type, themes, intent, offering, geography, deal_details FROM stakeholder_profiles WHERE user_id = $1',
+      'SELECT stakeholder_type, themes, intent, offering, geography, focus_text, deal_details FROM stakeholder_profiles WHERE user_id = $1',
       [req.user.id]
     );
-    if (!profile || !profile.themes) {
+    if (!profile) {
       return res.json({ recommendations: [], reason: 'no_profile' });
     }
 
@@ -101,13 +101,23 @@ router.get('/recommended', authenticateToken, async function(req, res) {
     var userOffering = typeof profile.offering === 'string' ? JSON.parse(profile.offering) : (profile.offering || []);
     var userGeo = (profile.geography || '').toLowerCase();
     var userType = profile.stakeholder_type || '';
+    var userFocus = (profile.focus_text || '').toLowerCase();
 
-    // Load upcoming events not already registered for
+    // Build keyword set from intent, offering, and focus_text for text matching
+    var userKeywords = new Set();
+    userThemes.forEach(function(t) { userKeywords.add(t.toLowerCase()); });
+    userIntent.forEach(function(t) { if (typeof t === 'string') userKeywords.add(t.toLowerCase()); });
+    userOffering.forEach(function(t) { if (typeof t === 'string') userKeywords.add(t.toLowerCase()); });
+    if (userFocus) {
+      userFocus.split(/[\s,;]+/).forEach(function(w) { if (w.length > 3) userKeywords.add(w); });
+    }
+
+    // Load upcoming events (include community events too)
     var events = await dbAll(
-      `SELECT e.*, 
+      `SELECT e.*,
         (SELECT COUNT(*) FROM event_registrations WHERE event_id = e.id AND status = 'active') as reg_count
-       FROM events e 
-       WHERE e.event_date >= CURRENT_DATE AND e.community_id IS NULL 
+       FROM events e
+       WHERE e.event_date >= CURRENT_DATE
        AND e.id NOT IN (SELECT event_id FROM event_registrations WHERE user_id = $1 AND status = 'active')
        ORDER BY e.event_date ASC`,
       [req.user.id]
@@ -120,6 +130,8 @@ router.get('/recommended', authenticateToken, async function(req, res) {
       var evThemes = typeof ev.themes === 'string' ? JSON.parse(ev.themes) : (ev.themes || []);
       var evCity = (ev.city || '').toLowerCase();
       var evCountry = (ev.country || '').toLowerCase();
+      var evName = (ev.name || '').toLowerCase();
+      var evDesc = (ev.description || '').toLowerCase();
 
       // 1. Theme overlap (0-1) — Jaccard
       var themeSet = new Set(userThemes.map(function(t) { return t.toLowerCase(); }));
@@ -129,13 +141,22 @@ router.get('/recommended', authenticateToken, async function(req, res) {
       var union = new Set([...themeSet, ...evSet]).size;
       var themeScore = union > 0 ? intersection / union : 0;
 
-      // 2. Geographic relevance (0-1)
+      // 2. Keyword relevance — check if event name/description/themes match user canister keywords
+      var keywordHits = 0;
+      if (userKeywords.size > 0) {
+        userKeywords.forEach(function(kw) {
+          if (evName.indexOf(kw) !== -1 || evDesc.indexOf(kw) !== -1) keywordHits++;
+          evThemes.forEach(function(t) { if (t.toLowerCase().indexOf(kw) !== -1) keywordHits++; });
+        });
+      }
+      var keywordScore = userKeywords.size > 0 ? Math.min(1, keywordHits / Math.max(3, userKeywords.size * 0.3)) : 0;
+
+      // 3. Geographic relevance (0-1)
       var geoScore = 0;
       if (userGeo) {
         if (userGeo.indexOf(evCity) !== -1 || evCity.indexOf(userGeo) !== -1) geoScore = 1;
         else if (userGeo.indexOf(evCountry) !== -1 || evCountry.indexOf(userGeo) !== -1) geoScore = 0.6;
         else {
-          // Region matching
           var euroCountries = ['uk','germany','france','spain','netherlands','sweden','switzerland','italy','portugal','austria','belgium','denmark','finland','norway','ireland','poland','czech','romania','greece'];
           var apacCountries = ['singapore','australia','japan','south korea','china','india','hong kong','taiwan','new zealand','indonesia','thailand','malaysia','vietnam','philippines'];
           var naCountries = ['usa','us','canada','united states'];
@@ -151,10 +172,18 @@ router.get('/recommended', authenticateToken, async function(req, res) {
           if (userRegion && userRegion === evRegion) geoScore = 0.3;
         }
       }
-      // 3. Composite score
-      var total = (themeScore * 0.6) + (geoScore * 0.4);
-      if (total > 0.1) {
-        scored.push({ id: ev.id, name: ev.name, event_date: ev.event_date, city: ev.city, country: ev.country, slug: ev.slug, score: Math.round(total * 100), reasons: [], themeScore: themeScore, geoScore: geoScore });
+
+      // 4. Composite score — themes 40%, keywords 30%, geo 30%
+      var total = (themeScore * 0.4) + (keywordScore * 0.3) + (geoScore * 0.3);
+
+      // Build reasons
+      var reasons = [];
+      if (themeScore > 0) reasons.push('Theme match');
+      if (keywordScore > 0) reasons.push('Canister signal');
+      if (geoScore >= 0.6) reasons.push('Your region');
+
+      if (total > 0.05) {
+        scored.push({ id: ev.id, name: ev.name, event_date: ev.event_date, city: ev.city, country: ev.country, slug: ev.slug, score: Math.round(total * 100), reasons: reasons });
       }
     }
     scored.sort(function(a, b) { return b.score - a.score; });
