@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Network — Event Medium</title>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<link rel="icon" type="image/png" href="/images/em-logo.png">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#080c14;--bar:#0d1421;--bar-border:rgba(255,255,255,0.06);
+  --text:#e2e8f0;--text2:#94a3b8;--text3:#475569;
+  --accent:#6366f1;--accent2:#4f46e5;
+  --sans:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-family:var(--sans);color:var(--text)}
+
+/* ── Top bar ── */
+#topbar{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  background:var(--bar);border-bottom:1px solid var(--bar-border);
+  backdrop-filter:blur(12px);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 20px;height:56px;gap:12px;
+}
+.tb-left{display:flex;align-items:center;gap:16px;min-width:0}
+.tb-brand{display:flex;align-items:center;gap:8px;text-decoration:none;color:var(--text);font-size:14px;font-weight:700;white-space:nowrap}
+.tb-brand em{color:var(--accent);font-style:normal}
+.mode-pills{display:flex;background:rgba(255,255,255,0.04);border:1px solid var(--bar-border);border-radius:10px;padding:3px;gap:2px}
+.mode-pill{padding:6px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;background:transparent;color:var(--text2);font-family:var(--sans);transition:all 0.2s;white-space:nowrap}
+.mode-pill.active{background:var(--accent);color:#fff}
+.mode-pill:hover:not(.active){color:var(--text);background:rgba(255,255,255,0.06)}
+
+#contextWrap{display:none;align-items:center;gap:8px}
+#contextSel{background:rgba(255,255,255,0.05);border:1px solid var(--bar-border);border-radius:8px;color:var(--text);font-size:13px;font-family:var(--sans);padding:6px 12px;outline:none;cursor:pointer}
+#contextSel option{background:#1e293b;color:var(--text)}
+
+.tb-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.tb-btn{display:flex;align-items:center;gap:6px;padding:7px 14px;border:1px solid var(--bar-border);border-radius:8px;background:rgba(255,255,255,0.04);color:var(--text2);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--sans);text-decoration:none;transition:all 0.2s;white-space:nowrap}
+.tb-btn:hover{border-color:rgba(99,102,241,0.4);color:var(--accent)}
+.tb-btn svg{flex-shrink:0}
+
+/* ── Graph canvas ── */
+#graph{
+  position:fixed;top:56px;left:0;right:0;bottom:0;
+  width:100%;height:calc(100vh - 56px);
+}
+#graph-g{will-change:transform}
+
+/* ── Loading ── */
+#loading{
+  position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+  display:flex;flex-direction:column;align-items:center;gap:16px;
+  color:var(--text2);font-size:14px;pointer-events:none;
+}
+.spinner{width:32px;height:32px;border:2px solid rgba(99,102,241,0.2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── Tooltip ── */
+#tooltip{
+  position:fixed;pointer-events:none;z-index:200;
+  background:rgba(13,20,33,0.96);backdrop-filter:blur(12px);
+  border:1px solid rgba(255,255,255,0.1);border-radius:10px;
+  padding:12px 14px;max-width:220px;font-size:12px;line-height:1.6;
+  color:var(--text);opacity:0;transition:opacity 0.15s;
+  box-shadow:0 8px 32px rgba(0,0,0,0.5);
+}
+.tt-title{font-size:13px;font-weight:700;color:#fff;margin-bottom:4px}
+.tt-row{display:flex;justify-content:space-between;gap:8px;color:var(--text2)}
+.tt-val{color:var(--text)}
+.tt-chip{display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:600;margin:1px 1px 0 0}
+
+/* ── Legend ── */
+#legend{
+  position:fixed;bottom:80px;left:24px;z-index:100;
+  background:rgba(13,20,33,0.85);backdrop-filter:blur(8px);
+  border:1px solid var(--bar-border);border-radius:10px;
+  padding:12px 14px;display:flex;flex-direction:column;gap:7px;
+}
+.leg-row{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text2)}
+.leg-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.leg-ring{width:10px;height:10px;border-radius:50%;border:2px solid #fff;flex-shrink:0}
+.leg-diamond{width:9px;height:9px;transform:rotate(45deg);flex-shrink:0;border-radius:1px}
+.leg-sq{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+
+/* ── Filters ── */
+#filters{
+  position:fixed;top:68px;right:20px;z-index:100;
+  display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px;max-width:300px;
+}
+.filter-chip{
+  padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;
+  border:1.5px solid transparent;opacity:0.7;transition:all 0.15s;color:#fff;
+}
+.filter-chip.on{opacity:1;border-color:rgba(255,255,255,0.4)}
+.filter-chip:hover{opacity:1}
+
+/* ── Global ticker ── */
+#ticker{
+  position:fixed;bottom:0;left:0;right:0;height:36px;
+  background:rgba(13,20,33,0.9);backdrop-filter:blur(8px);
+  border-top:1px solid var(--bar-border);
+  display:none;align-items:center;overflow:hidden;
+}
+.ticker-inner{
+  display:flex;gap:0;white-space:nowrap;
+  animation:tickerScroll 30s linear infinite;
+  font-size:12px;color:var(--text2);
+}
+@keyframes tickerScroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+.ticker-item{padding:0 32px;border-right:1px solid var(--bar-border)}
+.ticker-item span{color:var(--accent);font-weight:700}
+
+/* ── Empty state ── */
+#emptyState{
+  position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+  text-align:center;pointer-events:none;display:none;
+}
+#emptyState h3{font-size:18px;font-weight:700;color:var(--text);margin-bottom:8px}
+#emptyState p{font-size:13px;color:var(--text2);line-height:1.6;max-width:300px}
+
+/* ── Edge shimmer animation ── */
+@keyframes edgeShimmer{
+  0%{stroke-dashoffset:0}100%{stroke-dashoffset:-40}
+}
+.edge-match{stroke-dasharray:6 10;animation:edgeShimmer 3s linear infinite}
+.edge-theme{stroke-dasharray:3 7;animation:edgeShimmer 4s linear infinite}
+.edge-geo{stroke-dasharray:2 8;animation:edgeShimmer 5s linear infinite}
+.edge-co{stroke-dasharray:5 8;animation:edgeShimmer 4s linear infinite}
+
+/* ── Node pulse ── */
+@keyframes nodePulse{
+  0%,100%{opacity:0.7;transform:scale(1)}
+  50%{opacity:1;transform:scale(1.08)}
+}
+@keyframes meGlow{
+  0%,100%{filter:drop-shadow(0 0 8px rgba(99,102,241,0.6))}
+  50%{filter:drop-shadow(0 0 20px rgba(99,102,241,0.9))}
+}
+@keyframes themeGrow{
+  0%,100%{filter:drop-shadow(0 0 4px rgba(255,255,255,0.1))}
+  50%{filter:drop-shadow(0 0 12px rgba(255,255,255,0.25))}
+}
+@keyframes growthPulse{
+  0%,100%{filter:drop-shadow(0 0 6px rgba(34,197,94,0.5))}
+  50%{filter:drop-shadow(0 0 20px rgba(34,197,94,1))}
+}
+.node-me{animation:meGlow 2.5s ease-in-out infinite}
+.node-theme{animation:themeGlow 3s ease-in-out infinite}
+.node-growing{animation:growthPulse 2s ease-in-out infinite}
+
+@media(max-width:640px){
+  .tb-brand em{display:none}
+  .mode-pill{padding:5px 10px;font-size:11px}
+  #legend{display:none}
+}
+</style>
+</head>
+<body>
+
+<!-- ══ TOP BAR ══ -->
+<div id="topbar">
+  <div class="tb-left">
+    <a href="/" class="tb-brand">
+      <img src="/images/em-logo.png" alt="" style="width:26px;height:26px;border-radius:6px">
+      Event <em>Medium</em>
+    </a>
+    <div class="mode-pills">
+      <button class="mode-pill active" data-mode="me" onclick="setMode('me')">My Network</button>
+      <button class="mode-pill" data-mode="context" onclick="setMode('context')">Community / Event</button>
+      <button class="mode-pill" data-mode="global" onclick="setMode('global')">Global Network</button>
+    </div>
+    <div id="contextWrap">
+      <select id="contextSel" onchange="loadContext()">
+        <option value="">Select…</option>
+      </select>
+    </div>
+  </div>
+  <div class="tb-right">
+    <button class="tb-btn" onclick="shareView()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+      Share view
+    </button>
+    <a href="/communities.html" class="tb-btn">← Back</a>
+  </div>
+</div>
+
+<!-- ══ GRAPH SVG ══ -->
+<svg id="graph">
+  <defs>
+    <radialGradient id="starfield" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#0d1421" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#030509" stop-opacity="0.8"/>
+    </radialGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <!-- starfield bg -->
+  <rect id="starfieldRect" width="100%" height="100%" fill="#080c14"/>
+  <g id="stars"></g>
+  <!-- main graph group (zoom target) -->
+  <g id="graph-g">
+    <g id="edges-g"></g>
+    <g id="nodes-g"></g>
+  </g>
+</svg>
+
+<!-- ══ LOADING ══ -->
+<div id="loading"><div class="spinner"></div><span>Loading network…</span></div>
+
+<!-- ══ TOOLTIP ══ -->
+<div id="tooltip"></div>
+
+<!-- ══ ACTIVE FILTERS ══ -->
+<div id="filters"></div>
+
+<!-- ══ LEGEND ══ -->
+<div id="legend">
+  <div class="leg-row"><div class="leg-ring" style="border-color:#6366f1"></div><span>You</span></div>
+  <div class="leg-row"><div class="leg-dot" style="background:#94a3b8"></div><span>Match / Member</span></div>
+  <div id="leg-theme-row" class="leg-row"><div class="leg-sq" style="background:rgba(255,255,255,0.15)"></div><span>Theme node</span></div>
+  <div id="leg-geo-row" class="leg-row"><div class="leg-diamond" style="background:#64748b"></div><span>Geography</span></div>
+</div>
+
+<!-- ══ TICKER (global only) ══ -->
+<div id="ticker">
+  <div class="ticker-inner" id="tickerInner"></div>
+</div>
+
+<!-- ══ EMPTY STATE ══ -->
+<div id="emptyState">
+  <h3>No connections yet</h3>
+  <p>Register for events and complete your canister to start building your network graph.</p>
+</div>
+
+<script>
+// ── Token guard ──────────────────────────────────────────────────────────────
+var token = localStorage.getItem('auth_token');
+if (!token) { window.location.href = '/auth.html'; }
+
+// ── Theme palette ─────────────────────────────────────────────────────────────
+var THEME_COLORS = {
+  'AI': '#6366f1',
+  'Connectivity': '#06b6d4',
+  'IoT': '#0ea5e9',
+  'Enterprise SaaS': '#8b5cf6',
+  'Cybersecurity': '#ef4444',
+  'FinTech': '#10b981',
+  'Climate Tech': '#22c55e',
+  'HealthTech': '#f59e0b',
+  'Hardware': '#f97316',
+  'Privacy': '#ec4899',
+  'Regulation': '#a78bfa',
+  'EdTech': '#14b8a6',
+  'Open Source': '#84cc16',
+  'Robotics': '#64748b',
+  'SpaceTech': '#818cf8',
+  'Gaming': '#fb923c'
+};
+
+var STYPE_COLORS = {
+  founder:'#2563eb', investor:'#059669', advisor:'#d97706',
+  researcher:'#7c3aed', corporate:'#64748b', operator:'#ea580c',
+  unknown:'#475569'
+};
+
+function themeColor(t) { return THEME_COLORS[t] || '#6366f1'; }
+function stypeColor(t) { return STYPE_COLORS[(t||'unknown').toLowerCase()] || '#475569'; }
+
+// ── State ─────────────────────────────────────────────────────────────────────
+var mode = 'me';
+var activeFilters = new Set();
+var graphData = null;
+var simulation = null;
+
+// ── SVG setup ─────────────────────────────────────────────────────────────────
+var svg = d3.select('#graph');
+var graphG = d3.select('#graph-g');
+var edgesG = d3.select('#edges-g');
+var nodesG = d3.select('#nodes-g');
+
+function svgSize() {
+  return { w: window.innerWidth, h: window.innerHeight - 56 };
+}
+
+// ── Starfield ─────────────────────────────────────────────────────────────────
+(function() {
+  var S = svgSize();
+  var stars = d3.select('#stars');
+  for (var i = 0; i < 200; i++) {
+    var r = Math.random();
+    stars.append('circle')
+      .attr('cx', Math.random() * S.w)
+      .attr('cy', Math.random() * S.h)
+      .attr('r', r < 0.7 ? 0.4 : r < 0.9 ? 0.8 : 1.2)
+      .attr('fill', 'white')
+      .attr('opacity', 0.05 + Math.random() * 0.2);
+  }
+})();
+
+// ── Zoom ──────────────────────────────────────────────────────────────────────
+var zoom = d3.zoom()
+  .scaleExtent([0.15, 4])
+  .on('zoom', function(event) {
+    graphG.attr('transform', event.transform);
+  });
+svg.call(zoom);
+svg.on('dblclick.zoom', function() {
+  var S = svgSize();
+  svg.transition().duration(750).call(zoom.transform, d3.zoomIdentity.translate(S.w/2, S.h/2));
+});
+
+// ── Tooltip ───────────────────────────────────────────────────────────────────
+var tip = document.getElementById('tooltip');
+
+function showTip(evt, html) {
+  tip.innerHTML = html;
+  tip.style.opacity = '1';
+  moveTip(evt);
+}
+
+function moveTip(evt) {
+  var x = evt.clientX + 14, y = evt.clientY - 10;
+  if (x + 230 > window.innerWidth) x = evt.clientX - 230;
+  if (y + 160 > window.innerHeight) y = evt.clientY - 150;
+  tip.style.left = x + 'px';
+  tip.style.top = y + 'px';
+}
+
+function hideTip() { tip.style.opacity = '0'; }
+
+// ── Loading helpers ───────────────────────────────────────────────────────────
+function showLoading() { document.getElementById('loading').style.display = 'flex'; }
+function hideLoading() { document.getElementById('loading').style.display = 'none'; }
+function showEmpty() { document.getElementById('emptyState').style.display = 'block'; }
+function hideEmpty() { document.getElementById('emptyState').style.display = 'none'; }
+
+// ── Mode switching ────────────────────────────────────────────────────────────
+async function setMode(m) {
+  mode = m;
+  document.querySelectorAll('.mode-pill').forEach(function(p) {
+    p.classList.toggle('active', p.dataset.mode === m);
+  });
+  var cw = document.getElementById('contextWrap');
+  var ticker = document.getElementById('ticker');
+  cw.style.display = m === 'context' ? 'flex' : 'none';
+  ticker.style.display = m === 'global' ? 'flex' : 'none';
+
+  activeFilters.clear();
+  renderFilters();
+  clearGraph();
+
+  if (m === 'me') {
+    await loadMe();
+  } else if (m === 'context') {
+    await loadContexts();
+  } else if (m === 'global') {
+    await loadGlobal();
+  }
+}
+
+// ── Load: My Network ──────────────────────────────────────────────────────────
+async function loadMe() {
+  showLoading(); hideEmpty();
+  try {
+    var r = await fetch('/api/graph/me', { headers: { Authorization: 'Bearer ' + token } });
+    var data = await r.json();
+    hideLoading();
+    if (!data.nodes || data.nodes.length <= 1) { showEmpty(); return; }
+    graphData = data;
+    renderGraph(data, 'me');
+  } catch(e) { hideLoading(); showEmpty(); }
+}
+
+// ── Load: Contexts dropdown ───────────────────────────────────────────────────
+async function loadContexts() {
+  try {
+    var r = await fetch('/api/graph/contexts', { headers: { Authorization: 'Bearer ' + token } });
+    var data = await r.json();
+    var sel = document.getElementById('contextSel');
+    sel.innerHTML = '<option value="">Select…</option>';
+    (data.items || []).forEach(function(item) {
+      var opt = document.createElement('option');
+      opt.value = item.type + ':' + item.id;
+      opt.textContent = (item.type === 'community' ? '⬡ ' : '◈ ') + item.name;
+      sel.appendChild(opt);
+    });
+    if (!data.items || !data.items.length) {
+      showEmpty();
+    }
+  } catch(e) { showEmpty(); }
+}
+
+async function loadContext() {
+  var val = document.getElementById('contextSel').value;
+  if (!val) return;
+  var parts = val.split(':');
+  var type = parts[0], id = parts[1];
+  showLoading(); hideEmpty(); clearGraph();
+  try {
+    var url = type === 'community' ? '/api/graph/community/' + id : '/api/graph/event/' + id;
+    var r = await fetch(url, { headers: { Authorization: 'Bearer ' + token } });
+    var data = await r.json();
+    hideLoading();
+    if (!data.nodes || !data.nodes.length) { showEmpty(); return; }
+    graphData = data;
+    renderGraph(data, 'context');
+  } catch(e) { hideLoading(); showEmpty(); }
+}
+
+// ── Load: Global Network ──────────────────────────────────────────────────────
+async function loadGlobal() {
+  showLoading(); hideEmpty();
+  try {
+    var r = await fetch('/api/graph/global', { headers: { Authorization: 'Bearer ' + token } });
+    var data = await r.json();
+    hideLoading();
+    if (!data.nodes || !data.nodes.length) { showEmpty(); return; }
+    graphData = data;
+    renderTicker(data.stats || {});
+    renderGraph(data, 'global');
+  } catch(e) { hideLoading(); showEmpty(); }
+}
+
+// ── Ticker ────────────────────────────────────────────────────────────────────
+function renderTicker(stats) {
+  var text = [
+    '<span>' + (stats.matches_week || 0) + '</span> matches this week',
+    '<span>' + (stats.new_canisters || 0) + '</span> new canisters',
+    '<span>' + (stats.active_events || 0) + '</span> events active'
+  ].map(function(t) { return '<div class="ticker-item">' + t + '</div>'; }).join('');
+  document.getElementById('tickerInner').innerHTML = text + text; // doubled for seamless loop
+}
+
+// ── Clear graph ───────────────────────────────────────────────────────────────
+function clearGraph() {
+  if (simulation) { simulation.stop(); simulation = null; }
+  edgesG.selectAll('*').remove();
+  nodesG.selectAll('*').remove();
+}
+
+// ── Render graph ──────────────────────────────────────────────────────────────
+function renderGraph(data, viewMode) {
+  clearGraph();
+  hideEmpty();
+
+  var S = svgSize();
+  var nodes = data.nodes.map(function(n) { return Object.assign({}, n); });
+  var edges = data.edges.map(function(e) { return Object.assign({}, e); });
+
+  // Apply filters
+  var filtered = applyFilters(nodes, edges);
+  nodes = filtered.nodes; edges = filtered.edges;
+
+  if (!nodes.length) { showEmpty(); return; }
+
+  // Force config per mode
+  var linkDist = viewMode === 'global' ? 140 : 90;
+  var charge = viewMode === 'global' ? -300 : -180;
+
+  simulation = d3.forceSimulation(nodes)
+    .force('link', d3.forceLink(edges).id(function(d) { return d.id; }).distance(function(d) {
+      return linkDist * (1 - (d.strength || 0.5) * 0.4);
+    }).strength(0.5))
+    .force('charge', d3.forceManyBody().strength(charge))
+    .force('collide', d3.forceCollide().radius(function(d) { return (d.size || 10) + 6; }))
+    .force('center', d3.forceCenter(S.w / 2, S.h / 2))
+    .alphaDecay(0.018)
+    .velocityDecay(0.35);
+
+  // ── Edges ──
+  var edgeSel = edgesG.selectAll('line').data(edges).enter().append('line')
+    .attr('class', function(d) { return 'edge-' + d.type; })
+    .attr('stroke', function(d) {
+      if (d.type === 'theme') return themeColor(d.source.theme || d.source.label || '');
+      if (d.type === 'geo') return '#475569';
+      if (d.type === 'co') return themeColor(d.source.theme || d.source.label || '');
+      return '#334155';
+    })
+    .attr('stroke-width', function(d) { return 1 + (d.strength || 0.4) * 1.5; })
+    .attr('stroke-opacity', function(d) { return d.type === 'geo' ? 0.2 : d.type === 'co' ? 0.35 : 0.4; });
+
+  // ── Node groups ──
+  var nodeSel = nodesG.selectAll('.node').data(nodes).enter().append('g')
+    .attr('class', 'node')
+    .call(d3.drag()
+      .on('start', function(event, d) {
+        if (!event.active) simulation.alphaTarget(0.2).restart();
+        d.fx = d.x; d.fy = d.y;
+      })
+      .on('drag', function(event, d) { d.fx = event.x; d.fy = event.y; })
+      .on('end', function(event, d) {
+        if (!event.active) simulation.alphaTarget(0);
+        d.fx = null; d.fy = null;
+      })
+    );
+
+  // Draw shapes per node type
+  nodeSel.each(function(d) {
+    var g = d3.select(this);
+    var r = d.size || 10;
+
+    if (d.type === 'geo') {
+      // Diamond
+      var s = r * 0.9;
+      g.append('rect')
+        .attr('width', s * 1.4)
+        .attr('height', s * 1.4)
+        .attr('x', -s * 0.7)
+        .attr('y', -s * 0.7)
+        .attr('rx', 2)
+        .attr('transform', 'rotate(45)')
+        .attr('fill', 'rgba(100,116,139,0.15)')
+        .attr('stroke', '#64748b')
+        .attr('stroke-width', 1.5);
+    } else if (d.type === 'theme') {
+      var col = themeColor(d.theme);
+      // Outer glow ring (for growing themes)
+      if (d.growth && d.growth > 2) {
+        g.append('circle').attr('r', r + 8)
+          .attr('fill', 'none').attr('stroke', col)
+          .attr('stroke-width', 1).attr('opacity', 0.3)
+          .classed('node-growing', true);
+      }
+      g.append('circle').attr('r', r)
+        .attr('fill', col + '22')
+        .attr('stroke', col)
+        .attr('stroke-width', 1.5)
+        .classed('node-theme', true);
+    } else if (d.type === 'me') {
+      // Glowing ring
+      g.append('circle').attr('r', r + 5)
+        .attr('fill', 'none').attr('stroke', '#6366f1').attr('stroke-width', 1.5).attr('opacity', 0.4)
+        .classed('node-me', true);
+      g.append('circle').attr('r', r)
+        .attr('fill', '#1e1b4b').attr('stroke', '#6366f1').attr('stroke-width', 2)
+        .classed('node-me', true);
+    } else if (d.type === 'owner') {
+      g.append('circle').attr('r', r + 3)
+        .attr('fill', 'none').attr('stroke', '#d97706').attr('stroke-width', 1).attr('opacity', 0.4);
+      g.append('circle').attr('r', r)
+        .attr('fill', 'rgba(217,119,6,0.15)').attr('stroke', '#d97706').attr('stroke-width', 1.5);
+    } else {
+      // match / member
+      var col2 = d.themes && d.themes[0] ? themeColor(d.themes[0]) : stypeColor(d.stakeholder_type);
+      g.append('circle').attr('r', r)
+        .attr('fill', col2 + '18').attr('stroke', col2).attr('stroke-width', 1)
+        .attr('opacity', 0.85);
+    }
+
+    // Label
+    if (d.type === 'me' || d.type === 'match' || d.type === 'owner') {
+      g.append('text')
+        .attr('text-anchor', 'middle').attr('dominant-baseline', 'central')
+        .attr('font-size', d.type === 'me' ? 11 : 9)
+        .attr('font-weight', '700').attr('fill', '#e2e8f0')
+        .attr('pointer-events', 'none')
+        .text(d.label || '·');
+    } else if (d.type === 'theme') {
+      g.append('text')
+        .attr('text-anchor', 'middle').attr('y', r + 14)
+        .attr('font-size', 10).attr('font-weight', '600')
+        .attr('fill', themeColor(d.theme)).attr('opacity', 0.9)
+        .attr('pointer-events', 'none')
+        .text(d.label || '');
+    } else if (d.type === 'geo') {
+      g.append('text')
+        .attr('text-anchor', 'middle').attr('y', (d.size || 10) + 14)
+        .attr('font-size', 10).attr('font-weight', '500')
+        .attr('fill', '#64748b').attr('pointer-events', 'none')
+        .text(d.label || '');
+    }
+  });
+
+  // Entry animation
+  nodeSel.attr('opacity', 0).transition().duration(600).delay(function(d, i) { return i * 8; }).attr('opacity', 1);
+
+  // Hover interactions
+  nodeSel
+    .on('mousemove', function(event, d) { moveTip(event); })
+    .on('mouseenter', function(event, d) {
+      showTip(event, buildTooltip(d, viewMode));
+      d3.select(this).raise();
+    })
+    .on('mouseleave', hideTip)
+    .on('click', function(event, d) {
+      event.stopPropagation();
+      if (d.type === 'theme') toggleFilter(d.theme, d.theme);
+      else if (d.type === 'geo') toggleFilter('geo:' + d.label, d.label);
+    });
+
+  svg.on('click', function() { hideTip(); });
+
+  // Simulation tick
+  simulation.on('tick', function() {
+    edgeSel
+      .attr('x1', function(d) { return d.source.x; })
+      .attr('y1', function(d) { return d.source.y; })
+      .attr('x2', function(d) { return d.target.x; })
+      .attr('y2', function(d) { return d.target.y; });
+    nodeSel.attr('transform', function(d) { return 'translate(' + d.x + ',' + d.y + ')'; });
+  });
+
+  // Slow organic drift: nudge simulation every 6s
+  var driftTimer = setInterval(function() {
+    if (!simulation) { clearInterval(driftTimer); return; }
+    simulation.force('center', d3.forceCenter(
+      S.w / 2 + (Math.random() - 0.5) * 8,
+      S.h / 2 + (Math.random() - 0.5) * 8
+    ));
+    simulation.alpha(0.04).restart();
+  }, 6000);
+
+  // Reset to center on double-click
+  svg.on('dblclick.zoom', function() {
+    svg.transition().duration(750).call(zoom.transform, d3.zoomIdentity.translate(S.w / 2, S.h / 2));
+  });
+}
+
+// ── Tooltip builder ───────────────────────────────────────────────────────────
+function buildTooltip(d, viewMode) {
+  if (d.type === 'me') {
+    return '<div class="tt-title">You</div>' +
+      '<div class="tt-row"><span>Type</span><span class="tt-val">' + (d.stakeholder_type || '—') + '</span></div>' +
+      (d.themes && d.themes.length ? '<div class="tt-row"><span>Themes</span></div>' +
+        '<div style="margin-top:3px">' + d.themes.map(function(t) { return '<span class="tt-chip" style="background:' + themeColor(t) + '30;color:' + themeColor(t) + '">' + t + '</span>'; }).join('') + '</div>' : '');
+  }
+  if (d.type === 'theme') {
+    return '<div class="tt-title" style="color:' + themeColor(d.theme) + '">' + d.label + '</div>' +
+      '<div class="tt-row"><span>Members sharing</span><span class="tt-val">' + (d.count || 0) + '</span></div>' +
+      (d.growth ? '<div class="tt-row"><span>New (30d)</span><span class="tt-val" style="color:#22c55e">+' + d.growth + '</span></div>' : '') +
+      '<div style="margin-top:6px;font-size:10px;color:#475569">Click to filter by this theme</div>';
+  }
+  if (d.type === 'geo') {
+    return '<div class="tt-title">' + d.label + '</div>' +
+      '<div class="tt-row"><span>Activity count</span><span class="tt-val">' + (d.count || 0) + '</span></div>' +
+      '<div style="margin-top:6px;font-size:10px;color:#475569">Click to filter by location</div>';
+  }
+  if (d.type === 'match' || d.type === 'member' || d.type === 'owner') {
+    var html = '<div class="tt-title">' + (d.type === 'owner' ? 'Community Owner' : 'Anonymous') + '</div>';
+    if (d.stakeholder_type) html += '<div class="tt-row"><span>Type</span><span class="tt-val" style="color:' + stypeColor(d.stakeholder_type) + '">' + d.stakeholder_type + '</span></div>';
+    if (d.themes && d.themes.length) {
+      html += '<div style="margin-top:4px">' + d.themes.slice(0,2).map(function(t) { return '<span class="tt-chip" style="background:' + themeColor(t) + '30;color:' + themeColor(t) + '">' + t + '</span>'; }).join('') + '</div>';
+    }
+    if (d.geography) html += '<div class="tt-row" style="margin-top:4px"><span>📍</span><span class="tt-val">' + d.geography + '</span></div>';
+    return html;
+  }
+  return '';
+}
+
+// ── Filters ───────────────────────────────────────────────────────────────────
+function toggleFilter(key, label) {
+  if (activeFilters.has(key)) activeFilters.delete(key);
+  else activeFilters.add(key);
+  renderFilters();
+  if (graphData) renderGraph(graphData, mode);
+}
+
+function renderFilters() {
+  var fc = document.getElementById('filters');
+  if (!activeFilters.size) { fc.innerHTML = ''; return; }
+  fc.innerHTML = Array.from(activeFilters).map(function(k) {
+    var label = k.startsWith('geo:') ? '📍 ' + k.slice(4) : k;
+    var col = k.startsWith('geo:') ? '#64748b' : themeColor(k);
+    return '<div class="filter-chip on" style="background:' + col + '22;border-color:' + col + ';color:' + col + '" onclick="toggleFilter(\'' + k.replace(/'/g, "\\'") + '\',\'\')">' + label + ' ×</div>';
+  }).join('');
+}
+
+function applyFilters(nodes, edges) {
+  if (!activeFilters.size) return { nodes: nodes, edges: edges };
+  var allowed = new Set();
+  nodes.forEach(function(n) {
+    if (n.type === 'theme' && activeFilters.has(n.theme)) { allowed.add(n.id); return; }
+    if (n.type === 'geo' && activeFilters.has('geo:' + n.label)) { allowed.add(n.id); return; }
+    if (n.type === 'me') { allowed.add(n.id); return; }
+    // include member/match if their themes or geography match a filter
+    var themes = n.themes || [];
+    var geo = n.geography ? n.geography.split(',')[0].trim() : '';
+    var match = false;
+    activeFilters.forEach(function(f) {
+      if (!f.startsWith('geo:') && themes.indexOf(f) !== -1) match = true;
+      if (f.startsWith('geo:') && geo === f.slice(4)) match = true;
+    });
+    if (match) allowed.add(n.id);
+  });
+  // Also keep theme/geo nodes connected to included user nodes
+  edges.forEach(function(e) {
+    var sid = typeof e.source === 'object' ? e.source.id : e.source;
+    var tid = typeof e.target === 'object' ? e.target.id : e.target;
+    if (allowed.has(sid) && (e.type === 'theme' || e.type === 'geo')) allowed.add(tid);
+    if (allowed.has(tid) && (e.type === 'theme' || e.type === 'geo')) allowed.add(sid);
+  });
+  var filteredNodes = nodes.filter(function(n) { return allowed.has(n.id); });
+  var filteredEdges = edges.filter(function(e) {
+    var sid = typeof e.source === 'object' ? e.source.id : e.source;
+    var tid = typeof e.target === 'object' ? e.target.id : e.target;
+    return allowed.has(sid) && allowed.has(tid);
+  });
+  return { nodes: filteredNodes, edges: filteredEdges };
+}
+
+// ── Share view ────────────────────────────────────────────────────────────────
+function shareView() {
+  var params = new URLSearchParams();
+  params.set('mode', mode);
+  if (mode === 'context') {
+    var val = document.getElementById('contextSel').value;
+    if (val) params.set('ctx', val);
+  }
+  if (activeFilters.size) params.set('filters', Array.from(activeFilters).join(','));
+  var url = window.location.origin + '/network-graph.html?' + params.toString();
+  navigator.clipboard.writeText(url).then(function() {
+    var btn = document.querySelector('.tb-btn');
+    var orig = btn.textContent;
+    btn.textContent = 'Link copied!';
+    setTimeout(function() { btn.textContent = orig; }, 2000);
+  }).catch(function() { prompt('Copy this link:', url); });
+}
+
+// ── Restore from URL params ───────────────────────────────────────────────────
+(async function init() {
+  var params = new URLSearchParams(window.location.search);
+  var modeParam = params.get('mode') || 'me';
+  var filters = params.get('filters');
+  if (filters) filters.split(',').forEach(function(f) { if (f) activeFilters.add(f); });
+
+  if (modeParam === 'context') {
+    await setMode('context');
+    var ctx = params.get('ctx');
+    if (ctx) {
+      document.getElementById('contextSel').value = ctx;
+      await loadContext();
+    }
+  } else if (modeParam === 'global') {
+    await setMode('global');
+  } else {
+    await setMode('me');
+  }
+})();
+
+// ── Window resize ─────────────────────────────────────────────────────────────
+window.addEventListener('resize', function() {
+  var S = svgSize();
+  svg.attr('width', S.w).attr('height', S.h);
+  if (simulation) {
+    simulation.force('center', d3.forceCenter(S.w / 2, S.h / 2));
+    simulation.alpha(0.1).restart();
+  }
+});
+</script>
+</body>
+</html>
