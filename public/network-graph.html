@@ -122,6 +122,53 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
 #emptyState h3{font-size:18px;font-weight:700;color:var(--text);margin-bottom:8px}
 #emptyState p{font-size:13px;color:var(--text2);line-height:1.6;max-width:300px}
 
+/* ── Geo city drill-down ── */
+#geo-back{
+  position:fixed;top:68px;left:20px;z-index:110;
+  display:none;align-items:center;gap:6px;
+  padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;
+  background:rgba(13,20,33,0.9);border:1px solid rgba(255,255,255,0.12);
+  color:#e2e8f0;backdrop-filter:blur(8px);transition:border-color .15s;
+}
+#geo-back:hover{border-color:rgba(99,102,241,0.5);color:#a5b4fc}
+#geo-city-panel{
+  position:fixed;top:68px;right:20px;z-index:110;
+  display:none;flex-direction:column;gap:0;
+  width:240px;background:rgba(13,20,33,0.92);
+  border:1px solid rgba(255,255,255,0.1);border-radius:12px;
+  backdrop-filter:blur(12px);overflow:hidden;
+  box-shadow:0 8px 32px rgba(0,0,0,0.5);
+}
+.gcp-header{padding:14px 16px 10px;border-bottom:1px solid rgba(255,255,255,0.06)}
+.gcp-city{font-size:15px;font-weight:700;color:#fff;margin-bottom:2px}
+.gcp-sub{font-size:11px;color:#64748b}
+.gcp-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;border-bottom:1px solid rgba(255,255,255,0.06)}
+.gcp-stat{padding:10px 0;text-align:center}
+.gcp-stat-val{font-size:18px;font-weight:700;color:#e2e8f0}
+.gcp-stat-lbl{font-size:9px;color:#475569;text-transform:uppercase;letter-spacing:.06em}
+.gcp-section{padding:10px 14px}
+.gcp-section-lbl{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#475569;margin-bottom:7px}
+.gcp-themes{display:flex;flex-wrap:wrap;gap:4px}
+.gcp-theme{padding:2px 7px;border-radius:100px;font-size:10px;font-weight:600}
+.gcp-archs{display:flex;flex-direction:column;gap:4px}
+.gcp-arch-row{display:flex;align-items:center;gap:7px}
+.gcp-arch-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.gcp-arch-bar-wrap{flex:1;height:3px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden}
+.gcp-arch-bar{height:3px;border-radius:2px}
+.gcp-arch-name{font-size:10px;color:#94a3b8;width:60px;flex-shrink:0}
+.gcp-arch-n{font-size:10px;color:#475569;font-variant-numeric:tabular-nums}
+.gcp-corr{display:flex;flex-direction:column;gap:4px}
+.gcp-corr-row{display:flex;align-items:center;gap:6px;font-size:11px;color:#64748b}
+.gcp-corr-name{min-width:80px;color:#94a3b8}
+.gcp-corr-bar-w{flex:1;height:2px;background:rgba(255,255,255,0.05);border-radius:1px}
+.gcp-corr-bar{height:2px;border-radius:1px;background:#6366f1;opacity:.6}
+.gcp-events{display:flex;flex-direction:column;gap:4px}
+.gcp-event-row{display:flex;align-items:flex-start;gap:6px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04)}
+.gcp-event-row:last-child{border:none}
+.gcp-event-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.gcp-event-name{font-size:11px;color:#e2e8f0;line-height:1.3}
+.gcp-event-meta{font-size:10px;color:#475569}
+
 /* ── Geo map layer ── */
 .geo-land{fill:rgba(255,255,255,0.03);stroke:rgba(255,255,255,0.07);stroke-width:0.4}
 .geo-graticule{fill:none;stroke:rgba(255,255,255,0.03);stroke-width:0.3}
@@ -226,6 +273,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
     <g id="geo-cities-g"></g>
     <g id="geo-events-g"></g>
     <g id="geo-labels-g"></g>
+    <g id="geo-detail-g"></g>
   </g>
   <!-- main graph group (zoom target) -->
   <g id="graph-g">
@@ -255,6 +303,10 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
 <div id="ticker">
   <div class="ticker-inner" id="tickerInner"></div>
 </div>
+
+<!-- ══ GEO DRILL-DOWN ══ -->
+<button id="geo-back" onclick="geoZoomOut()">← World</button>
+<div id="geo-city-panel"></div>
 
 <!-- ══ EMPTY STATE ══ -->
 <div id="emptyState">
@@ -329,9 +381,10 @@ function svgSize() {
 
 // ── Zoom ──────────────────────────────────────────────────────────────────────
 var zoom = d3.zoom()
-  .scaleExtent([0.15, 4])
+  .scaleExtent([0.15, 12])
   .on('zoom', function(event) {
     graphG.attr('transform', event.transform);
+    d3.select('#geo-g').attr('transform', event.transform);
   });
 svg.call(zoom);
 svg.on('dblclick.zoom', function() {
@@ -393,6 +446,13 @@ async function setMode(m) {
   document.getElementById('graph-g').style.display = m === 'geo' ? 'none' : null;
   document.getElementById('legend').style.display = m === 'geo' ? 'none' : null;
   document.getElementById('filters').style.display = m === 'geo' ? 'none' : null;
+  // Reset geo drill-down state when leaving geo mode
+  if (m !== 'geo') {
+    _geoCityFocused = null;
+    document.getElementById('geo-back').style.display = 'none';
+    document.getElementById('geo-city-panel').style.display = 'none';
+    svg.call(zoom.transform, d3.zoomIdentity);
+  }
 
   activeFilters.clear();
   renderFilters();
@@ -969,7 +1029,10 @@ function renderGeo() {
           (topThemes ? '<div style="margin-top:5px">'+topThemes+'</div>' : ''));
       })
       .on('mousemove', moveTip)
-      .on('mouseleave', hideTip);
+      .on('mouseleave', hideTip)
+      .on('click', (function(cluster, cityXY) {
+        return function(evt) { evt.stopPropagation(); zoomToCity(cluster, cityXY); };
+      })(c, xy));
 
     // Outer pulse ring
     g.append('circle').attr('r', r + 4)
@@ -1024,6 +1087,145 @@ function renderGeo() {
       .attr('x', -4).attr('y', -4).attr('transform', 'rotate(45)')
       .attr('fill', col + '30').attr('stroke', col).attr('stroke-width', 1.2);
   });
+}
+
+// ── Geo: zoom to city ─────────────────────────────────────────────────────────
+var _geoCityFocused = null;
+
+function zoomToCity(cluster, xy) {
+  hideTip();
+  _geoCityFocused = cluster;
+  var S = svgSize();
+  var scale = Math.min(10, Math.max(5, 800 / (geoProjection.scale() * 0.06)));
+  var tx = S.w / 2 - scale * xy[0];
+  var ty = S.h / 2 - scale * xy[1];
+  svg.transition().duration(750).ease(d3.easeCubicInOut)
+    .call(zoom.transform, d3.zoomIdentity.translate(tx, ty).scale(scale))
+    .on('end', function() { renderCityDetail(cluster, xy); });
+
+  document.getElementById('geo-back').style.display = 'flex';
+}
+
+function geoZoomOut() {
+  _geoCityFocused = null;
+  d3.select('#geo-detail-g').selectAll('*').remove();
+  document.getElementById('geo-back').style.display = 'none';
+  document.getElementById('geo-city-panel').style.display = 'none';
+
+  var S = svgSize();
+  svg.transition().duration(650).ease(d3.easeCubicInOut)
+    .call(zoom.transform, d3.zoomIdentity);
+}
+
+function renderCityDetail(cluster, xy) {
+  d3.select('#geo-detail-g').selectAll('*').remove();
+
+  // Scatter anonymous member dots around city center (at projection scale)
+  var n = cluster.member_count;
+  var spread = 4; // pixels at projection scale — becomes ~20–40px after zoom
+  var archs = cluster.archetype_breakdown || [];
+  // Build a flat list of archetype types proportional to count
+  var pool = [];
+  archs.forEach(function(a) { for (var i = 0; i < a.count; i++) pool.push(a.type); });
+  while (pool.length < n) pool.push('unknown');
+
+  for (var i = 0; i < n; i++) {
+    var angle = (i / n) * 2 * Math.PI + Math.random() * 0.4;
+    var r = spread * (0.3 + Math.sqrt(Math.random()) * 0.7);
+    var mx = xy[0] + r * Math.cos(angle);
+    var my = xy[1] + r * Math.sin(angle);
+    var col = stypeColor(pool[i] || 'unknown');
+    d3.select('#geo-detail-g').append('circle')
+      .attr('cx', mx).attr('cy', my).attr('r', 0.6)
+      .attr('fill', col).attr('opacity', 0.75);
+  }
+
+  // Event markers with labels
+  var cityEvents = (geoData.events || []).filter(function(e) { return e.city === cluster.city; });
+  cityEvents.forEach(function(ev, i) {
+    var ex = xy[0] + (i % 2 === 0 ? 6 : -6) + (i * 2);
+    var ey = xy[1] - 5 - i * 3;
+    var col = themeColor(ev.themes && ev.themes[0] ? ev.themes[0] : 'AI');
+    var g = d3.select('#geo-detail-g').append('g');
+    // Connector line to city
+    g.append('line').attr('x1', xy[0]).attr('y1', xy[1])
+      .attr('x2', ex).attr('y2', ey)
+      .attr('stroke', col).attr('stroke-width', 0.2).attr('opacity', 0.4);
+    g.append('circle').attr('cx', ex).attr('cy', ey).attr('r', 0.8)
+      .attr('fill', col).attr('stroke', col).attr('stroke-width', 0.15);
+    g.append('text').attr('x', ex + 1).attr('y', ey)
+      .attr('font-size', '0.9px').attr('font-weight', '600')
+      .attr('fill', col).attr('dominant-baseline', 'middle')
+      .text(ev.name);
+  });
+
+  // Show city info panel
+  showCityPanel(cluster);
+}
+
+function showCityPanel(c) {
+  var panel = document.getElementById('geo-city-panel');
+  var maxArch = c.archetype_breakdown && c.archetype_breakdown.length ? c.archetype_breakdown[0].count : 1;
+  var corridors = (geoData.corridors || []).filter(function(r) { return r.from === c.city || r.to === c.city; }).slice(0, 4);
+  var cityEvents = (geoData.events || []).filter(function(e) { return e.city === c.city; });
+
+  var html =
+    '<div class="gcp-header">' +
+      '<div class="gcp-city">' + c.city + '</div>' +
+      '<div class="gcp-sub">City cluster · ' + (c.total_matches || 0) + ' total matches</div>' +
+    '</div>' +
+    '<div class="gcp-stats">' +
+      '<div class="gcp-stat"><div class="gcp-stat-val">' + c.member_count + '</div><div class="gcp-stat-lbl">Members</div></div>' +
+      '<div class="gcp-stat"><div class="gcp-stat-val">' + c.event_count + '</div><div class="gcp-stat-lbl">Events</div></div>' +
+      '<div class="gcp-stat"><div class="gcp-stat-val">' + corridors.length + '</div><div class="gcp-stat-lbl">Corridors</div></div>' +
+    '</div>';
+
+  // Themes
+  if (c.top_themes && c.top_themes.length) {
+    html += '<div class="gcp-section"><div class="gcp-section-lbl">Themes</div><div class="gcp-themes">' +
+      c.top_themes.map(function(t) {
+        var col = themeColor(t.theme);
+        return '<span class="gcp-theme" style="background:' + col + '22;color:' + col + '">' + t.theme + '</span>';
+      }).join('') + '</div></div>';
+  }
+
+  // Stakeholder mix
+  if (c.archetype_breakdown && c.archetype_breakdown.length) {
+    html += '<div class="gcp-section" style="border-top:1px solid rgba(255,255,255,0.05)"><div class="gcp-section-lbl">Stakeholder Mix</div><div class="gcp-archs">' +
+      c.archetype_breakdown.map(function(a) {
+        var col = stypeColor(a.type);
+        var pct = Math.round((a.count / maxArch) * 100);
+        return '<div class="gcp-arch-row">' +
+          '<div class="gcp-arch-dot" style="background:' + col + '"></div>' +
+          '<div class="gcp-arch-name">' + (a.type.charAt(0).toUpperCase() + a.type.slice(1)) + '</div>' +
+          '<div class="gcp-arch-bar-wrap"><div class="gcp-arch-bar" style="width:' + pct + '%;background:' + col + '"></div></div>' +
+          '<div class="gcp-arch-n">' + a.count + '</div>' +
+          '</div>';
+      }).join('') + '</div></div>';
+  }
+
+  // Corridors
+  if (corridors.length) {
+    var maxC = corridors[0].match_count || 1;
+    html += '<div class="gcp-section" style="border-top:1px solid rgba(255,255,255,0.05)"><div class="gcp-section-lbl">Match Corridors</div><div class="gcp-corr">' +
+      corridors.map(function(corr) {
+        var other = corr.from === c.city ? corr.to : corr.from;
+        var pct = Math.round((corr.match_count / maxC) * 100);
+        return '<div class="gcp-corr-row"><span class="gcp-corr-name">' + other + '</span><div class="gcp-corr-bar-w"><div class="gcp-corr-bar" style="width:' + pct + '%"></div></div><span>' + corr.match_count + '</span></div>';
+      }).join('') + '</div></div>';
+  }
+
+  // Events
+  if (cityEvents.length) {
+    html += '<div class="gcp-section" style="border-top:1px solid rgba(255,255,255,0.05)"><div class="gcp-section-lbl">Events</div><div class="gcp-events">' +
+      cityEvents.map(function(ev) {
+        var col = themeColor(ev.themes && ev.themes[0] ? ev.themes[0] : 'AI');
+        return '<div class="gcp-event-row"><div class="gcp-event-dot" style="background:' + col + '"></div><div><div class="gcp-event-name">' + ev.name + '</div><div class="gcp-event-meta">' + (ev.registered_count || 0) + ' registered</div></div></div>';
+      }).join('') + '</div></div>';
+  }
+
+  panel.innerHTML = html;
+  panel.style.display = 'flex';
 }
 
 // ── Share view ────────────────────────────────────────────────────────────────
