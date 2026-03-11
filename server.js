@@ -95,6 +95,17 @@ async function runMigrations() {
     await dbRun('ALTER TABLE event_matches ADD COLUMN IF NOT EXISTS community_id INTEGER REFERENCES communities(id)');
     await dbRun("ALTER TABLE event_matches ADD COLUMN IF NOT EXISTS scope_type TEXT DEFAULT 'event'");
     await dbRun('ALTER TABLE users ADD COLUMN IF NOT EXISTS last_global_match TIMESTAMP');
+    await dbRun(`CREATE TABLE IF NOT EXISTS nev_messages (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      session_id TEXT,
+      role TEXT NOT NULL CHECK (role IN ('user', 'assistant')),
+      content TEXT NOT NULL,
+      context JSONB,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`);
+    await dbRun('CREATE INDEX IF NOT EXISTS nev_messages_user_id_idx ON nev_messages(user_id)');
+    await dbRun('CREATE INDEX IF NOT EXISTS nev_messages_created_at_idx ON nev_messages(created_at)');
     console.log('[Migrations] Schema up to date');
   } catch(err) {
     console.error('[Migrations] Error:', err);
