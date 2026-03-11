@@ -424,6 +424,27 @@ router.post('/chat', authenticateToken, async function(req, res) {
       console.error('[Nev] write-back error:', e);
     });
 
+    // Fire-and-forget embedding after canister update
+    var nevUserId = req.user.id;
+    (async function() {
+      try {
+        var { embedProfile, embedIntentOffering } = require('../lib/vector_search');
+        var { dbGet: nevDbGet, dbRun: nevDbRun } = require('../db');
+        var updatedProfile = await nevDbGet('SELECT * FROM stakeholder_profiles WHERE user_id = $1', [nevUserId]);
+        var nevUser = await nevDbGet('SELECT name, company FROM users WHERE id = $1', [nevUserId]);
+        if (updatedProfile && nevUser) {
+          var vectorId = await embedProfile(updatedProfile, nevUser);
+          if (vectorId) {
+            await nevDbRun('UPDATE stakeholder_profiles SET qdrant_vector_id = $1, embedding_updated_at = NOW() WHERE user_id = $2', [vectorId, nevUserId]);
+            console.log('[embedding] canister embedded for user', nevUserId, 'after Nev session');
+          }
+          await embedIntentOffering(updatedProfile, nevUser);
+        }
+      } catch(e) {
+        console.error('[embedding] Nev canister embed failed for user', nevUserId, e.message);
+      }
+    })();
+
   } catch (err) {
     console.error('Nev chat error:', err);
     res.status(500).json({ error: 'Chat failed' });

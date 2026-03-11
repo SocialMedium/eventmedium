@@ -49,6 +49,7 @@ router.get('/google/callback', async function(req, res) {
     // Find or create user
     var user = await dbGet('SELECT * FROM users WHERE email = $1', [profile.email.toLowerCase()]);
 
+    var isNewGoogleUser = false;
     if (!user) {
       var result = await dbRun(
         `INSERT INTO users (name, email, avatar_url, auth_provider, google_id, email_verified)
@@ -56,12 +57,26 @@ router.get('/google/callback', async function(req, res) {
         [profile.name || profile.email, profile.email.toLowerCase(), profile.picture, 'google', profile.id]
       );
       user = result.rows[0];
+      isNewGoogleUser = true;
     } else {
       // Update google_id and avatar if not set
       await dbRun(
         'UPDATE users SET google_id = COALESCE(google_id, $1), avatar_url = COALESCE(avatar_url, $2), email_verified = TRUE WHERE id = $3',
         [profile.id, profile.picture, user.id]
       );
+    }
+
+    // Create stub profile for new users
+    if (isNewGoogleUser) {
+      try {
+        await dbRun(
+          'INSERT INTO stakeholder_profiles (user_id, created_at, updated_at) VALUES ($1, NOW(), NOW()) ON CONFLICT (user_id) DO NOTHING',
+          [user.id]
+        );
+        console.log('[embedding] stub profile created for user', user.id);
+      } catch(e) {
+        console.error('[embedding] stub profile creation failed:', e.message);
+      }
     }
 
     // Create session token — SAME mechanism as email login. NEVER JWT.
@@ -133,6 +148,7 @@ router.get('/linkedin/callback', async function(req, res) {
     // Find or create user
     var user = await dbGet('SELECT * FROM users WHERE email = $1', [profile.email.toLowerCase()]);
 
+    var isNewLinkedInUser = false;
     if (!user) {
       var result = await dbRun(
         `INSERT INTO users (name, email, avatar_url, auth_provider, linkedin_id, email_verified)
@@ -140,11 +156,25 @@ router.get('/linkedin/callback', async function(req, res) {
         [profile.name || profile.email, profile.email.toLowerCase(), profile.picture, 'linkedin', profile.sub]
       );
       user = result.rows[0];
+      isNewLinkedInUser = true;
     } else {
       await dbRun(
         'UPDATE users SET linkedin_id = COALESCE(linkedin_id, $1), avatar_url = COALESCE(avatar_url, $2), email_verified = TRUE WHERE id = $3',
         [profile.sub, profile.picture, user.id]
       );
+    }
+
+    // Create stub profile for new users
+    if (isNewLinkedInUser) {
+      try {
+        await dbRun(
+          'INSERT INTO stakeholder_profiles (user_id, created_at, updated_at) VALUES ($1, NOW(), NOW()) ON CONFLICT (user_id) DO NOTHING',
+          [user.id]
+        );
+        console.log('[embedding] stub profile created for user', user.id);
+      } catch(e) {
+        console.error('[embedding] stub profile creation failed:', e.message);
+      }
     }
 
     // Session token — SAME mechanism. NEVER JWT.

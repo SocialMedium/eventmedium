@@ -106,6 +106,17 @@ async function runMigrations() {
     )`);
     await dbRun('CREATE INDEX IF NOT EXISTS nev_messages_user_id_idx ON nev_messages(user_id)');
     await dbRun('CREATE INDEX IF NOT EXISTS nev_messages_created_at_idx ON nev_messages(created_at)');
+    // Embedding pipeline columns
+    await dbRun('ALTER TABLE stakeholder_profiles ADD COLUMN IF NOT EXISTS embedding_updated_at TIMESTAMPTZ');
+    await dbRun('ALTER TABLE stakeholder_profiles ADD COLUMN IF NOT EXISTS qdrant_vector_id TEXT');
+    // Match score columns
+    await dbRun('ALTER TABLE event_matches ADD COLUMN IF NOT EXISTS score_intent_offering NUMERIC(5,3)');
+    await dbRun('ALTER TABLE event_matches ADD COLUMN IF NOT EXISTS score_geography NUMERIC(5,3)');
+    await dbRun('ALTER TABLE event_matches ADD COLUMN IF NOT EXISTS score_urgency NUMERIC(5,3)');
+    await dbRun('ALTER TABLE event_matches ADD COLUMN IF NOT EXISTS score_canister_richness NUMERIC(5,3)');
+    await dbRun('ALTER TABLE event_matches ADD COLUMN IF NOT EXISTS score_feedback_adjustment NUMERIC(5,3)');
+    await dbRun('ALTER TABLE event_matches ADD COLUMN IF NOT EXISTS scoring_tier INTEGER DEFAULT 1');
+    await dbRun("ALTER TABLE event_matches ADD COLUMN IF NOT EXISTS match_mode TEXT DEFAULT 'event'");
     console.log('[Migrations] Schema up to date');
   } catch(err) {
     console.error('[Migrations] Error:', err);
@@ -114,6 +125,7 @@ async function runMigrations() {
 runMigrations();
 
 // ── Scheduled matching: 3x daily (8am, 1pm, 6pm UTC) ──────────────────────────
+// node-cron is not installed — using setInterval with hour checking
 function scheduleMatching() {
   var MATCH_HOURS = [8, 13, 18]; // UTC
   setInterval(async function() {
@@ -122,35 +134,14 @@ function scheduleMatching() {
     if (MATCH_HOURS.indexOf(hour) === -1 || minute !== 0) return;
     console.log('[Scheduler] Running matching cycle at ' + new Date().toISOString());
     try {
-      var { generateMatchesForUser } = require('./routes/matches');
+      var { runEventMatching, runCommunityMatching, generateMatchesForUser } = require('./routes/matches');
       var db = require('./db');
 
-      // 1. Event-scoped matches — events within 30 days
-      var events = await db.dbAll(
-        "SELECT e.id FROM events e WHERE e.event_date >= CURRENT_DATE AND e.event_date <= CURRENT_DATE + INTERVAL '30 days'"
-      );
-      for (var i = 0; i < events.length; i++) {
-        var regs = await db.dbAll(
-          "SELECT user_id FROM event_registrations WHERE event_id = $1 AND status = 'active'",
-          [events[i].id]
-        );
-        for (var j = 0; j < regs.length; j++) {
-          try { await generateMatchesForUser(regs[j].user_id, { type: 'event', id: events[i].id }); } catch(e) {}
-        }
-        if (regs.length) console.log('[Scheduler] Event ' + events[i].id + ': processed ' + regs.length + ' users');
-      }
+      // 1. Event-scoped matches
+      await runEventMatching().catch(function(e) { console.error('[Scheduler] runEventMatching error:', e.message); });
 
-      // 2. Community-scoped matches — all active communities
-      var communities = await db.dbAll("SELECT id FROM communities WHERE is_active = true");
-      for (var i = 0; i < communities.length; i++) {
-        var members = await db.dbAll(
-          "SELECT user_id FROM community_members WHERE community_id = $1", [communities[i].id]
-        );
-        for (var j = 0; j < members.length; j++) {
-          try { await generateMatchesForUser(members[j].user_id, { type: 'community', id: communities[i].id }); } catch(e) {}
-        }
-        if (members.length) console.log('[Scheduler] Community ' + communities[i].id + ': processed ' + members.length + ' users');
-      }
+      // 2. Community-scoped matches
+      await runCommunityMatching().catch(function(e) { console.error('[Scheduler] runCommunityMatching error:', e.message); });
 
       // 3. Location-scoped matches — city clusters of 3+ users
       var cityRows = await db.dbAll(
@@ -196,6 +187,23 @@ function scheduleMatching() {
 }
 scheduleMatching();
 
+// ── Admin: backfill embeddings ──
+app.post('/api/admin/backfill-embeddings', async function(req, res) {
+  if (!req.session || req.session.userId !== 2) return res.status(403).json({ error: 'Forbidden' });
+  try {
+    var { backfillUnembeddedProfiles } = require('./lib/vector_search');
+    // Run async, return immediately
+    backfillUnembeddedProfiles().then(function(result) {
+      console.log('[admin] backfill complete:', result);
+    }).catch(function(e) {
+      console.error('[admin] backfill error:', e);
+    });
+    res.json({ status: 'backfill started' });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ── 404 ──
 app.use(function(req, res) {
   if (req.path.startsWith('/api/')) return res.status(404).json({ error: 'Not found' });
@@ -214,6 +222,8 @@ app.listen(PORT, async function() {
   console.log('Environment: ' + (process.env.NODE_ENV || 'development'));
   if (process.env.QDRANT_URL && process.env.QDRANT_API_KEY) {
     await initCollections();
+    var { ensureCollections } = require('./lib/vector_search');
+    await ensureCollections().catch(function(e){ console.error('[startup] ensureCollections failed:', e.message); });
   } else {
     console.log('Qdrant not configured — skipping collection init');
   }

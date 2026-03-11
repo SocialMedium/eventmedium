@@ -2,7 +2,7 @@ var express = require('express');
 var { dbGet, dbRun, dbAll } = require('../db');
 var { authenticateToken } = require('../middleware/auth');
 var { normalizeThemes } = require('../lib/theme_taxonomy');
-var { embedProfile } = require('../lib/vector_search');
+var { embedProfile, embedIntentOffering } = require('../lib/vector_search');
 
 var router = express.Router();
 
@@ -125,29 +125,34 @@ router.post('/profile', authenticateToken, async function(req, res) {
     profile = await dbGet('SELECT * FROM stakeholder_profiles WHERE user_id = $1', [req.user.id]);
     var user = await dbGet('SELECT name, company FROM users WHERE id = $1', [req.user.id]);
 
-    // Embed in Qdrant (async, don't block response)
     // Embed in Qdrant then trigger matching (async, don't block response)
-    embedProfile(profile, user).then(async function(vectorId) {
-      if (vectorId) {
-        await dbRun('UPDATE stakeholder_profiles SET qdrant_vector_id = $1 WHERE user_id = $2', [vectorId, req.user.id]);
+    var stakeholderUserId = req.user.id;
+    (async function() {
+      try {
+        var vectorId = await embedProfile(profile, user);
+        if (vectorId) {
+          await dbRun('UPDATE stakeholder_profiles SET qdrant_vector_id = $1, embedding_updated_at = NOW() WHERE user_id = $2', [vectorId, stakeholderUserId]);
+          console.log('[embedding] profile embedded for user', stakeholderUserId);
+        }
+        await embedIntentOffering(profile, user);
+      } catch(err) {
+        console.error('[embedding] profile embedding error:', err);
       }
       // Generate matches for all events this user is registered for
       try {
         var { generateMatchesForUser } = require('./matches');
         var regs = await dbAll(
           "SELECT er.event_id FROM event_registrations er JOIN events e ON e.id = er.event_id WHERE er.user_id = $1 AND er.status = 'active' AND e.event_date >= CURRENT_DATE",
-          [req.user.id]
+          [stakeholderUserId]
         );
         for (var i = 0; i < regs.length; i++) {
-          await generateMatchesForUser(req.user.id, regs[i].event_id);
+          await generateMatchesForUser(stakeholderUserId, regs[i].event_id);
         }
-        if (regs.length) console.log('Auto-matched user ' + req.user.id + ' across ' + regs.length + ' events');
+        if (regs.length) console.log('Auto-matched user ' + stakeholderUserId + ' across ' + regs.length + ' events');
       } catch(err) {
         console.error('Auto-match after canister save error:', err);
       }
-    }).catch(function(err) {
-      console.error('Profile embedding error:', err);
-    });
+    })();
     res.json({ profile: profile, embedded: true });
   } catch (err) {
     console.error('Save profile error:', err);

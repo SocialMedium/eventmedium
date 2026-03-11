@@ -601,6 +601,17 @@ async function scoreMatch(userA, userB, eventId, options) {
     weights.capital = 0;
   }
 
+  // 7. Geography score
+  var scoreGeo = scoreGeography(profileA, profileB);
+
+  // 8. Urgency score
+  var scoreUrg = scoreUrgency(profileA, profileB);
+
+  // 9. Canister richness scalar
+  var richnessA = computeRichness(profileA);
+  var richnessB = computeRichness(profileB);
+  var avgRichness = (richnessA + richnessB) / 2;
+
   var scoreTotal =
     (scoreSemantic * weights.semantic) +
     (themeResult.score * weights.theme) +
@@ -610,7 +621,10 @@ async function scoreMatch(userA, userB, eventId, options) {
     (signalScores.total * weights.signals) +
     (networkResult.score * weights.network);
 
-    // Build reasons array
+  // Apply richness confidence scalar
+  scoreTotal = scoreTotal * (0.7 + avgRichness * 0.3);
+
+  // Build reasons array
   var reasons = [];
   if (themeResult.shared.length) {
     reasons.push('Shared themes: ' + themeResult.shared.join(', '));
@@ -640,6 +654,9 @@ async function scoreMatch(userA, userB, eventId, options) {
     score_timing: Math.round(signalScores.timing * 1000) / 1000,
     score_constraint_complementarity: Math.round(signalScores.constraint * 1000) / 1000,
     score_network_proximity: Math.round(networkResult.score * 1000) / 1000,
+    score_geography: Math.round(scoreGeo * 1000) / 1000,
+    score_urgency: Math.round(scoreUrg * 1000) / 1000,
+    score_canister_richness: Math.round(avgRichness * 1000) / 1000,
     match_reasons: reasons,
     signal_context: signalScores.context
   };
@@ -790,13 +807,15 @@ async function generateMatchesForUser(userId, context, options) {
          (event_id, community_id, scope_type, user_a_id, user_b_id,
           score_total, score_semantic, score_theme, score_intent, score_stakeholder,
           score_capital, score_signal_convergence, score_timing, score_constraint_complementarity,
+          score_geography, score_urgency, score_canister_richness, match_mode,
           match_reasons, signal_context, status)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)`,
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)`,
       [
         eventId, commId, scopeType, userId, matches[m].otherId,
         mr.score_total, mr.score_semantic, mr.score_theme, mr.score_intent,
         mr.score_stakeholder, mr.score_capital,
         mr.score_signal_convergence, mr.score_timing, mr.score_constraint_complementarity,
+        mr.score_geography, mr.score_urgency, mr.score_canister_richness, scopeType,
         JSON.stringify(mr.match_reasons), JSON.stringify(mr.signal_context),
         'pending'
       ]
@@ -1805,11 +1824,146 @@ async function extractDebriefInsights(matchId, userId, feedback, match) {
 }
 
 // ══════════════════════════════════════════════════════
+// GEOGRAPHY SCORING
+// ══════════════════════════════════════════════════════
+
+function scoreGeography(profileA, profileB) {
+  var geoA = ((profileA.geography || '')).toLowerCase().trim().split(',')[0].trim();
+  var geoB = ((profileB.geography || '')).toLowerCase().trim().split(',')[0].trim();
+  if (!geoA || !geoB) return 0.3;
+  if (geoA === geoB) return 1.0;
+  var regions = {
+    europe: ['london','barcelona','madrid','paris','berlin','amsterdam','stockholm','oslo','dublin','lisbon','rome','milan','brussels','zurich','vienna','prague','warsaw','edinburgh','copenhagen','helsinki','budapest'],
+    north_america: ['san francisco','new york','boston','seattle','austin','chicago','miami','toronto','vancouver','montreal','los angeles','denver','atlanta','houston','dallas'],
+    apac: ['singapore','tokyo','seoul','hong kong','shanghai','beijing','sydney','melbourne','bangkok','kuala lumpur','jakarta','mumbai','delhi','bangalore'],
+    mena: ['dubai','abu dhabi','riyadh','tel aviv','istanbul','cairo'],
+    latam: ['são paulo','buenos aires','mexico city','bogotá','lima','santiago'],
+    africa: ['nairobi','lagos','johannesburg','cape town','accra']
+  };
+  var getRegion = function(city) {
+    for (var r in regions) { if (regions[r].some(function(c){ return city.includes(c)||c.includes(city); })) return r; }
+    return null;
+  };
+  var rA = getRegion(geoA), rB = getRegion(geoB);
+  if (rA && rB && rA === rB) return 0.75;
+  var ctxA = JSON.stringify(profileA.intent||'') + ' ' + (profileA.focus_text||'');
+  var ctxB = JSON.stringify(profileB.intent||'') + ' ' + (profileB.focus_text||'');
+  if (ctxA.toLowerCase().includes(geoB) || ctxB.toLowerCase().includes(geoA)) return 0.6;
+  return 0.2;
+}
+
+// ══════════════════════════════════════════════════════
+// URGENCY SCORING
+// ══════════════════════════════════════════════════════
+
+function scoreUrgency(profileA, profileB) {
+  var URGENCY = ['now','this week','this month','q1','q2','q3','q4','raising','launching','hiring','closing','deadline','attending','next week'];
+  var detect = function(p) {
+    var text = [JSON.stringify(p.intent||''), JSON.stringify(p.deal_details||''), p.focus_text||''].join(' ').toLowerCase();
+    var matches = URGENCY.filter(function(t){ return text.includes(t); });
+    return matches.length >= 3 ? 1.0 : matches.length >= 1 ? 0.6 : 0.3;
+  };
+  var uA = detect(profileA), uB = detect(profileB);
+  if (uA >= 0.8 && uB >= 0.8) return 1.0;
+  if (uA >= 0.6 || uB >= 0.6) return 0.6;
+  return 0.3;
+}
+
+// ══════════════════════════════════════════════════════
+// CANISTER RICHNESS SCALAR
+// ══════════════════════════════════════════════════════
+
+function computeRichness(profile) {
+  var pts = 0;
+  if (profile.stakeholder_type) pts += 15;
+  var themes = [];
+  try { themes = Array.isArray(profile.themes) ? profile.themes : JSON.parse(profile.themes||'[]'); } catch(e) {}
+  if (themes.length >= 2) pts += 15;
+  var intent = {};
+  try { intent = typeof profile.intent === 'object' ? profile.intent : JSON.parse(profile.intent||'{}'); } catch(e) {}
+  if (intent && Object.keys(intent).length > 0) pts += 15;
+  var offering = {};
+  try { offering = typeof profile.offering === 'object' ? profile.offering : JSON.parse(profile.offering||'{}'); } catch(e) {}
+  if (offering && Object.keys(offering).length > 0) pts += 15;
+  if (profile.geography) pts += 10;
+  if ((profile.focus_text||'').length >= 100) pts += 15;
+  var deal = {};
+  try { deal = typeof profile.deal_details === 'object' ? profile.deal_details : JSON.parse(profile.deal_details||'{}'); } catch(e) {}
+  var stype = (profile.stakeholder_type||'').toLowerCase();
+  if ((stype === 'founder' || stype === 'investor') && deal && Object.keys(deal).length > 0) pts += 10;
+  if (profile.embedding_updated_at) pts += 5;
+  return Math.min(pts, 100) / 100;
+}
+
+// ══════════════════════════════════════════════════════
+// NEGATIVE HISTORY CHECK
+// ══════════════════════════════════════════════════════
+
+async function hasNegativeHistory(userA, userB) {
+  try {
+    var negative = await dbGet(
+      'SELECT fi.id FROM feedback_insights fi JOIN event_matches em ON em.id = fi.match_id WHERE fi.user_id = $1 AND (em.user_a_id = $2 OR em.user_b_id = $2) AND fi.insight_type IN (\'poor_fit\',\'wrong_archetype\',\'excluded_type\',\'not_useful\') AND fi.confidence > 0.6 LIMIT 1',
+      [userA, userB]
+    );
+    return !!negative;
+  } catch(e) { return false; }
+}
+
+// ══════════════════════════════════════════════════════
+// SCHEDULER FUNCTIONS (exported for server.js)
+// ══════════════════════════════════════════════════════
+
+async function runEventMatching() {
+  var db = require('../db');
+  var events = await db.dbAll("SELECT id FROM events WHERE event_date BETWEEN NOW() AND NOW() + INTERVAL '30 days'");
+  for (var i = 0; i < events.length; i++) {
+    var regs = await db.dbAll("SELECT user_id FROM event_registrations WHERE event_id = $1 AND status = 'active'", [events[i].id]);
+    for (var j = 0; j < regs.length; j++) {
+      try { await generateMatchesForUser(regs[j].user_id, { type: 'event', id: events[i].id }); } catch(e) { console.error('[matching] event match error:', e.message); }
+    }
+    if (regs.length) console.log('[scheduler] event', events[i].id, ':', regs.length, 'users processed');
+  }
+}
+
+async function runCommunityMatching() {
+  var db = require('../db');
+  try {
+    var communities = await db.dbAll("SELECT id FROM communities WHERE is_active = true");
+    for (var i = 0; i < communities.length; i++) {
+      var members = await db.dbAll("SELECT user_id FROM community_members WHERE community_id = $1", [communities[i].id]);
+      for (var j = 0; j < members.length; j++) {
+        try { await generateMatchesForUser(members[j].user_id, { type: 'community', id: communities[i].id }); } catch(e) {}
+      }
+      if (members.length) console.log('[scheduler] community', communities[i].id, ':', members.length, 'users');
+    }
+  } catch(e) { console.error('[scheduler] community matching error:', e.message); }
+}
+
+async function runGlobalMatching() {
+  var db = require('../db');
+  var candidates = await db.dbAll(`
+    SELECT sp.user_id FROM stakeholder_profiles sp
+    WHERE sp.embedding_updated_at IS NOT NULL
+      AND sp.stakeholder_type IS NOT NULL
+      AND sp.themes IS NOT NULL
+      AND (SELECT COUNT(*) FROM event_registrations er JOIN events e ON e.id = er.event_id WHERE er.user_id = sp.user_id AND e.event_date > NOW()) = 0
+    LIMIT 50
+  `);
+  for (var i = 0; i < candidates.length; i++) {
+    try { await generateMatchesForUser(candidates[i].user_id, { type: 'global' }); } catch(e) {}
+    await new Promise(function(r){ setTimeout(r, 200); });
+  }
+  console.log('[scheduler] global matching:', candidates.length, 'candidates processed');
+}
+
+// ══════════════════════════════════════════════════════
 // EXPORTS
 // ══════════════════════════════════════════════════════
 
 module.exports = {
   router, scoreMatch, generateMatchesForUser,
   createNotification, notifyMatchReveal,
-  extractDebriefInsights, getNevResponse
+  extractDebriefInsights, getNevResponse,
+  scoreGeography, scoreUrgency, computeRichness, hasNegativeHistory,
+  runEventMatching, runCommunityMatching, runGlobalMatching
 };
