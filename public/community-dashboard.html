@@ -964,7 +964,7 @@ async function renderEventsTab() {
 
 function renderEventsTable(evts, el) {
   if (!evts.length) {
-    el.innerHTML = '<div class="empty-vis"><strong>No events yet</strong>Create your first event to get started</div>';
+    el.innerHTML = '<div class="empty-vis"><strong>No events yet</strong>Create your first event to get started<button onclick="openCreateEvent()" style="margin-top:12px;padding:9px 20px;background:var(--blue);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">+ Create Event</button></div>';
     return;
   }
   var rows = evts.map(function(e) {
