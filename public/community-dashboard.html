@@ -156,6 +156,39 @@ body{font-family:var(--sans);background:var(--bg2);color:var(--text);min-height:
   .body{padding:20px 16px}
 }
 @media(max-width:500px){.stat-row{grid-template-columns:1fr 1fr}}
+
+/* ── Event cards ── */
+.evt-list{display:flex;flex-direction:column;gap:12px}
+.evt-card{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.evt-card-main{flex:1;min-width:0}
+.evt-card-name{font-size:14px;font-weight:700;color:var(--heading);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.evt-card-meta{font-size:12px;color:var(--text3)}
+.evt-card-stat{text-align:right;flex-shrink:0}
+.evt-card-count{font-size:22px;font-weight:700;color:var(--heading);line-height:1}
+.evt-card-count-lbl{font-size:10px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:var(--text3);margin-top:2px}
+.evt-card-actions{display:flex;gap:8px;flex-shrink:0}
+.btn-sm{padding:5px 12px;font-size:12px;font-weight:600;border:1px solid var(--border2);border-radius:6px;cursor:pointer;background:var(--bg);color:var(--text2);font-family:var(--sans);transition:all 0.15s}
+.btn-sm:hover{border-color:rgba(99,102,241,0.3);color:var(--accent)}
+
+/* ── Modal ── */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:500;display:none;align-items:center;justify-content:center;padding:24px}
+.modal-bg.open{display:flex}
+.modal{background:#fff;border-radius:14px;padding:32px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,0.18)}
+.modal h3{font-size:17px;font-weight:700;color:var(--heading);margin-bottom:20px}
+.form-row{margin-bottom:16px}
+.form-row label{display:block;font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:5px}
+.form-row input,.form-row textarea,.form-row select{width:100%;padding:9px 12px;border:1px solid var(--border2);border-radius:8px;font-size:14px;font-family:var(--sans);color:var(--text);background:#fff;outline:none;transition:border-color 0.15s}
+.form-row input:focus,.form-row textarea:focus{border-color:var(--accent)}
+.form-row textarea{resize:vertical;min-height:80px}
+.form-2col{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.theme-grid{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.theme-chip{padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;border:1.5px solid var(--border2);background:var(--bg2);color:var(--text2);transition:all 0.15s;user-select:none}
+.theme-chip.selected{background:var(--accent);color:#fff;border-color:var(--accent)}
+.modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:24px}
+.modal-cancel{padding:9px 18px;border:1px solid var(--border2);border-radius:8px;font-size:13px;font-weight:600;background:var(--bg);color:var(--text2);cursor:pointer;font-family:var(--sans)}
+.modal-submit{padding:9px 22px;border:none;border-radius:8px;font-size:13px;font-weight:600;background:var(--accent);color:#fff;cursor:pointer;font-family:var(--sans);transition:background 0.15s}
+.modal-submit:hover{background:var(--accent2)}
+.modal-submit:disabled{opacity:0.5;cursor:not-allowed}
 </style>
 <link rel="icon" type="image/png" href="/images/em-logo.png">
 </head>
@@ -179,6 +212,7 @@ body{font-family:var(--sans);background:var(--bg2);color:var(--text);min-height:
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
           Share
         </button>
+        <button class="btn btn-pri" id="createEvtBtn" onclick="openCreateEvent()" style="display:none">+ Create Event</button>
         <span class="pill pill-green" id="ownerPill" style="display:none">Owner</span>
         <a href="/communities.html" class="btn btn-back">← Communities</a>
       </div>
@@ -193,6 +227,7 @@ body{font-family:var(--sans);background:var(--bg2);color:var(--text);min-height:
     <button class="tab" data-tab="intelligence">Signal Intelligence</button>
     <button class="tab" data-tab="gaps">Gaps &amp; Opportunities</button>
     <button class="tab" data-tab="members">Members</button>
+    <button class="tab" data-tab="events">Events</button>
   </div>
 
   <!-- ─── TAB 1: OVERVIEW ─── -->
@@ -254,9 +289,87 @@ body{font-family:var(--sans);background:var(--bg2);color:var(--text);min-height:
     </div>
   </div>
 
+  <!-- ─── TAB 5: EVENTS ─── -->
+  <div id="events" class="tab-content">
+    <div class="card">
+      <div id="eventsVis"><div class="skel" style="height:280px;border-radius:8px"></div></div>
+    </div>
+  </div>
+
   <div class="footer">
     <span>EventMedium.ai · Community Intelligence</span>
     <span class="mono" id="footerSlug"></span>
+  </div>
+</div>
+
+<!-- ── Create Event Modal ── -->
+<div class="modal-bg" id="createEvtModal">
+  <div class="modal">
+    <h3>Create Event</h3>
+    <div class="form-row">
+      <label>Event Name *</label>
+      <input type="text" id="ceName" placeholder="e.g. AI Founders Summit 2026" required>
+    </div>
+    <div class="form-2col">
+      <div class="form-row">
+        <label>Date *</label>
+        <input type="date" id="ceDate" required>
+      </div>
+      <div class="form-row">
+        <label>Expected Attendees</label>
+        <input type="number" id="ceAttendees" placeholder="500" min="1">
+      </div>
+    </div>
+    <div class="form-2col">
+      <div class="form-row">
+        <label>City *</label>
+        <input type="text" id="ceCity" placeholder="London">
+      </div>
+      <div class="form-row">
+        <label>Country *</label>
+        <input type="text" id="ceCountry" placeholder="UK">
+      </div>
+    </div>
+    <div class="form-row">
+      <label>Themes</label>
+      <div class="theme-grid" id="ceThemeGrid"></div>
+    </div>
+    <div class="form-row">
+      <label>Description</label>
+      <textarea id="ceDesc" placeholder="What is this event about?"></textarea>
+    </div>
+    <div id="ceError" style="color:#dc2626;font-size:13px;margin-top:8px;display:none"></div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeCreateEvent()">Cancel</button>
+      <button class="modal-submit" id="ceSubmitBtn" onclick="submitCreateEvent()">Create Event</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Edit Event Modal ── -->
+<div class="modal-bg" id="editEvtModal">
+  <div class="modal">
+    <h3>Edit Event</h3>
+    <input type="hidden" id="eeId">
+    <div class="form-row">
+      <label>Event Name</label>
+      <input type="text" id="eeName">
+    </div>
+    <div class="form-2col">
+      <div class="form-row">
+        <label>Date</label>
+        <input type="date" id="eeDate">
+      </div>
+      <div class="form-row">
+        <label>City</label>
+        <input type="text" id="eeCity">
+      </div>
+    </div>
+    <div id="eeError" style="color:#dc2626;font-size:13px;margin-top:8px;display:none"></div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeEditEvent()">Cancel</button>
+      <button class="modal-submit" id="eeSubmitBtn" onclick="submitEditEvent()">Save Changes</button>
+    </div>
   </div>
 </div>
 
@@ -309,6 +422,7 @@ document.querySelectorAll('.tab').forEach(function(t) {
       if (id === 'intelligence') { renderConstellation(); renderSignalDepth(); renderThemesTable(); }
       if (id === 'gaps') { renderGauges(); renderInsights(); }
       if (id === 'members') { renderMembersTab(); }
+      if (id === 'events') { renderEventsTab(); }
     }
   });
 });
@@ -349,6 +463,7 @@ function renderHeader() {
   document.getElementById('invBtn').style.display = 'inline-flex';
   document.getElementById('shrBtn').style.display = 'inline-flex';
   document.getElementById('ownerPill').style.display = 'inline-block';
+  document.getElementById('createEvtBtn').style.display = 'inline-flex';
 }
 
 function copyInvite() {
@@ -823,6 +938,163 @@ function renderAllEmpty() {
   });
   document.getElementById('statRow').innerHTML = '<div class="stat-card"><div class="stat-val">—</div><div class="stat-label">Members</div></div>'.repeat(4);
 }
+
+// ── Events tab ────────────────────────────────────────────────────────────────
+var _communityEvents = null;
+
+var CE_THEMES = ['AI','Connectivity','IoT','Enterprise SaaS','Cybersecurity','FinTech',
+  'Climate Tech','HealthTech','Hardware','Privacy','Regulation','EdTech',
+  'Open Source','Robotics','SpaceTech','Gaming'];
+
+async function renderEventsTab() {
+  var el = document.getElementById('eventsVis');
+  if (_communityEvents !== null) { renderEventsTable(_communityEvents, el); return; }
+  el.innerHTML = '<div class="skel" style="height:120px;border-radius:8px"></div>';
+  try {
+    var r = await fetch('/api/events/community/' + D.community.id, {
+      headers: { Authorization: 'Bearer ' + token }
+    });
+    var data = await r.json();
+    _communityEvents = data.events || [];
+    renderEventsTable(_communityEvents, el);
+  } catch(e) {
+    el.innerHTML = '<div class="empty-vis"><strong>Could not load events</strong>Try refreshing the page</div>';
+  }
+}
+
+function renderEventsTable(evts, el) {
+  if (!evts.length) {
+    el.innerHTML = '<div class="empty-vis"><strong>No events yet</strong>Create your first event to get started</div>';
+    return;
+  }
+  var rows = evts.map(function(e) {
+    var d = e.event_date ? new Date(e.event_date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '—';
+    var loc = [e.city, e.country].filter(Boolean).join(', ') || '—';
+    var reg = parseInt(e.registration_count) || 0;
+    return '<div class="evt-card">'
+      +'<div class="evt-card-main">'
+      +'<div class="evt-card-name">'+esc(e.name)+'</div>'
+      +'<div class="evt-card-meta">'+esc(d)+' · '+esc(loc)+'</div>'
+      +'</div>'
+      +'<div class="evt-card-stat"><div class="evt-card-count">'+reg+'</div><div class="evt-card-count-lbl">Registrations</div></div>'
+      +'<div class="evt-card-actions">'
+      +'<button class="btn-sm" onclick=\'openEditEvent('+e.id+','+JSON.stringify(e.name)+','+JSON.stringify(e.event_date||'')+','+JSON.stringify(e.city||'')+')\'>'
+      +'Edit</button>'
+      +'</div>'
+      +'</div>';
+  }).join('');
+  el.innerHTML = '<div class="evt-list">'+rows+'</div>';
+}
+
+// ── Create Event modal ────────────────────────────────────────────────────────
+function openCreateEvent() {
+  // Render theme chips
+  var grid = document.getElementById('ceThemeGrid');
+  grid.innerHTML = CE_THEMES.map(function(t) {
+    return '<span class="theme-chip" data-theme="'+esc(t)+'" onclick="toggleTheme(this)">'+esc(t)+'</span>';
+  }).join('');
+  // Clear fields
+  ['ceName','ceDate','ceCity','ceCountry','ceAttendees','ceDesc'].forEach(function(id){
+    document.getElementById(id).value='';
+  });
+  document.getElementById('ceError').style.display='none';
+  document.getElementById('ceSubmitBtn').disabled=false;
+  document.getElementById('createEvtModal').classList.add('open');
+}
+
+function closeCreateEvent() {
+  document.getElementById('createEvtModal').classList.remove('open');
+}
+
+function toggleTheme(el) {
+  el.classList.toggle('selected');
+}
+
+async function submitCreateEvent() {
+  var name = document.getElementById('ceName').value.trim();
+  var date = document.getElementById('ceDate').value;
+  var city = document.getElementById('ceCity').value.trim();
+  var country = document.getElementById('ceCountry').value.trim();
+  var attendees = document.getElementById('ceAttendees').value;
+  var desc = document.getElementById('ceDesc').value.trim();
+  var themes = Array.from(document.querySelectorAll('#ceThemeGrid .theme-chip.selected')).map(function(c){return c.dataset.theme;});
+  var errEl = document.getElementById('ceError');
+
+  if (!name || !date || !city || !country) {
+    errEl.textContent = 'Please fill in all required fields.';
+    errEl.style.display = 'block';
+    return;
+  }
+  var btn = document.getElementById('ceSubmitBtn');
+  btn.disabled = true; btn.textContent = 'Creating…';
+  errEl.style.display = 'none';
+
+  try {
+    var r = await fetch('/api/events', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ name: name, event_date: date, city: city, country: country,
+        expected_attendees: attendees ? parseInt(attendees) : null,
+        themes: themes, description: desc, community_id: D.community.id })
+    });
+    var data = await r.json();
+    if (!r.ok) { errEl.textContent = data.error || 'Failed to create event.'; errEl.style.display='block'; btn.disabled=false; btn.textContent='Create Event'; return; }
+    closeCreateEvent();
+    _communityEvents = null; // invalidate cache
+    renderEventsTab();
+  } catch(e) {
+    errEl.textContent = 'Connection error. Please try again.';
+    errEl.style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Create Event';
+  }
+}
+
+// ── Edit Event modal ──────────────────────────────────────────────────────────
+function openEditEvent(id, name, date, city) {
+  document.getElementById('eeId').value = id;
+  document.getElementById('eeName').value = name || '';
+  document.getElementById('eeDate').value = date ? date.substring(0,10) : '';
+  document.getElementById('eeCity').value = city || '';
+  document.getElementById('eeError').style.display = 'none';
+  document.getElementById('eeSubmitBtn').disabled = false;
+  document.getElementById('eeSubmitBtn').textContent = 'Save Changes';
+  document.getElementById('editEvtModal').classList.add('open');
+}
+
+function closeEditEvent() {
+  document.getElementById('editEvtModal').classList.remove('open');
+}
+
+async function submitEditEvent() {
+  var id = document.getElementById('eeId').value;
+  var name = document.getElementById('eeName').value.trim();
+  var date = document.getElementById('eeDate').value;
+  var city = document.getElementById('eeCity').value.trim();
+  var errEl = document.getElementById('eeError');
+  var btn = document.getElementById('eeSubmitBtn');
+  btn.disabled = true; btn.textContent = 'Saving…';
+
+  try {
+    var r = await fetch('/api/events/' + id, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ name: name || null, event_date: date || null, city: city || null })
+    });
+    var data = await r.json();
+    if (!r.ok) { errEl.textContent = data.error || 'Failed to save.'; errEl.style.display='block'; btn.disabled=false; btn.textContent='Save Changes'; return; }
+    closeEditEvent();
+    _communityEvents = null;
+    renderEventsTab();
+  } catch(e) {
+    errEl.textContent = 'Connection error.';
+    errEl.style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Save Changes';
+  }
+}
+
+// Close modals on background click
+document.getElementById('createEvtModal').addEventListener('click', function(e){ if(e.target===this) closeCreateEvent(); });
+document.getElementById('editEvtModal').addEventListener('click', function(e){ if(e.target===this) closeEditEvent(); });
 
 load();
 </script>

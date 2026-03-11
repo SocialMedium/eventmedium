@@ -390,6 +390,31 @@ router.post('/:id/approve-claim', authenticateToken, async function(req, res) {
   }
 });
 
+// ── GET /api/events/community/:communityId ── (events for a community, owner only)
+router.get('/community/:communityId', authenticateToken, async function(req, res) {
+  try {
+    var communityId = parseInt(req.params.communityId);
+    if (isNaN(communityId)) return res.status(400).json({ error: 'Invalid community ID' });
+
+    var community = await dbGet(
+      'SELECT id FROM communities WHERE id = $1 AND owner_user_id = $2',
+      [communityId, req.user.id]
+    );
+    if (!community) return res.status(403).json({ error: 'Access denied' });
+
+    var events = await dbAll(
+      `SELECT e.*,
+        (SELECT COUNT(*) FROM event_registrations WHERE event_id = e.id AND status = 'active') as registration_count
+       FROM events e WHERE e.community_id = $1 ORDER BY e.event_date ASC`,
+      [communityId]
+    );
+    res.json({ events: events });
+  } catch (err) {
+    console.error('Community events error:', err);
+    res.status(500).json({ error: 'Failed to load community events' });
+  }
+});
+
 // ── GET /api/events/:id ── (single event)
 router.get('/:id', optionalAuth, async function(req, res) {
   try {
@@ -585,6 +610,78 @@ router.post('/submit', authenticateToken, async function(req, res) {
   } catch (err) {
     console.error('Submit event error:', err);
     res.status(500).json({ error: 'Failed to submit event' });
+  }
+});
+
+// ── POST /api/events ── (community owner creates event)
+router.post('/', authenticateToken, async function(req, res) {
+  try {
+    var { name, event_date, city, country, expected_attendees, themes, description, community_id } = req.body;
+
+    if (!name || !event_date || !city || !country) {
+      return res.status(400).json({ error: 'Name, date, city, and country are required' });
+    }
+
+    var communityId = community_id ? parseInt(community_id) : null;
+    if (communityId) {
+      var community = await dbGet(
+        'SELECT id FROM communities WHERE id = $1 AND owner_user_id = $2',
+        [communityId, req.user.id]
+      );
+      if (!community) return res.status(403).json({ error: 'You do not own this community' });
+    }
+
+    var rawThemes = themes || [];
+    if (typeof rawThemes === 'string') {
+      try { rawThemes = JSON.parse(rawThemes); } catch(e) { rawThemes = [rawThemes]; }
+    }
+    var normalizedThemes = normalizeThemes(rawThemes);
+
+    var slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    slug = slug + '-' + String(event_date).replace(/-/g, '') + '-' + Date.now().toString(36);
+
+    var result = await dbRun(
+      `INSERT INTO events (name, description, event_date, city, country, themes, slug,
+        expected_attendees, community_id, owner_user_id, claim_verified)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, true)
+       RETURNING *`,
+      [name, description || null, event_date, city, country,
+       JSON.stringify(normalizedThemes), slug,
+       expected_attendees ? parseInt(expected_attendees) : null,
+       communityId, req.user.id]
+    );
+    var event = result.rows[0];
+    embedEvent(event).catch(function(err) { console.error('Event embed error:', err); });
+    res.json({ event: event });
+  } catch (err) {
+    console.error('Create event error:', err);
+    res.status(500).json({ error: 'Failed to create event' });
+  }
+});
+
+// ── PATCH /api/events/:id ── (community owner edits event)
+router.patch('/:id', authenticateToken, async function(req, res) {
+  try {
+    var eventId = parseInt(req.params.id);
+    var { name, event_date, city } = req.body;
+
+    var event = await dbGet('SELECT owner_user_id FROM events WHERE id = $1', [eventId]);
+    if (!event) return res.status(404).json({ error: 'Event not found' });
+    if (event.owner_user_id !== req.user.id) return res.status(403).json({ error: 'Access denied' });
+
+    var result = await dbRun(
+      `UPDATE events SET
+        name = COALESCE($1, name),
+        event_date = COALESCE($2, event_date),
+        city = COALESCE($3, city),
+        updated_at = NOW()
+       WHERE id = $4 RETURNING *`,
+      [name || null, event_date || null, city || null, eventId]
+    );
+    res.json({ event: result.rows[0] });
+  } catch (err) {
+    console.error('Edit event error:', err);
+    res.status(500).json({ error: 'Failed to update event' });
   }
 });
 
