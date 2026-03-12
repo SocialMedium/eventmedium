@@ -591,7 +591,8 @@ async function loadRecommended() {
       headers: { 'Authorization': 'Bearer ' + token }
     });
     var data = await resp.json();
-    if (!data.recommendations || !data.recommendations.length) return;
+    if (!resp.ok) { console.error('Recommendations API error:', data); return; }
+    if (!data.recommendations || !data.recommendations.length) { console.log('No recommendations returned:', data.reason || 'no matches'); return; }
     var recs = data.recommendations;
     var container = document.getElementById('recSection');
     if (!container) {
@@ -616,7 +617,7 @@ async function loadRecommended() {
       }).join('') +
       '</div></div>';
     lucide.createIcons();
-  } catch(e) { console.log('Recommendations not available'); }
+  } catch(e) { console.error('Recommendations error:', e); }
 }
 
 document.getElementById('themeFilter').addEventListener('change', loadEvents);

@@ -189,10 +189,13 @@ router.get('/recommended', authenticateToken, async function(req, res) {
       }
     }
     scored.sort(function(a, b) { return b.score - a.score; });
+    if (scored.length === 0) {
+      console.log('[Recommendations] No matches for user ' + req.user.id + ' — events checked: ' + events.length + ', keywords: ' + userKeywords.size + ', themes: ' + userThemes.length + ', geo: ' + (userGeo || 'none'));
+    }
     res.json({ recommendations: scored.slice(0, 10) });
   } catch (err) {
     console.error('Recommendations error:', err);
-    res.status(500).json({ error: 'Failed to load recommendations' });
+    res.status(500).json({ error: 'Failed to load recommendations', detail: err.message });
   }
 });
 

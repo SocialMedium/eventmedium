@@ -383,4 +383,142 @@ router.get('/dashboard/event/:id', authenticateToken, adminOnly, async function(
   }
 });
 
+// ── GET /api/admin/user-lookup — find users by name/email ──
+router.get('/user-lookup', authenticateToken, adminOnly, async function(req, res) {
+  try {
+    var q = req.query.q;
+    if (!q) return res.status(400).json({ error: 'Query required (?q=name or email)' });
+    var users = await safeAll(
+      "SELECT u.id, u.email, u.name, u.created_at, sp.stakeholder_type, sp.themes, sp.intent, sp.offering, sp.geography, sp.focus_text FROM users u LEFT JOIN stakeholder_profiles sp ON sp.user_id = u.id WHERE u.name ILIKE $1 OR u.email ILIKE $1",
+      ['%' + q + '%'], []
+    );
+    // For each user, check community memberships
+    for (var i = 0; i < users.length; i++) {
+      var memberships = await safeAll(
+        'SELECT cm.community_id, cm.role, cm.joined_at, c.name as community_name FROM community_members cm JOIN communities c ON c.id = cm.community_id WHERE cm.user_id = $1',
+        [users[i].id], []
+      );
+      users[i].communities = memberships;
+    }
+    res.json({ users: users });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── POST /api/admin/force-join — manually add user to community ──
+router.post('/force-join', authenticateToken, adminOnly, async function(req, res) {
+  try {
+    var { user_id, community_id } = req.body;
+    if (!user_id || !community_id) return res.status(400).json({ error: 'user_id and community_id required' });
+    // Check not already a member
+    var existing = await dbGet('SELECT id FROM community_members WHERE user_id = $1 AND community_id = $2', [user_id, community_id]);
+    if (existing) return res.json({ status: 'already_member' });
+    var { dbRun } = require('../db');
+    await dbRun('INSERT INTO community_members (community_id, user_id, role) VALUES ($1, $2, $3)', [community_id, user_id, 'member']);
+    res.json({ status: 'joined' });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── GET /api/admin/debug-recommendations — test recommendation scoring for a user ──
+router.get('/debug-recommendations', authenticateToken, adminOnly, async function(req, res) {
+  try {
+    var userId = parseInt(req.query.user_id) || req.user.id;
+    var profile = await dbGet(
+      'SELECT stakeholder_type, themes, intent, offering, geography, focus_text FROM stakeholder_profiles WHERE user_id = $1',
+      [userId]
+    );
+    if (!profile) return res.json({ error: 'no_profile', userId: userId });
+
+    var userThemes = typeof profile.themes === 'string' ? JSON.parse(profile.themes) : (profile.themes || []);
+    var userIntent = typeof profile.intent === 'string' ? JSON.parse(profile.intent) : (profile.intent || []);
+    var userOffering = typeof profile.offering === 'string' ? JSON.parse(profile.offering) : (profile.offering || []);
+    var userGeo = (profile.geography || '').toLowerCase();
+    var userFocus = (profile.focus_text || '').toLowerCase();
+
+    var userKeywords = new Set();
+    userThemes.forEach(function(t) { userKeywords.add(t.toLowerCase()); });
+    userIntent.forEach(function(t) { if (typeof t === 'string') userKeywords.add(t.toLowerCase()); });
+    userOffering.forEach(function(t) { if (typeof t === 'string') userKeywords.add(t.toLowerCase()); });
+    if (userFocus) {
+      userFocus.split(/[\s,;]+/).forEach(function(w) { if (w.length > 3) userKeywords.add(w); });
+    }
+
+    var events = await dbAll(
+      `SELECT e.id, e.name, e.event_date, e.city, e.country, e.themes, e.community_id, e.is_public
+       FROM events e
+       WHERE e.event_date >= CURRENT_DATE
+       ORDER BY e.event_date ASC`
+    );
+
+    var registrations = await safeAll(
+      "SELECT event_id FROM event_registrations WHERE user_id = $1 AND status = 'active'",
+      [userId], []
+    );
+    var regSet = new Set(registrations.map(function(r) { return r.event_id; }));
+
+    var debug = events.map(function(ev) {
+      var evThemes = typeof ev.themes === 'string' ? JSON.parse(ev.themes) : (ev.themes || []);
+      var evCity = (ev.city || '').toLowerCase();
+      var evCountry = (ev.country || '').toLowerCase();
+      var evName = (ev.name || '').toLowerCase();
+
+      var themeSet = new Set(userThemes.map(function(t) { return t.toLowerCase(); }));
+      var evSet = new Set(evThemes.map(function(t) { return t.toLowerCase(); }));
+      var intersection = 0;
+      evSet.forEach(function(t) { if (themeSet.has(t)) intersection++; });
+      var union = new Set([...themeSet, ...evSet]).size;
+      var themeScore = union > 0 ? intersection / union : 0;
+
+      var keywordHits = 0;
+      userKeywords.forEach(function(kw) {
+        if (evName.indexOf(kw) !== -1) keywordHits++;
+        evThemes.forEach(function(t) { if (t.toLowerCase().indexOf(kw) !== -1) keywordHits++; });
+      });
+      var keywordScore = userKeywords.size > 0 ? Math.min(1, keywordHits / Math.max(3, userKeywords.size * 0.3)) : 0;
+
+      var geoScore = 0;
+      if (userGeo) {
+        if (evCity && (userGeo.indexOf(evCity) !== -1 || evCity.indexOf(userGeo) !== -1)) geoScore = 1;
+        else if (evCountry && (userGeo.indexOf(evCountry) !== -1 || evCountry.indexOf(userGeo) !== -1)) geoScore = 0.6;
+      }
+
+      var total = (themeScore * 0.4) + (keywordScore * 0.3) + (geoScore * 0.3);
+
+      return {
+        id: ev.id, name: ev.name, event_date: ev.event_date, city: ev.city,
+        community_id: ev.community_id, is_public: ev.is_public,
+        registered: regSet.has(ev.id),
+        themeScore: Math.round(themeScore * 100) / 100,
+        keywordScore: Math.round(keywordScore * 100) / 100,
+        keywordHits: keywordHits,
+        geoScore: geoScore,
+        totalScore: Math.round(total * 100) / 100,
+        wouldRecommend: total > 0.05
+      };
+    });
+
+    res.json({
+      userId: userId,
+      profile: {
+        stakeholder_type: profile.stakeholder_type,
+        themes: userThemes,
+        intent: userIntent,
+        offering: userOffering,
+        geography: profile.geography,
+        focus_text: profile.focus_text,
+        keywordCount: userKeywords.size,
+        keywords: Array.from(userKeywords).slice(0, 20)
+      },
+      upcomingEvents: events.length,
+      scoredEvents: debug
+    });
+  } catch(e) {
+    console.error('Debug recommendations error:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 module.exports = router;

@@ -410,7 +410,8 @@ async function loadRecommendedFeed() {
       headers: { "Authorization": "Bearer " + token }
     });
     var data = await resp.json();
-    if (!data.recommendations || !data.recommendations.length) return;
+    if (!resp.ok) { console.error('Recommendations API error:', data); return; }
+    if (!data.recommendations || !data.recommendations.length) { console.log('No recommendations:', data.reason || 'no matches'); return; }
     var card = document.getElementById("recFeedCard");
     var feed = document.getElementById("recFeed");
     if (!card || !feed) return;
@@ -426,7 +427,7 @@ async function loadRecommendedFeed() {
           (reason ? '<div class="rec-feed-reason">' + esc(reason) + '</div>' : "") +
         '</div></a>';
     }).join("");
-  } catch(e) {}
+  } catch(e) { console.error('Recommended feed error:', e); }
 }
 
 loadCanister();
