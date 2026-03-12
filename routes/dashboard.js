@@ -486,6 +486,55 @@ router.post('/force-join', authenticateToken, adminOnly, async function(req, res
   }
 });
 
+// ── POST /api/admin/send-welcome — manually fire community welcome for a user (bypasses first-community check) ──
+router.post('/send-welcome', authenticateToken, adminOnly, async function(req, res) {
+  try {
+    var { user_id, community_id } = req.body;
+    if (!user_id || !community_id) return res.status(400).json({ error: 'user_id and community_id required' });
+
+    var user = await dbGet('SELECT id, name, email FROM users WHERE id = $1', [user_id]);
+    var community = await dbGet('SELECT id, name, slug FROM communities WHERE id = $1', [community_id]);
+    if (!user || !community) return res.status(404).json({ error: 'User or community not found' });
+
+    var firstName = (user.name || '').split(' ')[0] || 'there';
+
+    // Write notification
+    var { dbRun } = require('../db');
+    await dbRun(
+      'INSERT INTO notifications (user_id, type, title, body, link, metadata) VALUES ($1, $2, $3, $4, $5, $6)',
+      [
+        user_id,
+        'community_welcome',
+        "You're in: " + community.name,
+        "You're confirmed as a member of " + community.name + ". If Nev finds a compelling match for you here, you'll receive a notification to review and accept or decline. Your canister is never shared unless you say yes.",
+        '/c/' + community.slug,
+        JSON.stringify({ community_id: community_id, community_name: community.name, trigger: 'admin_manual' })
+      ]
+    );
+
+    // Send email
+    var emailSent = false;
+    if (process.env.RESEND_API_KEY && user.email) {
+      var { Resend } = require('resend');
+      var resend = new Resend(process.env.RESEND_API_KEY);
+      var { buildFirstCommunityEmail } = require('../lib/community_triggers');
+
+      await resend.emails.send({
+        from: process.env.FROM_EMAIL || 'nev@eventmedium.ai',
+        to: user.email,
+        subject: 'Nev is watching for your first match in ' + community.name,
+        html: buildFirstCommunityEmail(firstName, community)
+      });
+      emailSent = true;
+    }
+
+    res.json({ status: 'sent', notification: true, email: emailSent });
+  } catch(e) {
+    console.error('[admin] send-welcome error:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ── GET /api/admin/debug-recommendations — test recommendation scoring for a user ──
 router.get('/debug-recommendations', authenticateToken, adminOnly, async function(req, res) {
   try {

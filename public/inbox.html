@@ -201,8 +201,19 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
 <div class="page">
   <div class="page-header">
     <h1 class="page-title">Inbox</h1>
-    <p class="page-subtitle">These people are interested in connecting with you too. Nev found the overlap.</p>
+    <p class="page-subtitle">Notifications and mutual matches — everything that needs your attention.</p>
     <div class="mutual-count" id="mutualCount" style="display:none"><i data-lucide="handshake"></i> <span id="countNum">0</span> mutual matches</div>
+  </div>
+
+  <div id="notificationsSection" style="display:none;margin-bottom:32px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <h2 style="font-size:16px;font-weight:600;display:flex;align-items:center;gap:8px">
+        <i data-lucide="bell" style="width:18px;height:18px;color:var(--p)"></i> Notifications
+        <span id="unreadBadge" style="display:none;background:var(--p);color:white;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px"></span>
+      </h2>
+      <button id="markAllRead" style="font-size:12px;color:var(--txtL);background:none;border:1px solid var(--bdr);padding:5px 12px;border-radius:6px;cursor:pointer;font-family:inherit" onclick="markAllRead()">Mark all read</button>
+    </div>
+    <div id="notificationsList" style="display:flex;flex-direction:column;gap:10px"></div>
   </div>
 
   <div class="mutual-list" id="mutualList">
@@ -389,6 +400,70 @@ async function feedback(matchId, type, btn) {
   });
 }
 
+async function loadNotifications() {
+  try {
+    const data = await api('/api/notifications');
+    if (!data || !data.notifications || data.notifications.length === 0) return;
+
+    const section = document.getElementById('notificationsSection');
+    const list = document.getElementById('notificationsList');
+    const unread = data.notifications.filter(n => !n.read_at);
+
+    section.style.display = 'block';
+
+    if (unread.length > 0) {
+      const badge = document.getElementById('unreadBadge');
+      badge.textContent = unread.length;
+      badge.style.display = 'inline';
+    }
+
+    list.innerHTML = data.notifications.map(function(n) {
+      const isUnread = !n.read_at;
+      const iconMap = {
+        community_welcome: 'users',
+        match_revealed: 'heart-handshake',
+        match_pending: 'clock',
+        message: 'message-circle',
+        system: 'info'
+      };
+      const icon = iconMap[n.type] || 'bell';
+      const ago = timeAgo(n.created_at);
+      const unreadDot = isUnread ? '<span style="width:8px;height:8px;border-radius:50%;background:var(--p);flex-shrink:0"></span>' : '';
+
+      return '<a href="' + esc(n.link || '#') + '" onclick="markNotifRead(' + n.id + ')" style="text-decoration:none;color:inherit;display:flex;align-items:flex-start;gap:14px;padding:16px 18px;background:var(--card);border:1px solid ' + (isUnread ? 'var(--p)' : 'var(--bdr)') + ';border-radius:var(--radiusSm);transition:all 0.15s;' + (isUnread ? 'box-shadow:0 0 0 1px var(--pL)' : '') + '">' +
+        '<div style="width:36px;height:36px;border-radius:10px;background:var(--pL);display:flex;align-items:center;justify-content:center;flex-shrink:0"><i data-lucide="' + icon + '" style="width:18px;height:18px;color:var(--p)"></i></div>' +
+        '<div style="flex:1;min-width:0">' +
+          '<div style="font-size:14px;font-weight:' + (isUnread ? '600' : '500') + ';margin-bottom:3px">' + esc(n.title) + '</div>' +
+          '<div style="font-size:13px;color:var(--txtL);line-height:1.5">' + esc(n.body) + '</div>' +
+          '<div style="font-size:11px;color:var(--txtXL);margin-top:6px">' + ago + '</div>' +
+        '</div>' +
+        unreadDot +
+      '</a>';
+    }).join('');
+
+    lucide.createIcons();
+  } catch(e) {
+    console.error('Notifications load error:', e);
+  }
+}
+
+async function markNotifRead(id) {
+  try { await api('/api/notifications/read/' + id, { method: 'POST' }); } catch(e) {}
+}
+
+async function markAllRead() {
+  try {
+    await api('/api/notifications/read', { method: 'POST' });
+    document.getElementById('unreadBadge').style.display = 'none';
+    document.querySelectorAll('#notificationsList > a').forEach(function(el) {
+      el.style.borderColor = 'var(--bdr)';
+      el.style.boxShadow = 'none';
+    });
+    document.getElementById('markAllRead').textContent = 'All read';
+  } catch(e) {}
+}
+
+loadNotifications();
 loadMutuals();
 lucide.createIcons();
  // ── Calendar scheduling ──
