@@ -2,6 +2,7 @@ var express = require('express');
 var router = express.Router();
 var { dbGet, dbRun, dbAll } = require('../db');
 var { authenticateToken } = require('../middleware/auth');
+var { fireCommunityWelcomeTrigger } = require('../lib/community_triggers');
 
 // Generate 6-char access code
 function generateCode() {
@@ -68,6 +69,11 @@ router.post('/', authenticateToken, async function(req, res) {
       [communityId, req.user.id]
     );
 
+    // Fire-and-forget: first-community welcome trigger
+    fireCommunityWelcomeTrigger(req.user.id, communityId).catch(function(err) {
+      console.error('[community-welcome] community creation path failed:', err.message);
+    });
+
     res.json({
       community: { id: communityId, name: name, slug: slug, access_code: code },
       message: 'Community created. Share code ' + code + ' with your members.'
@@ -101,6 +107,11 @@ router.post('/join', authenticateToken, async function(req, res) {
       "INSERT INTO community_members (community_id, user_id, role) VALUES ($1, $2, 'member')",
       [community.id, req.user.id]
     );
+
+    // Fire-and-forget: first-community welcome trigger
+    fireCommunityWelcomeTrigger(req.user.id, community.id).catch(function(err) {
+      console.error('[community-welcome] join path failed:', err.message);
+    });
 
     res.json({ community: community, message: 'Joined ' + community.name });
   } catch (err) {

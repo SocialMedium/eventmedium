@@ -365,8 +365,6 @@ async function renderCommunity(data) {
   if (data.role) {
     document.getElementById('joinState').style.display = 'none';
     document.getElementById('memberState').style.display = 'block';
-
-
   }
 
   var token = localStorage.getItem('auth_token');
@@ -374,6 +372,11 @@ async function renderCommunity(data) {
     document.getElementById('loginPrompt').style.display = 'block';
     var redirect = encodeURIComponent(window.location.href);
     document.getElementById('loginPrompt').querySelector('a').href = '/auth.html?redirect=' + redirect;
+  }
+
+  // Auto-join: if logged in, not a member, and have a code — join automatically
+  if (token && !data.role && joinCode) {
+    handleJoin();
   }
 
   // Get user name for share messages

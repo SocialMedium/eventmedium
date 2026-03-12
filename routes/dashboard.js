@@ -2,6 +2,7 @@ var express = require('express');
 var router = express.Router();
 var { dbGet, dbAll } = require('../db');
 var { authenticateToken } = require('../middleware/auth');
+var { fireCommunityWelcomeTrigger } = require('../lib/community_triggers');
 
 // Admin check middleware
 function adminOnly(req, res, next) {
@@ -450,6 +451,19 @@ router.get('/user-lookup', authenticateToken, adminOnly, async function(req, res
   }
 });
 
+// ── GET /api/admin/communities — list all communities ──
+router.get('/communities', authenticateToken, adminOnly, async function(req, res) {
+  try {
+    var communities = await safeAll(
+      'SELECT id, name, slug, access_code, is_active, (SELECT COUNT(*) FROM community_members WHERE community_id = communities.id) as member_count FROM communities ORDER BY name',
+      [], []
+    );
+    res.json({ communities: communities });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ── POST /api/admin/force-join — manually add user to community ──
 router.post('/force-join', authenticateToken, adminOnly, async function(req, res) {
   try {
@@ -460,6 +474,12 @@ router.post('/force-join', authenticateToken, adminOnly, async function(req, res
     if (existing) return res.json({ status: 'already_member' });
     var { dbRun } = require('../db');
     await dbRun('INSERT INTO community_members (community_id, user_id, role) VALUES ($1, $2, $3)', [community_id, user_id, 'member']);
+
+    // Fire-and-forget: first-community welcome trigger
+    fireCommunityWelcomeTrigger(user_id, community_id).catch(function(err) {
+      console.error('[community-welcome] admin force-join path failed:', err.message);
+    });
+
     res.json({ status: 'joined' });
   } catch(e) {
     res.status(500).json({ error: e.message });

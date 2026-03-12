@@ -1039,6 +1039,15 @@ loadDashboard();
       var data = await resp.json();
       if (!resp.ok) { el.innerHTML = '<div style="color:var(--red)">Error: ' + esc(data.error) + '</div>'; return; }
 
+      var allCommunities = [];
+      try {
+        var commResp = await fetch('/api/admin/communities', { headers: { 'Authorization': 'Bearer ' + token } });
+        if (commResp.ok) {
+          var commData = await commResp.json();
+          allCommunities = commData.communities || [];
+        }
+      } catch(ce) { console.warn('[admin] communities fetch failed:', ce.message); }
+
       var S = data.summary;
       var html = '';
 
@@ -1096,20 +1105,34 @@ loadDashboard();
           var comms = (u.communities || []).map(function(c) { return c.community_name; }).join(', ');
           var created = u.created_at ? new Date(u.created_at).toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'}) : '';
 
-          var row = '<div style="display:grid;grid-template-columns:2fr 1fr 1fr 2fr 1fr;gap:12px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border);font-size:13px">';
+          var memberCommunityIds = (u.communities || []).map(function(c) { return c.community_id; });
+          var joinableCommunities = allCommunities.filter(function(c) { return memberCommunityIds.indexOf(c.id) === -1; });
+
+          var row = '<div style="display:grid;grid-template-columns:2fr 1fr 1fr 2fr 1fr 100px;gap:12px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border);font-size:13px">';
           row += '<div><div style="font-weight:600">' + esc(u.name) + '</div><div style="font-size:11px;color:var(--text3)">' + esc(u.email) + '</div></div>';
           row += '<div><span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;background:' + statusColor + '15;color:' + statusColor + '">' + statusLabel + '</span></div>';
           row += '<div style="font-size:11px;color:var(--text2)">' + esc(u.stakeholder_type || '—') + '</div>';
           row += '<div style="font-size:11px;color:var(--text2)">' + (comms || '<span style="color:var(--text3)">No communities</span>') + '</div>';
           row += '<div style="font-size:11px;color:var(--text3)">' + created + '</div>';
+          if (joinableCommunities.length > 0) {
+            row += '<div style="position:relative;text-align:right"><button class="force-join-btn" data-user-id="' + u.id + '" style="padding:4px 10px;border:1px solid var(--accent);background:transparent;color:var(--accent);border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--sans);white-space:nowrap">+ Community</button>';
+            row += '<div class="force-join-menu" data-user-id="' + u.id + '" style="display:none;position:absolute;right:0;top:100%;margin-top:4px;background:var(--bg);border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);z-index:100;min-width:200px;max-height:240px;overflow-y:auto">';
+            joinableCommunities.forEach(function(c) {
+              row += '<div class="force-join-option" data-user-id="' + u.id + '" data-community-id="' + c.id + '" style="padding:8px 14px;font-size:12px;cursor:pointer;border-bottom:1px solid var(--border)">' + esc(c.name) + '</div>';
+            });
+            row += '</div></div>';
+          } else {
+            row += '<div style="font-size:10px;color:var(--text3);text-align:right">All joined</div>';
+          }
           row += '</div>';
           return row;
         }).join('');
 
         list.innerHTML = '<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;overflow:hidden">' +
-          '<div style="display:grid;grid-template-columns:2fr 1fr 1fr 2fr 1fr;gap:12px;padding:10px 16px;font-size:10px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border)">' +
-            '<span>Name</span><span>Canister</span><span>Type</span><span>Communities</span><span>Joined</span>' +
+          '<div style="display:grid;grid-template-columns:2fr 1fr 1fr 2fr 1fr 100px;gap:12px;padding:10px 16px;font-size:10px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border)">' +
+            '<span>Name</span><span>Canister</span><span>Type</span><span>Communities</span><span>Joined</span><span style="text-align:right">Action</span>' +
           '</div>' + rows + '</div>';
+
       }
 
       // Filter buttons
@@ -1127,6 +1150,56 @@ loadDashboard();
       });
 
       renderPeople('all', '');
+
+      // Event delegation for force-join buttons (works across re-renders)
+      document.getElementById('peopleList').addEventListener('click', function(e) {
+        var btn = e.target.closest('.force-join-btn');
+        if (btn) {
+          e.stopPropagation();
+          var uid = btn.dataset.userId;
+          document.querySelectorAll('.force-join-menu').forEach(function(m) { m.style.display = 'none'; });
+          var menu = document.querySelector('.force-join-menu[data-user-id="' + uid + '"]');
+          if (menu) menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+          return;
+        }
+
+        var opt = e.target.closest('.force-join-option');
+        if (opt) {
+          e.stopPropagation();
+          var userId = opt.dataset.userId;
+          var communityId = opt.dataset.communityId;
+          var communityName = opt.textContent;
+          opt.textContent = 'Adding\u2026';
+          opt.style.pointerEvents = 'none';
+          fetch('/api/admin/force-join', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: parseInt(userId), community_id: parseInt(communityId) })
+          }).then(function(resp) { return resp.json().then(function(d) { return { ok: resp.ok, data: d }; }); })
+            .then(function(result) {
+              if (result.ok) {
+                var u = allUsers.find(function(x) { return x.id == userId; });
+                if (u) {
+                  u.communities.push({ community_id: parseInt(communityId), community_name: communityName, role: 'member' });
+                  renderPeople(currentFilter, document.getElementById('peopleSearch').value);
+                }
+              } else {
+                opt.textContent = communityName + ' (error)';
+                opt.style.color = 'var(--red)';
+              }
+            }).catch(function() {
+              opt.textContent = communityName + ' (failed)';
+              opt.style.color = 'var(--red)';
+            });
+          return;
+        }
+      });
+
+      // Close menus when clicking outside
+      document.addEventListener('click', function() {
+        document.querySelectorAll('.force-join-menu').forEach(function(m) { m.style.display = 'none'; });
+      });
+
     } catch(e) {
       el.innerHTML = '<div style="color:var(--red)">Failed to load: ' + esc(e.message) + '</div>';
     }
