@@ -3,6 +3,7 @@ var crypto = require('crypto');
 var bcrypt = require('bcryptjs');
 var { dbGet, dbRun } = require('../db');
 var { authenticateToken } = require('../middleware/auth');
+var { authLimiter, signupLimiter, magicSendLimiter } = require('../middleware/anti_abuse');
 
 var router = express.Router();
 
@@ -18,7 +19,7 @@ async function createSession(userId) {
 }
 
 // ── POST /api/auth/signup ──
-router.post('/signup', async function(req, res) {
+router.post('/signup', signupLimiter, async function(req, res) {
   try {
     var { name, email, password } = req.body;
     if (!name || !email || !password) {
@@ -49,7 +50,7 @@ router.post('/signup', async function(req, res) {
 });
 
 // ── POST /api/auth/login ──
-router.post('/login', async function(req, res) {
+router.post('/login', authLimiter, async function(req, res) {
   try {
     var { email, password } = req.body;
     if (!email || !password) {
@@ -86,7 +87,7 @@ router.post('/login', async function(req, res) {
 // ══════════════════════════════════════════════════
 
 // POST /api/auth/magic-send — send 6-digit code
-router.post('/magic-send', async function(req, res) {
+router.post('/magic-send', magicSendLimiter, async function(req, res) {
   try {
     var email = (req.body.email || '').toLowerCase().trim();
     if (!email || !email.includes('@')) {

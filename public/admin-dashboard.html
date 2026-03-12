@@ -150,6 +150,7 @@ body{font-family:var(--sans);background:var(--bg2);color:var(--text);min-height:
     <button class="tab" data-tab="harvest">Harvest Events</button>
     <button class="tab" data-tab="people">People</button>
     <button class="tab" data-tab="live">Live Activity</button>
+    <button class="tab" data-tab="abuse">Abuse Flags</button>
   </div>
   <div id="matching" class="tab-content active"></div>
   <div id="supply" class="tab-content"></div>
@@ -158,6 +159,7 @@ body{font-family:var(--sans);background:var(--bg2);color:var(--text);min-height:
   <div id="harvest" class="tab-content"></div>
   <div id="people" class="tab-content"></div>
   <div id="live" class="tab-content"></div>
+  <div id="abuse" class="tab-content"></div>
   <div class="footer">
     <span>EventMedium.ai · Internal · Anonymized</span>
     <span style="font-family:var(--mono)">Signals Guide v1</span>
@@ -1362,6 +1364,101 @@ loadDashboard();
       '</div>';
     }).join('');
     return '<div style="display:flex;align-items:flex-end;gap:2px;height:90px">' + bars + '</div>';
+  }
+  // ── Abuse Flags Tab ──
+
+  var abuseLoaded = false;
+  document.querySelector('[data-tab="abuse"]').addEventListener('click', function() {
+    if (!abuseLoaded) { abuseLoaded = true; loadAbuse(); }
+  });
+
+  async function loadAbuse() {
+    var el = document.getElementById('abuse');
+    el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text3)">Loading abuse data...</div>';
+    try {
+      var resp = await fetch('/api/admin/abuse', { headers: { 'Authorization': 'Bearer ' + token } });
+      var data = await resp.json();
+      var flags = data.flags || [];
+      var suspicious = data.suspicious_profiles || [];
+
+      var html = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">';
+      html += '<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:20px;text-align:center">' +
+        '<div style="font-size:36px;font-weight:800;color:var(--red)">' + flags.length + '</div>' +
+        '<div style="font-size:11px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:var(--text3);margin-top:6px">Flags (7d)</div></div>';
+      html += '<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:20px;text-align:center">' +
+        '<div style="font-size:36px;font-weight:800;color:var(--amber)">' + suspicious.length + '</div>' +
+        '<div style="font-size:11px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:var(--text3);margin-top:6px">Suspicious Profiles</div></div>';
+      html += '</div>';
+
+      // Suspicious profiles
+      if (suspicious.length) {
+        html += '<div style="margin-bottom:20px"><div style="font-size:13px;font-weight:700;margin-bottom:10px">Suspicious Profiles</div>';
+        html += '<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;overflow:hidden">';
+        html += '<table style="width:100%;border-collapse:collapse;font-size:12px">' +
+          '<tr style="background:var(--card);border-bottom:1px solid var(--border)">' +
+          '<th style="padding:8px 12px;text-align:left;font-weight:600">User</th>' +
+          '<th style="padding:8px 12px;text-align:left;font-weight:600">Email</th>' +
+          '<th style="padding:8px 12px;text-align:left;font-weight:600">Type</th>' +
+          '<th style="padding:8px 12px;text-align:right;font-weight:600">Completion</th>' +
+          '<th style="padding:8px 12px;text-align:right;font-weight:600">Flags</th>' +
+          '<th style="padding:8px 12px;text-align:left;font-weight:600">Flag Types</th></tr>';
+        suspicious.forEach(function(p) {
+          var completionSec = p.completion_seconds ? Math.round(p.completion_seconds) : '-';
+          var completionColor = completionSec !== '-' && completionSec < 120 ? 'var(--red)' : 'var(--text2)';
+          html += '<tr style="border-bottom:1px solid var(--border)">' +
+            '<td style="padding:8px 12px;font-weight:600">' + esc(p.name || 'Unknown') + ' <span style="color:var(--text3);font-weight:400">#' + p.id + '</span></td>' +
+            '<td style="padding:8px 12px;color:var(--text2)">' + esc(p.email || '') + '</td>' +
+            '<td style="padding:8px 12px">' + esc(p.stakeholder_type || '-') + '</td>' +
+            '<td style="padding:8px 12px;text-align:right;color:' + completionColor + ';font-weight:600">' + completionSec + 's</td>' +
+            '<td style="padding:8px 12px;text-align:right;font-weight:700;color:' + (p.flag_count > 0 ? 'var(--red)' : 'var(--text3)') + '">' + (p.flag_count || 0) + '</td>' +
+            '<td style="padding:8px 12px;font-size:11px;color:var(--amber)">' + esc(p.flag_types || '-') + '</td></tr>';
+        });
+        html += '</table></div></div>';
+      }
+
+      // Recent flags
+      if (flags.length) {
+        html += '<div><div style="font-size:13px;font-weight:700;margin-bottom:10px">Recent Abuse Flags (7 days)</div>';
+        html += '<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;overflow:hidden">';
+        html += '<table style="width:100%;border-collapse:collapse;font-size:12px">' +
+          '<tr style="background:var(--card);border-bottom:1px solid var(--border)">' +
+          '<th style="padding:8px 12px;text-align:left;font-weight:600">User</th>' +
+          '<th style="padding:8px 12px;text-align:left;font-weight:600">Flag</th>' +
+          '<th style="padding:8px 12px;text-align:left;font-weight:600">Reason</th>' +
+          '<th style="padding:8px 12px;text-align:right;font-weight:600">Score</th>' +
+          '<th style="padding:8px 12px;text-align:left;font-weight:600">When</th></tr>';
+        flags.forEach(function(f) {
+          var ago = timeAgo(f.created_at);
+          html += '<tr style="border-bottom:1px solid var(--border)">' +
+            '<td style="padding:8px 12px;font-weight:600">' + esc(f.name || '') + ' <span style="color:var(--text3);font-weight:400">' + esc(f.email || '') + '</span></td>' +
+            '<td style="padding:8px 12px"><span style="padding:2px 8px;background:var(--red);color:white;border-radius:4px;font-size:10px;font-weight:600">' + esc(f.flag_type) + '</span></td>' +
+            '<td style="padding:8px 12px;color:var(--text2);font-size:11px">' + esc(f.reason || '-') + '</td>' +
+            '<td style="padding:8px 12px;text-align:right;font-weight:700">' + (f.score || 0) + '</td>' +
+            '<td style="padding:8px 12px;color:var(--text3);font-size:11px">' + ago + '</td></tr>';
+        });
+        html += '</table></div></div>';
+      }
+
+      if (!flags.length && !suspicious.length) {
+        html += '<div style="text-align:center;padding:40px;color:var(--text3)">No abuse flags or suspicious profiles detected in the last 7 days.</div>';
+      }
+
+      html += '<div style="text-align:center;padding:8px;font-size:11px;color:var(--text3);margin-top:16px"><button onclick="abuseLoaded=false;loadAbuse()" style="background:none;border:1px solid var(--border2);padding:3px 10px;border-radius:4px;font-size:11px;cursor:pointer;font-family:var(--sans)">Refresh</button></div>';
+
+      el.innerHTML = html;
+    } catch(e) {
+      el.innerHTML = '<div style="color:var(--red);padding:40px;text-align:center">Failed to load: ' + esc(e.message) + '</div>';
+    }
+  }
+
+  function timeAgo(dateStr) {
+    if (!dateStr) return '';
+    var diff = Date.now() - new Date(dateStr).getTime();
+    var mins = Math.floor(diff / 60000);
+    if (mins < 60) return mins + 'm ago';
+    var hrs = Math.floor(mins / 60);
+    if (hrs < 24) return hrs + 'h ago';
+    return Math.floor(hrs / 24) + 'd ago';
   }
 })();
 </script>

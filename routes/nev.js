@@ -4,6 +4,7 @@ var path = require('path');
 var { dbGet, dbAll, dbRun } = require('../db');
 var { authenticateToken } = require('../middleware/auth');
 var { normalizeThemes } = require('../lib/theme_taxonomy');
+var { nevChatLimiter, nevBehaviourCheck, flagUser, checkCanisterVelocity } = require('../middleware/anti_abuse');
 
 var router = express.Router();
 
@@ -274,7 +275,7 @@ async function extractAndSaveCanisterUpdates(userId, nevResponse, userMessage) {
 }
 
 // ── POST /api/nev/chat ──
-router.post('/chat', authenticateToken, async function(req, res) {
+router.post('/chat', authenticateToken, nevChatLimiter, nevBehaviourCheck, async function(req, res) {
   try {
     var { message, conversation } = req.body;
     if (!message) return res.status(400).json({ error: 'Message required' });
@@ -423,6 +424,11 @@ router.post('/chat', authenticateToken, async function(req, res) {
     extractAndSaveCanisterUpdates(req.user.id, reply, message).catch(function(e) {
       console.error('[Nev] write-back error:', e);
     });
+
+    // Fire-and-forget canister velocity check
+    checkCanisterVelocity(req.user.id).then(function(v) {
+      if (v.suspicious) flagUser(req.user.id, 'canister_velocity', v.reason + ' (' + v.elapsed_ms + 'ms)', 75);
+    }).catch(function() {});
 
     // Fire-and-forget embedding after canister update
     var nevUserId = req.user.id;

@@ -5,8 +5,9 @@ var fs = require('fs');
 var { dbGet, dbRun, dbAll } = require('../db');
 var { authenticateToken } = require('../middleware/auth');
 var { extractText } = require('../lib/document_extractor');
-var { extractCanisterFields, extractSignals, classifyDocumentType } = require('../lib/document_intelligence');
+var { extractCanisterFields, extractSignals, classifyDocumentType, assessAuthenticity } = require('../lib/document_intelligence');
 var { normalizeThemes } = require('../lib/theme_taxonomy');
+var { documentLimiter, documentAbuseCheck, flagUser } = require('../middleware/anti_abuse');
 
 var router = express.Router();
 
@@ -37,7 +38,7 @@ var DOCUMENT_WEIGHTS = {
 };
 
 // ── POST /api/documents/ingest ──
-router.post('/ingest', authenticateToken, upload.single('file'), async function(req, res) {
+router.post('/ingest', authenticateToken, documentLimiter, documentAbuseCheck, upload.single('file'), async function(req, res) {
   var userId = req.user.id;
   var rawText = '';
   var filename = 'pasted_text';
@@ -71,7 +72,7 @@ router.post('/ingest', authenticateToken, upload.single('file'), async function(
     var user = await dbGet('SELECT id, name, company FROM users WHERE id = $1', [userId]);
     var entityName = (user && user.company) || (user && user.name) || '';
 
-    // ── Run both extractions in parallel ──
+    // ── Run all three extractions in parallel ──
     var results = await Promise.all([
       extractCanisterFields(processText, documentType).catch(function(err) {
         console.error('[documents] canister extraction failed:', err.message);
@@ -80,11 +81,21 @@ router.post('/ingest', authenticateToken, upload.single('file'), async function(
       extractSignals(processText, documentType, entityName).catch(function(err) {
         console.error('[documents] signal extraction failed:', err.message);
         return [];
+      }),
+      assessAuthenticity(processText).catch(function(err) {
+        console.error('[documents] authenticity check failed:', err.message);
+        return { authenticity_score: 50, flags: [], assessment: 'Could not assess' };
       })
     ]);
 
     var canisterFields = results[0];
     var signals = results[1] || [];
+    var authenticity = results[2] || { authenticity_score: 50, flags: [] };
+
+    // Flag suspicious documents
+    if (authenticity.authenticity_score < 40) {
+      flagUser(userId, 'suspicious_document', 'score=' + authenticity.authenticity_score + ' flags=' + (authenticity.flags || []).join(','), 100 - authenticity.authenticity_score);
+    }
 
     // ── Create document record ──
     var docRecord = await dbGet(
@@ -263,7 +274,12 @@ router.post('/ingest', authenticateToken, upload.single('file'), async function(
         deal_details: canisterFields.deal_details,
         confidence: canisterFields.confidence
       } : null,
-      nev_context: buildNevHandoffContext(documentType, canisterFields || {}, signals)
+      nev_context: buildNevHandoffContext(documentType, canisterFields || {}, signals),
+      authenticity: {
+        score: authenticity.authenticity_score,
+        flags: authenticity.flags || [],
+        assessment: authenticity.assessment
+      }
     });
 
   } catch (err) {

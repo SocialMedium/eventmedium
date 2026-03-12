@@ -3,6 +3,7 @@ var router = express.Router();
 var { dbGet, dbAll } = require('../db');
 var { authenticateToken } = require('../middleware/auth');
 var { fireCommunityWelcomeTrigger } = require('../lib/community_triggers');
+var { getAbuseSummary, getSuspiciousProfiles } = require('../middleware/anti_abuse');
 
 // Admin check middleware
 function adminOnly(req, res, next) {
@@ -732,6 +733,18 @@ router.get('/debug-recommendations', authenticateToken, adminOnly, async functio
   } catch(e) {
     console.error('Debug recommendations error:', e);
     res.status(500).json({ error: e.message });
+  }
+});
+
+// ── GET /api/admin/abuse — abuse flags and suspicious profiles ──
+router.get('/abuse', authenticateToken, adminOnly, async function(req, res) {
+  try {
+    var flags = await getAbuseSummary();
+    var suspicious = await getSuspiciousProfiles();
+    res.json({ flags: flags, suspicious_profiles: suspicious });
+  } catch (err) {
+    console.error('Abuse dashboard error:', err);
+    res.status(500).json({ error: 'Failed to load abuse data' });
   }
 });
 
