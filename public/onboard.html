@@ -84,6 +84,39 @@ body{font-family:var(--font);color:var(--txt);background:var(--bg);-webkit-font-
 .voice-status.recording{color:#ef4444;font-weight:600}
 .voice-status.processing{color:var(--warn)}
 
+/* Document ingestion panel */
+.doc-panel{padding:0 24px;flex-shrink:0;animation:msgIn 0.3s ease-out}
+.doc-panel-inner{background:var(--card);border:1px solid var(--bdr);border-radius:14px;overflow:hidden}
+.doc-panel-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--bdr)}
+.doc-panel-header span{font-size:13px;font-weight:600;color:var(--txt)}
+.doc-skip-btn{background:none;border:none;font-size:12px;color:var(--txtXL);cursor:pointer;padding:4px 8px;border-radius:6px}
+.doc-skip-btn:hover{background:var(--bg);color:var(--txt)}
+.doc-panel-body{padding:16px}
+.drop-zone{display:flex;align-items:center;justify-content:center;padding:24px 16px;border:2px dashed var(--bdr);border-radius:10px;cursor:pointer;transition:all 0.2s;text-align:center}
+.drop-zone:hover{border-color:var(--p);background:var(--pL)}
+.drop-zone.drag-over{border-color:var(--p);background:var(--pL);transform:scale(1.01)}
+.drop-zone-inner{display:flex;flex-direction:column;align-items:center;gap:6px}
+.drop-zone-inner p{font-size:13px;color:var(--txtL);margin:0}
+.drop-hint{font-size:11px !important;color:var(--txtXL) !important}
+.doc-paste-toggle{margin-top:10px;text-align:center}
+.doc-paste-btn{background:none;border:none;font-size:12px;color:var(--p);cursor:pointer;font-weight:500}
+.doc-paste-btn:hover{text-decoration:underline}
+.doc-paste-textarea{width:100%;padding:10px 12px;border:1px solid var(--bdr);border-radius:8px;font-size:13px;font-family:var(--font);resize:vertical;margin-top:8px;color:var(--txt);background:var(--bg)}
+.doc-paste-textarea:focus{outline:none;border-color:var(--p)}
+.doc-submit-btn{margin-top:8px;padding:8px 20px;background:var(--p);color:white;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.2s}
+.doc-submit-btn:hover{background:var(--pD)}
+.doc-processing{display:flex;align-items:center;gap:10px;padding:16px;color:var(--txtL);font-size:13px}
+.doc-spinner{width:18px;height:18px;border:2px solid var(--bdr);border-top-color:var(--p);border-radius:50%;animation:spin 0.8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.doc-list{padding:0 24px;flex-shrink:0}
+.doc-list-label{font-size:11px;font-weight:600;color:var(--txtXL);text-transform:uppercase;letter-spacing:0.5px;margin:8px 0 6px}
+.doc-item{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--card);border:1px solid var(--bdr);border-radius:8px;margin-bottom:4px;font-size:12px}
+.doc-item-info{display:flex;flex-direction:column;gap:2px;min-width:0}
+.doc-item-name{font-weight:600;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.doc-item-meta{color:var(--txtXL);font-size:11px}
+.doc-delete-btn{display:flex;align-items:center;gap:4px;padding:4px 10px;background:none;border:1px solid var(--bdr);border-radius:6px;font-size:11px;color:var(--txtL);cursor:pointer;flex-shrink:0}
+.doc-delete-btn:hover{border-color:#ef4444;color:#ef4444;background:#fef2f2}
+
 /* Done bar */
 .done-bar{padding:0 24px 8px;flex-shrink:0;animation:msgIn 0.3s ease-out}
 .done-bar-inner{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--okL);border:1px solid #a7f3d0;border-radius:12px;font-size:13px;font-weight:600;color:#065f46}
@@ -237,6 +270,39 @@ body{font-family:var(--font);color:var(--txt);background:var(--bg);-webkit-font-
         <p>Your AI concierge — building your private canister</p>
       </div>
     </div>
+
+    <!-- Document ingestion panel -->
+    <div class="doc-panel" id="docPanel">
+      <div class="doc-panel-inner">
+        <div class="doc-panel-header">
+          <span><i data-lucide="file-up" style="width:14px;height:14px;vertical-align:-2px"></i> Share a document to skip the basics</span>
+          <button onclick="toggleDocPanel()" class="doc-skip-btn">Skip</button>
+        </div>
+        <div class="doc-panel-body" id="docPanelBody">
+          <div id="dropZone" class="drop-zone" onclick="document.getElementById('fileInput').click()">
+            <div class="drop-zone-inner">
+              <i data-lucide="upload-cloud" style="width:24px;height:24px;color:var(--txtXL)"></i>
+              <p>Drop a file or click to browse</p>
+              <p class="drop-hint">PDF, DOCX, PPTX, TXT — up to 10MB</p>
+              <p class="drop-hint">CV, bio, pitch deck, investment thesis, company overview</p>
+            </div>
+          </div>
+          <input type="file" id="fileInput" accept=".pdf,.docx,.pptx,.txt" style="display:none" onchange="handleFileSelect(event)">
+          <div class="doc-paste-toggle">
+            <button onclick="togglePaste()" class="doc-paste-btn">Or paste text instead</button>
+          </div>
+          <div id="pasteArea" style="display:none">
+            <textarea id="pasteText" placeholder="Paste your LinkedIn About section, bio, or any professional summary..." rows="4" class="doc-paste-textarea"></textarea>
+            <button onclick="submitPaste()" class="doc-submit-btn">Process</button>
+          </div>
+          <div id="docProcessing" style="display:none" class="doc-processing">
+            <div class="doc-spinner"></div>
+            <span>Reading your document...</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="docList" class="doc-list"></div>
 
     <div class="done-bar" id="doneBar" style="display:none">
       <div class="done-bar-inner">
@@ -849,10 +915,203 @@ function parseArr(v) { if (!v) return []; if (Array.isArray(v)) return v; try { 
 function esc(s) { if (!s) return ''; var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 function capitalize(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
 
+// ── Document ingestion ──
+
+// Drag and drop
+var dropZone = document.getElementById('dropZone');
+if (dropZone) {
+  dropZone.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    dropZone.classList.add('drag-over');
+  });
+  dropZone.addEventListener('dragleave', function(e) {
+    dropZone.classList.remove('drag-over');
+  });
+  dropZone.addEventListener('drop', function(e) {
+    e.preventDefault();
+    dropZone.classList.remove('drag-over');
+    var file = e.dataTransfer.files[0];
+    if (file) uploadFile(file);
+  });
+}
+
+function toggleDocPanel() {
+  var panel = document.getElementById('docPanel');
+  if (panel) panel.style.display = 'none';
+}
+
+function togglePaste() {
+  var area = document.getElementById('pasteArea');
+  area.style.display = area.style.display === 'none' ? 'block' : 'none';
+}
+
+function handleFileSelect(e) {
+  var file = e.target.files[0];
+  if (file) uploadFile(file);
+}
+
+async function uploadFile(file) {
+  showDocProcessing(true);
+  var formData = new FormData();
+  formData.append('file', file);
+
+  try {
+    var resp = await fetch('/api/documents/ingest', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token },
+      body: formData
+    });
+    var data = await resp.json();
+    handleIngestResult(data);
+  } catch (err) {
+    showDocProcessing(false);
+    addMessage('There was a problem reading your document. Try pasting the text instead.', 'nev');
+  }
+}
+
+async function submitPaste() {
+  var text = document.getElementById('pasteText').value.trim();
+  if (!text || text.length < 50) {
+    addMessage('Please paste at least 50 characters so I have something to work with.', 'nev');
+    return;
+  }
+
+  showDocProcessing(true);
+  try {
+    var resp = await fetch('/api/documents/ingest', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ text: text })
+    });
+    var data = await resp.json();
+    handleIngestResult(data);
+  } catch (err) {
+    showDocProcessing(false);
+    addMessage('Something went wrong. Try again or continue the conversation directly.', 'nev');
+  }
+}
+
+function handleIngestResult(data) {
+  showDocProcessing(false);
+  if (!data.success) {
+    addMessage('Could not read that document. Try pasting the text directly.', 'nev');
+    return;
+  }
+
+  // Collapse upload panel body
+  var body = document.getElementById('docPanelBody');
+  if (body) body.style.display = 'none';
+
+  // Show active documents
+  loadDocumentList();
+
+  // Inject Nev handoff message
+  if (data.nev_context) {
+    addMessage(data.nev_context, 'nev');
+    conversation.push({ role: 'assistant', content: data.nev_context });
+  }
+
+  // Update live canister if we got data
+  if (data.canister_preview) {
+    var cp = data.canister_preview;
+    updateLiveCanister({
+      stakeholder_type: cp.stakeholder_type || '',
+      themes: cp.themes || [],
+      intent: cp.intent || [],
+      offering: cp.offering || [],
+      geography: cp.geography || '',
+      deal_details: cp.deal_details || {}
+    });
+
+    // Auto-save if minimum viable
+    if (cp.stakeholder_type && (cp.themes || []).length >= 1) {
+      saveCanister({
+        stakeholder_type: cp.stakeholder_type,
+        themes: cp.themes,
+        intent: cp.intent || [],
+        offering: cp.offering || [],
+        context: cp.focus_text || '',
+        geography: cp.geography || '',
+        deal_details: cp.deal_details || {}
+      });
+    }
+  }
+}
+
+async function loadDocumentList() {
+  try {
+    var resp = await fetch('/api/documents/mine', {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    var data = await resp.json();
+    renderDocumentList(data.documents || []);
+  } catch (e) {}
+}
+
+function renderDocumentList(docs) {
+  var list = document.getElementById('docList');
+  if (!docs.length) { list.innerHTML = ''; return; }
+
+  list.innerHTML = '<div class="doc-list-label">Active documents</div>' +
+    docs.map(function(doc) {
+      var signalCount = 0;
+      try { signalCount = JSON.parse(doc.signal_ids || '[]').length; } catch(e) {}
+      return '<div class="doc-item" id="doc-' + doc.id + '">' +
+        '<div class="doc-item-info">' +
+          '<span class="doc-item-name">' + esc(doc.filename || 'Pasted text') + '</span>' +
+          '<span class="doc-item-meta">' + (doc.document_type || 'document') + ' &middot; ' + signalCount + ' signal' + (signalCount !== 1 ? 's' : '') + '</span>' +
+        '</div>' +
+        '<button class="doc-delete-btn" onclick="deleteDocument(' + doc.id + ', \'' + esc((doc.filename || 'this document').replace(/'/g, '')) + '\')">' +
+          '<i data-lucide="trash-2" style="width:14px;height:14px"></i> Remove' +
+        '</button>' +
+      '</div>';
+    }).join('');
+
+  lucide.createIcons();
+}
+
+async function deleteDocument(docId, filename) {
+  if (!confirm('Remove "' + filename + '" from your profile?\n\nAll signals derived from this document will be removed from your matching logic immediately.')) return;
+
+  try {
+    var resp = await fetch('/api/documents/' + docId, {
+      method: 'DELETE',
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    var data = await resp.json();
+
+    if (data.success) {
+      var el = document.getElementById('doc-' + docId);
+      if (el) el.remove();
+
+      if (data.canister_fields_affected && data.canister_fields_affected.length) {
+        addMessage(
+          "Got it — I've removed that document and cleared " + data.signals_removed + ' signal' + (data.signals_removed !== 1 ? 's' : '') + ' from your matching profile. ' +
+          'A couple of the fields it populated — ' + data.canister_fields_affected.slice(0, 3).join(', ') + ' — may need a quick check. Still current?',
+          'nev'
+        );
+      } else {
+        addMessage("Done — removed from your profile. " + data.signals_removed + ' signal' + (data.signals_removed !== 1 ? 's' : '') + ' cleared.', 'nev');
+      }
+    }
+  } catch (err) {
+    addMessage('Something went wrong removing that document. Try again in a moment.', 'nev');
+  }
+}
+
+function showDocProcessing(show) {
+  document.getElementById('docProcessing').style.display = show ? 'flex' : 'none';
+  document.getElementById('dropZone').style.display = show ? 'none' : 'flex';
+}
+
 // Init
 lucide.createIcons();
 loadExisting();
 loadOpening();
+loadDocumentList();
 chatInput.focus();
 </script>
 <script src="/js/nav.js"></script></body>

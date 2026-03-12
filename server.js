@@ -78,6 +78,7 @@ app.use('/api/graph', require('./routes/graph').router);
 app.use('/api/network', require('./routes/network'));
 app.use('/api/admin', require('./routes/dashboard'));
 app.use('/api/privacy', require('./routes/privacy'));
+app.use('/api/documents', require('./routes/documents').router);
 
 // ── Landing page ──
 app.get('/', function(req, res) {
