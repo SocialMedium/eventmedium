@@ -340,7 +340,7 @@ async function loadCanister() {
           '<div class="event-item-left"><span class="event-dot upcoming"></span><div>' +
           '<div class="event-item-name">' + esc(c.name || 'Community') + '</div>' +
           '<div class="event-item-date">' + (c.member_count ? c.member_count + ' members' : 'Private') + '</div></div></div>' +
-          '<a href="/community.html?id=' + c.id + '">View</a></div>';
+          '<a href="/community.html?slug=' + c.slug + '">View</a></div>';
       }).join('');
     } else {
       html += '<div class="empty-state">No communities yet. <a href="/communities.html">Browse communities</a> to join.</div>';
