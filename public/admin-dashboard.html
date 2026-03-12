@@ -148,12 +148,14 @@ body{font-family:var(--sans);background:var(--bg2);color:var(--text);min-height:
     <button class="tab" data-tab="network">Network Health</button>
     <button class="tab" data-tab="events">Event Scorecards</button>
     <button class="tab" data-tab="harvest">Harvest Events</button>
+    <button class="tab" data-tab="people">People</button>
   </div>
   <div id="matching" class="tab-content active"></div>
   <div id="supply" class="tab-content"></div>
   <div id="network" class="tab-content"></div>
   <div id="events" class="tab-content"></div>
   <div id="harvest" class="tab-content"></div>
+  <div id="people" class="tab-content"></div>
   <div class="footer">
     <span>EventMedium.ai · Internal · Anonymized</span>
     <span style="font-family:var(--mono)">Signals Guide v1</span>
@@ -1021,6 +1023,128 @@ async function drillEvent(id){
 })();
 
 loadDashboard();
+
+// ── People Tab ──
+(function() {
+  var peopleLoaded = false;
+  document.querySelector('[data-tab="people"]').addEventListener('click', function() {
+    if (!peopleLoaded) { peopleLoaded = true; loadPeople(); }
+  });
+
+  async function loadPeople() {
+    var el = document.getElementById('people');
+    el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text3)">Loading people…</div>';
+    try {
+      var resp = await fetch('/api/admin/people', { headers: { 'Authorization': 'Bearer ' + token } });
+      var data = await resp.json();
+      if (!resp.ok) { el.innerHTML = '<div style="color:var(--red)">Error: ' + esc(data.error) + '</div>'; return; }
+
+      var S = data.summary;
+      var html = '';
+
+      // Summary cards
+      html += '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:20px">';
+      html += summaryCard(S.total, 'Total Users', '--accent');
+      html += summaryCard(S.complete, 'Complete Canisters', '--green');
+      html += summaryCard(S.partial, 'Partial Canisters', '--amber');
+      html += summaryCard(S.started, 'Started Only', '--orange');
+      html += summaryCard(S.noProfile, 'No Profile', '--red');
+      html += '</div>';
+
+      // Search
+      html += '<div style="margin-bottom:16px"><input id="peopleSearch" type="text" placeholder="Search by name or email…" style="width:100%;padding:10px 14px;border:1px solid var(--border2);border-radius:8px;font-size:14px;font-family:var(--sans)"></div>';
+
+      // Filter tabs
+      html += '<div id="peopleFilters" style="display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap">';
+      html += filterBtn('all', 'All (' + S.total + ')', true);
+      html += filterBtn('no_profile', 'No Profile (' + S.noProfile + ')');
+      html += filterBtn('started', 'Started (' + S.started + ')');
+      html += filterBtn('partial', 'Partial (' + S.partial + ')');
+      html += filterBtn('complete', 'Complete (' + S.complete + ')');
+      html += '</div>';
+
+      // Table
+      html += '<div id="peopleList"></div>';
+
+      el.innerHTML = html;
+
+      var allUsers = data.users;
+      var currentFilter = 'all';
+
+      function renderPeople(filter, search) {
+        var filtered = allUsers;
+        if (filter && filter !== 'all') filtered = filtered.filter(function(u) { return u.canister_status === filter; });
+        if (search) {
+          var s = search.toLowerCase();
+          filtered = filtered.filter(function(u) {
+            return (u.name || '').toLowerCase().indexOf(s) !== -1 || (u.email || '').toLowerCase().indexOf(s) !== -1;
+          });
+        }
+
+        var list = document.getElementById('peopleList');
+        if (filtered.length === 0) {
+          list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3)">No users match this filter</div>';
+          return;
+        }
+
+        var rows = filtered.map(function(u) {
+          var statusColor = u.canister_status === 'complete' ? 'var(--green)' : u.canister_status === 'partial' ? 'var(--amber)' : u.canister_status === 'started' ? 'var(--orange)' : 'var(--red)';
+          var statusLabel = u.canister_status === 'complete' ? 'Complete' : u.canister_status === 'partial' ? 'Partial' : u.canister_status === 'started' ? 'Started' : 'No Profile';
+          var themes = [];
+          try { themes = typeof u.themes === 'string' ? JSON.parse(u.themes) : (u.themes || []); } catch(e) {}
+          if (!Array.isArray(themes)) themes = [];
+          var comms = (u.communities || []).map(function(c) { return c.community_name; }).join(', ');
+          var created = u.created_at ? new Date(u.created_at).toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'}) : '';
+
+          var row = '<div style="display:grid;grid-template-columns:2fr 1fr 1fr 2fr 1fr;gap:12px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border);font-size:13px">';
+          row += '<div><div style="font-weight:600">' + esc(u.name) + '</div><div style="font-size:11px;color:var(--text3)">' + esc(u.email) + '</div></div>';
+          row += '<div><span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;background:' + statusColor + '15;color:' + statusColor + '">' + statusLabel + '</span></div>';
+          row += '<div style="font-size:11px;color:var(--text2)">' + esc(u.stakeholder_type || '—') + '</div>';
+          row += '<div style="font-size:11px;color:var(--text2)">' + (comms || '<span style="color:var(--text3)">No communities</span>') + '</div>';
+          row += '<div style="font-size:11px;color:var(--text3)">' + created + '</div>';
+          row += '</div>';
+          return row;
+        }).join('');
+
+        list.innerHTML = '<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;overflow:hidden">' +
+          '<div style="display:grid;grid-template-columns:2fr 1fr 1fr 2fr 1fr;gap:12px;padding:10px 16px;font-size:10px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border)">' +
+            '<span>Name</span><span>Canister</span><span>Type</span><span>Communities</span><span>Joined</span>' +
+          '</div>' + rows + '</div>';
+      }
+
+      // Filter buttons
+      document.getElementById('peopleFilters').addEventListener('click', function(e) {
+        var btn = e.target.closest('[data-filter]');
+        if (!btn) return;
+        currentFilter = btn.dataset.filter;
+        document.querySelectorAll('#peopleFilters [data-filter]').forEach(function(b) { b.style.background = 'var(--bg)'; b.style.color = 'var(--text2)'; b.style.borderColor = 'var(--border2)'; });
+        btn.style.background = 'var(--accent)'; btn.style.color = '#fff'; btn.style.borderColor = 'var(--accent)';
+        renderPeople(currentFilter, document.getElementById('peopleSearch').value);
+      });
+
+      document.getElementById('peopleSearch').addEventListener('input', function() {
+        renderPeople(currentFilter, this.value);
+      });
+
+      renderPeople('all', '');
+    } catch(e) {
+      el.innerHTML = '<div style="color:var(--red)">Failed to load: ' + esc(e.message) + '</div>';
+    }
+  }
+
+  function summaryCard(val, label, colorVar) {
+    return '<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px 16px">' +
+      '<div style="font-size:24px;font-weight:700;color:var(' + colorVar + ')">' + val + '</div>' +
+      '<div style="font-size:10px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:var(--text3);margin-top:4px">' + label + '</div></div>';
+  }
+
+  function filterBtn(filter, label, active) {
+    var style = active
+      ? 'background:var(--accent);color:#fff;border-color:var(--accent)'
+      : 'background:var(--bg);color:var(--text2);border-color:var(--border2)';
+    return '<button data-filter="' + filter + '" style="padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid;font-family:var(--sans);transition:all 0.15s;' + style + '">' + label + '</button>';
+  }
+})();
 </script>
 </body>
 </html>

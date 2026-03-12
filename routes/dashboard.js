@@ -383,6 +383,50 @@ router.get('/dashboard/event/:id', authenticateToken, adminOnly, async function(
   }
 });
 
+// ── GET /api/admin/people — all users with canister status ──
+router.get('/people', authenticateToken, adminOnly, async function(req, res) {
+  try {
+    var users = await safeAll(
+      `SELECT u.id, u.email, u.name, u.created_at,
+        sp.stakeholder_type, sp.themes, sp.intent, sp.offering, sp.geography, sp.focus_text,
+        CASE
+          WHEN sp.id IS NULL THEN 'no_profile'
+          WHEN sp.stakeholder_type IS NULL THEN 'started'
+          WHEN sp.themes IS NULL OR sp.themes::text = '[]' OR sp.themes::text = 'null' THEN 'partial'
+          WHEN (sp.intent IS NULL OR sp.intent::text = '[]' OR sp.intent::text = 'null')
+               AND (sp.offering IS NULL OR sp.offering::text = '[]' OR sp.offering::text = 'null') THEN 'partial'
+          ELSE 'complete'
+        END as canister_status
+       FROM users u
+       LEFT JOIN stakeholder_profiles sp ON sp.user_id = u.id
+       ORDER BY u.created_at DESC`,
+      [], []
+    );
+    // Attach community memberships
+    for (var i = 0; i < users.length; i++) {
+      var memberships = await safeAll(
+        'SELECT cm.community_id, cm.role, c.name as community_name FROM community_members cm JOIN communities c ON c.id = cm.community_id WHERE cm.user_id = $1',
+        [users[i].id], []
+      );
+      users[i].communities = memberships;
+    }
+    // Summary stats
+    var total = users.length;
+    var complete = users.filter(function(u) { return u.canister_status === 'complete'; }).length;
+    var partial = users.filter(function(u) { return u.canister_status === 'partial'; }).length;
+    var started = users.filter(function(u) { return u.canister_status === 'started'; }).length;
+    var noProfile = users.filter(function(u) { return u.canister_status === 'no_profile'; }).length;
+
+    res.json({
+      summary: { total: total, complete: complete, partial: partial, started: started, noProfile: noProfile },
+      users: users
+    });
+  } catch(e) {
+    console.error('People endpoint error:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ── GET /api/admin/user-lookup — find users by name/email ──
 router.get('/user-lookup', authenticateToken, adminOnly, async function(req, res) {
   try {
