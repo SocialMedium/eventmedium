@@ -119,6 +119,7 @@ async function runMigrations() {
     await dbRun('ALTER TABLE event_matches ADD COLUMN IF NOT EXISTS scoring_tier INTEGER DEFAULT 1');
     await dbRun("ALTER TABLE event_matches ADD COLUMN IF NOT EXISTS match_mode TEXT DEFAULT 'event'");
     // Event visibility for community events
+    await dbRun('ALTER TABLE events ADD COLUMN IF NOT EXISTS community_id INTEGER REFERENCES communities(id)');
     await dbRun('ALTER TABLE events ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT FALSE');
     console.log('[Migrations] Schema up to date');
   } catch(err) {

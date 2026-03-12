@@ -87,81 +87,102 @@ router.get('/user/registrations', authenticateToken, async function(req, res) {
 // ── GET /api/events/recommended — personalized event scoring ──
 router.get('/recommended', authenticateToken, async function(req, res) {
   try {
+    console.log('[Recommendations] Called for user', req.user.id);
+
     // Load user profile
     var profile = await dbGet(
       'SELECT stakeholder_type, themes, intent, offering, geography, focus_text, deal_details FROM stakeholder_profiles WHERE user_id = $1',
       [req.user.id]
     );
     if (!profile) {
+      console.log('[Recommendations] No profile for user', req.user.id);
       return res.json({ recommendations: [], reason: 'no_profile' });
     }
 
-    var userThemes = typeof profile.themes === 'string' ? JSON.parse(profile.themes) : (profile.themes || []);
-    var userIntent = typeof profile.intent === 'string' ? JSON.parse(profile.intent) : (profile.intent || []);
-    var userOffering = typeof profile.offering === 'string' ? JSON.parse(profile.offering) : (profile.offering || []);
+    var userThemes = [];
+    try { userThemes = typeof profile.themes === 'string' ? JSON.parse(profile.themes) : (profile.themes || []); } catch(e) { userThemes = []; }
+    var userIntent = [];
+    try { userIntent = typeof profile.intent === 'string' ? JSON.parse(profile.intent) : (profile.intent || []); } catch(e) { userIntent = []; }
+    var userOffering = [];
+    try { userOffering = typeof profile.offering === 'string' ? JSON.parse(profile.offering) : (profile.offering || []); } catch(e) { userOffering = []; }
+    if (!Array.isArray(userThemes)) userThemes = [];
+    if (!Array.isArray(userIntent)) userIntent = [];
+    if (!Array.isArray(userOffering)) userOffering = [];
+
     var userGeo = (profile.geography || '').toLowerCase();
-    var userType = profile.stakeholder_type || '';
+    var userType = (profile.stakeholder_type || '').toLowerCase();
     var userFocus = (profile.focus_text || '').toLowerCase();
 
     // Build keyword set from intent, offering, and focus_text for text matching
     var userKeywords = new Set();
-    userThemes.forEach(function(t) { userKeywords.add(t.toLowerCase()); });
+    userThemes.forEach(function(t) { if (typeof t === 'string') userKeywords.add(t.toLowerCase()); });
     userIntent.forEach(function(t) { if (typeof t === 'string') userKeywords.add(t.toLowerCase()); });
     userOffering.forEach(function(t) { if (typeof t === 'string') userKeywords.add(t.toLowerCase()); });
     if (userFocus) {
       userFocus.split(/[\s,;]+/).forEach(function(w) { if (w.length > 3) userKeywords.add(w); });
     }
+    // Also add stakeholder type keywords
+    if (userType) userKeywords.add(userType);
 
-    // Load upcoming events — public events + community events user is a member of
+    console.log('[Recommendations] Profile loaded — type:', profile.stakeholder_type, ', themes:', userThemes.length, ', keywords:', userKeywords.size, ', geo:', userGeo || 'none');
+
+    // Load upcoming events the user hasn't registered for
     var events = await dbAll(
-      `SELECT e.*,
+      `SELECT e.id, e.name, e.description, e.event_date, e.city, e.country, e.themes, e.slug,
+              e.community_id, COALESCE(e.is_public, false) as is_public,
         (SELECT COUNT(*) FROM event_registrations WHERE event_id = e.id AND status = 'active') as reg_count
        FROM events e
        WHERE e.event_date >= CURRENT_DATE
        AND e.id NOT IN (SELECT event_id FROM event_registrations WHERE user_id = $1 AND status = 'active')
-       AND (e.community_id IS NULL OR e.is_public = true
+       AND (e.community_id IS NULL OR COALESCE(e.is_public, false) = true
             OR e.community_id IN (SELECT community_id FROM community_members WHERE user_id = $1))
-       ORDER BY e.event_date ASC`,
+       ORDER BY e.event_date ASC
+       LIMIT 100`,
       [req.user.id]
     );
+
+    console.log('[Recommendations] Upcoming events found:', events.length);
 
     // Score each event
     var scored = [];
     for (var i = 0; i < events.length; i++) {
       var ev = events[i];
-      var evThemes = typeof ev.themes === 'string' ? JSON.parse(ev.themes) : (ev.themes || []);
+      var evThemes = [];
+      try { evThemes = typeof ev.themes === 'string' ? JSON.parse(ev.themes) : (ev.themes || []); } catch(e) { evThemes = []; }
+      if (!Array.isArray(evThemes)) evThemes = [];
       var evCity = (ev.city || '').toLowerCase();
       var evCountry = (ev.country || '').toLowerCase();
       var evName = (ev.name || '').toLowerCase();
       var evDesc = (ev.description || '').toLowerCase();
 
       // 1. Theme overlap (0-1) — Jaccard
-      var themeSet = new Set(userThemes.map(function(t) { return t.toLowerCase(); }));
-      var evSet = new Set(evThemes.map(function(t) { return t.toLowerCase(); }));
+      var themeSet = new Set(userThemes.map(function(t) { return (typeof t === 'string' ? t : '').toLowerCase(); }));
+      var evSet = new Set(evThemes.map(function(t) { return (typeof t === 'string' ? t : '').toLowerCase(); }));
       var intersection = 0;
-      evSet.forEach(function(t) { if (themeSet.has(t)) intersection++; });
-      var union = new Set([...themeSet, ...evSet]).size;
+      evSet.forEach(function(t) { if (t && themeSet.has(t)) intersection++; });
+      var union = new Set([...themeSet, ...evSet].filter(function(t) { return t; })).size;
       var themeScore = union > 0 ? intersection / union : 0;
 
       // 2. Keyword relevance — check if event name/description/themes match user canister keywords
       var keywordHits = 0;
       if (userKeywords.size > 0) {
         userKeywords.forEach(function(kw) {
-          if (evName.indexOf(kw) !== -1 || evDesc.indexOf(kw) !== -1) keywordHits++;
-          evThemes.forEach(function(t) { if (t.toLowerCase().indexOf(kw) !== -1) keywordHits++; });
+          if (kw && evName.indexOf(kw) !== -1) keywordHits++;
+          if (kw && evDesc.indexOf(kw) !== -1) keywordHits++;
+          evThemes.forEach(function(t) { if (typeof t === 'string' && t.toLowerCase().indexOf(kw) !== -1) keywordHits++; });
         });
       }
-      var keywordScore = userKeywords.size > 0 ? Math.min(1, keywordHits / Math.max(3, userKeywords.size * 0.3)) : 0;
+      var keywordScore = userKeywords.size > 0 ? Math.min(1, keywordHits / Math.max(2, userKeywords.size * 0.25)) : 0;
 
       // 3. Geographic relevance (0-1)
       var geoScore = 0;
-      if (userGeo) {
-        if (userGeo.indexOf(evCity) !== -1 || evCity.indexOf(userGeo) !== -1) geoScore = 1;
-        else if (userGeo.indexOf(evCountry) !== -1 || evCountry.indexOf(userGeo) !== -1) geoScore = 0.6;
+      if (userGeo && (evCity || evCountry)) {
+        if (evCity && (userGeo.indexOf(evCity) !== -1 || evCity.indexOf(userGeo) !== -1)) geoScore = 1;
+        else if (evCountry && (userGeo.indexOf(evCountry) !== -1 || evCountry.indexOf(userGeo) !== -1)) geoScore = 0.6;
         else {
-          var euroCountries = ['uk','germany','france','spain','netherlands','sweden','switzerland','italy','portugal','austria','belgium','denmark','finland','norway','ireland','poland','czech','romania','greece'];
+          var euroCountries = ['uk','united kingdom','england','germany','france','spain','netherlands','sweden','switzerland','italy','portugal','austria','belgium','denmark','finland','norway','ireland','poland','czech','romania','greece'];
           var apacCountries = ['singapore','australia','japan','south korea','china','india','hong kong','taiwan','new zealand','indonesia','thailand','malaysia','vietnam','philippines'];
-          var naCountries = ['usa','us','canada','united states'];
+          var naCountries = ['usa','us','canada','united states','austin','new york','san francisco','texas','california'];
           var meaCountries = ['uae','saudi arabia','israel','qatar','south africa','kenya','nigeria','egypt'];
           var userRegion = '';
           var evRegion = '';
@@ -175,26 +196,62 @@ router.get('/recommended', authenticateToken, async function(req, res) {
         }
       }
 
-      // 4. Composite score — themes 40%, keywords 30%, geo 30%
-      var total = (themeScore * 0.4) + (keywordScore * 0.3) + (geoScore * 0.3);
+      // 4. Stakeholder-type relevance — boost events with relevant tags
+      var typeBoost = 0;
+      if (userType) {
+        var typeKeywords = {
+          'investor': ['investor','vc','venture','fund','capital','pitch','deal','portfolio'],
+          'founder': ['founder','startup','pitch','launch','build','scale','fundrais'],
+          'corporate': ['enterprise','corporate','innovation','partnership','strategy'],
+          'researcher': ['research','academic','science','university','lab','deep tech']
+        };
+        var boostWords = typeKeywords[userType] || [];
+        boostWords.forEach(function(w) {
+          if (evName.indexOf(w) !== -1 || evDesc.indexOf(w) !== -1) typeBoost += 0.1;
+        });
+        typeBoost = Math.min(typeBoost, 0.3);
+      }
+
+      // 5. Composite score — themes 30%, keywords 25%, geo 25%, type 20%
+      var total = (themeScore * 0.3) + (keywordScore * 0.25) + (geoScore * 0.25) + (typeBoost * 0.2);
 
       // Build reasons
       var reasons = [];
       if (themeScore > 0) reasons.push('Theme match');
       if (keywordScore > 0) reasons.push('Canister signal');
       if (geoScore >= 0.6) reasons.push('Your region');
+      if (typeBoost > 0) reasons.push('For ' + (profile.stakeholder_type || 'you') + 's');
 
-      if (total > 0.05) {
-        scored.push({ id: ev.id, name: ev.name, event_date: ev.event_date, city: ev.city, country: ev.country, slug: ev.slug, score: Math.round(total * 100), reasons: reasons });
-      }
+      scored.push({
+        id: ev.id, name: ev.name, event_date: ev.event_date,
+        city: ev.city, country: ev.country, slug: ev.slug,
+        score: Math.round(total * 100), reasons: reasons,
+        _debug: { themeScore: themeScore, keywordScore: keywordScore, keywordHits: keywordHits, geoScore: geoScore, typeBoost: typeBoost, total: total }
+      });
     }
     scored.sort(function(a, b) { return b.score - a.score; });
-    if (scored.length === 0) {
-      console.log('[Recommendations] No matches for user ' + req.user.id + ' — events checked: ' + events.length + ', keywords: ' + userKeywords.size + ', themes: ' + userThemes.length + ', geo: ' + (userGeo || 'none'));
+
+    // Filter to meaningful matches, but fall back to top upcoming if nothing scores
+    var meaningful = scored.filter(function(s) { return s.score > 3; });
+    if (meaningful.length === 0 && scored.length > 0) {
+      // Fallback: return top upcoming events as "Upcoming near you" recommendations
+      meaningful = scored.slice(0, 6).map(function(s) {
+        s.reasons = s.reasons.length > 0 ? s.reasons : ['Upcoming event'];
+        s.score = Math.max(s.score, 1);
+        return s;
+      });
+      console.log('[Recommendations] Using fallback — top', meaningful.length, 'upcoming events for user', req.user.id);
     }
-    res.json({ recommendations: scored.slice(0, 10) });
+
+    // Strip debug info from response unless ?debug=1
+    if (req.query.debug !== '1') {
+      meaningful.forEach(function(s) { delete s._debug; });
+    }
+
+    console.log('[Recommendations] Returning', meaningful.length, 'recommendations for user', req.user.id);
+    res.json({ recommendations: meaningful.slice(0, 10) });
   } catch (err) {
-    console.error('Recommendations error:', err);
+    console.error('[Recommendations] ERROR for user', req.user ? req.user.id : 'unknown', ':', err.message, err.stack);
     res.status(500).json({ error: 'Failed to load recommendations', detail: err.message });
   }
 });
