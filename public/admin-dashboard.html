@@ -149,6 +149,7 @@ body{font-family:var(--sans);background:var(--bg2);color:var(--text);min-height:
     <button class="tab" data-tab="events">Event Scorecards</button>
     <button class="tab" data-tab="harvest">Harvest Events</button>
     <button class="tab" data-tab="people">People</button>
+    <button class="tab" data-tab="live">Live Activity</button>
   </div>
   <div id="matching" class="tab-content active"></div>
   <div id="supply" class="tab-content"></div>
@@ -156,6 +157,7 @@ body{font-family:var(--sans);background:var(--bg2);color:var(--text);min-height:
   <div id="events" class="tab-content"></div>
   <div id="harvest" class="tab-content"></div>
   <div id="people" class="tab-content"></div>
+  <div id="live" class="tab-content"></div>
   <div class="footer">
     <span>EventMedium.ai · Internal · Anonymized</span>
     <span style="font-family:var(--mono)">Signals Guide v1</span>
@@ -1216,6 +1218,150 @@ loadDashboard();
       ? 'background:var(--accent);color:#fff;border-color:var(--accent)'
       : 'background:var(--bg);color:var(--text2);border-color:var(--border2)';
     return '<button data-filter="' + filter + '" style="padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid;font-family:var(--sans);transition:all 0.15s;' + style + '">' + label + '</button>';
+  }
+})();
+
+// ══════════════════════════════
+// LIVE ACTIVITY TAB
+// ══════════════════════════════
+(function() {
+  var liveLoaded = false;
+  document.querySelector('[data-tab="live"]').addEventListener('click', function() {
+    if (!liveLoaded) { liveLoaded = true; loadLive(); }
+  });
+
+  async function loadLive() {
+    var el = document.getElementById('live');
+    el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text3)">Loading live activity…</div>';
+    try {
+      var resp = await fetch('/api/admin/live', { headers: { 'Authorization': 'Bearer ' + token } });
+      if (!resp.ok) { var err = await resp.json(); el.innerHTML = '<div style="color:var(--red)">Error: ' + esc(err.error) + '</div>'; return; }
+      var L = await resp.json();
+      var html = '';
+
+      // ── Active Users ──
+      html += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px">';
+      html += activeCard(L.activeUsers.last24h, 'Active 24h', '--accent');
+      html += activeCard(L.activeUsers.last7d, 'Active 7d', '--blue');
+      html += activeCard(L.activeUsers.last30d, 'Active 30d', '--text2');
+      html += '</div>';
+
+      // ── 24h Pulse ──
+      html += '<div style="margin-bottom:24px"><div style="font-size:14px;font-weight:700;margin-bottom:12px;color:var(--heading)">Last 24 Hours</div>';
+      html += '<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:10px">';
+      html += pulseCard(L.pulse24h.signups, 'Signups', '--green');
+      html += pulseCard(L.pulse24h.logins, 'Logins', '--accent');
+      html += pulseCard(L.pulse24h.nevChats, 'Nev Chats', '--purple');
+      html += pulseCard(L.pulse24h.communityJoins, 'Joins', '--blue');
+      html += pulseCard(L.pulse24h.matches, 'Matches', '--amber');
+      html += pulseCard(L.pulse24h.canisterUpdates, 'Canister Edits', '--text2');
+      html += '</div></div>';
+
+      // ── 7d Pulse ──
+      html += '<div style="margin-bottom:24px"><div style="font-size:14px;font-weight:700;margin-bottom:12px;color:var(--heading)">Last 7 Days</div>';
+      html += '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px">';
+      html += pulseCard(L.pulse7d.signups, 'Signups', '--green');
+      html += pulseCard(L.pulse7d.logins, 'Logins', '--accent');
+      html += pulseCard(L.pulse7d.nevChats, 'Nev Chats', '--purple');
+      html += pulseCard(L.pulse7d.communityJoins, 'Joins', '--blue');
+      html += pulseCard(L.pulse7d.matches, 'Matches', '--amber');
+      html += '</div></div>';
+
+      // ── Engagement ──
+      html += '<div style="margin-bottom:24px"><div style="font-size:14px;font-weight:700;margin-bottom:12px;color:var(--heading)">Engagement (7d)</div>';
+      html += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">';
+      html += pulseCard(L.engagement.nevUsers7d, 'Users chatted Nev', '--purple');
+      html += pulseCard(L.engagement.notifsSent7d, 'Notifications sent', '--blue');
+      var readRate = L.engagement.notifsSent7d > 0 ? Math.round(L.engagement.notifsRead7d / L.engagement.notifsSent7d * 100) + '%' : '—';
+      html += pulseCard(readRate, 'Notif read rate', '--green');
+      html += '</div></div>';
+
+      // ── Sparkline charts ──
+      html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">';
+      html += '<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:16px">';
+      html += '<div style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px">Daily Signups (30d)</div>';
+      html += sparkline(L.dailySignups, '--green');
+      html += '</div>';
+      html += '<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:16px">';
+      html += '<div style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px">Daily Active Users (30d)</div>';
+      html += sparkline(L.dailyActive, '--accent');
+      html += '</div>';
+      html += '</div>';
+
+      // ── Recent Activity Feed ──
+      html += '<div style="margin-bottom:24px"><div style="font-size:14px;font-weight:700;margin-bottom:12px;color:var(--heading)">Recent Activity</div>';
+      html += '<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;overflow:hidden;max-height:500px;overflow-y:auto">';
+      if (L.recentActivity.length === 0) {
+        html += '<div style="padding:20px;text-align:center;color:var(--text3)">No recent activity</div>';
+      } else {
+        html += L.recentActivity.map(function(a) {
+          var icon = { signup: '\u{1F44B}', login: '\u{1F513}', nev_chat: '\u{1F4AC}', community_join: '\u{1F465}', canister_update: '\u{1F4DD}' }[a.action] || '\u2022';
+          var label = { signup: 'signed up', login: 'logged in', nev_chat: 'chatted with Nev', community_join: 'joined', canister_update: 'updated canister' }[a.action] || a.action;
+          var extra = a.extra ? ' \u00b7 ' + esc(a.extra) : '';
+          var ago = '';
+          if (a.ts) {
+            var diff = Date.now() - new Date(a.ts).getTime();
+            var mins = Math.floor(diff / 60000);
+            if (mins < 60) ago = mins + 'm ago';
+            else if (mins < 1440) ago = Math.floor(mins / 60) + 'h ago';
+            else ago = Math.floor(mins / 1440) + 'd ago';
+          }
+          return '<div style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border);font-size:13px">' +
+            '<span style="font-size:16px;width:24px;text-align:center">' + icon + '</span>' +
+            '<span style="font-weight:600;min-width:0">' + esc(a.detail || 'Unknown') + '</span>' +
+            '<span style="color:var(--text2)">' + label + extra + '</span>' +
+            '<span style="margin-left:auto;color:var(--text3);font-size:11px;white-space:nowrap">' + ago + '</span>' +
+          '</div>';
+        }).join('');
+      }
+      html += '</div></div>';
+
+      // ── Auto-refresh ──
+      html += '<div style="text-align:center;padding:8px;font-size:11px;color:var(--text3)">Auto-refreshes every 60s \u00b7 <button onclick="liveRefresh()" style="background:none;border:1px solid var(--border2);padding:3px 10px;border-radius:4px;font-size:11px;cursor:pointer;font-family:var(--sans)">Refresh now</button></div>';
+
+      el.innerHTML = html;
+
+      // Auto-refresh every 60s
+      setInterval(function() {
+        if (document.querySelector('[data-tab="live"]').classList.contains('active')) {
+          loadLive();
+        }
+      }, 60000);
+
+    } catch(e) {
+      el.innerHTML = '<div style="color:var(--red)">Failed to load: ' + esc(e.message) + '</div>';
+    }
+  }
+
+  window.liveRefresh = function() { loadLive(); };
+
+  function activeCard(val, label, colorVar) {
+    return '<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:20px;text-align:center">' +
+      '<div style="font-size:36px;font-weight:800;color:var(' + colorVar + ')">' + val + '</div>' +
+      '<div style="font-size:11px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:var(--text3);margin-top:6px">' + label + '</div></div>';
+  }
+
+  function pulseCard(val, label, colorVar) {
+    return '<div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;text-align:center">' +
+      '<div style="font-size:22px;font-weight:700;color:var(' + colorVar + ')">' + val + '</div>' +
+      '<div style="font-size:10px;font-weight:600;letter-spacing:0.4px;text-transform:uppercase;color:var(--text3);margin-top:4px">' + label + '</div></div>';
+  }
+
+  function sparkline(data, colorVar) {
+    if (!data || data.length === 0) return '<div style="color:var(--text3);font-size:12px;text-align:center;padding:20px">No data yet</div>';
+    var values = data.map(function(d) { return parseInt(d.count) || 0; });
+    var max = Math.max.apply(null, values) || 1;
+    var barWidth = Math.max(4, Math.floor((100 / values.length) - 1));
+    var bars = values.map(function(v, i) {
+      var h = Math.max(2, Math.round((v / max) * 60));
+      var dayLabel = data[i].day ? new Date(data[i].day).getDate() : '';
+      return '<div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex:1">' +
+        '<div style="font-size:9px;color:var(--text3);font-weight:600">' + (v > 0 ? v : '') + '</div>' +
+        '<div style="width:100%;max-width:' + barWidth + 'px;height:' + h + 'px;background:var(' + colorVar + ');border-radius:2px;opacity:' + (v > 0 ? '1' : '0.15') + '"></div>' +
+        '<div style="font-size:8px;color:var(--text3)">' + (i % 5 === 0 ? dayLabel : '') + '</div>' +
+      '</div>';
+    }).join('');
+    return '<div style="display:flex;align-items:flex-end;gap:2px;height:90px">' + bars + '</div>';
   }
 })();
 </script>

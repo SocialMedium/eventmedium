@@ -342,6 +342,107 @@ router.get('/dashboard', authenticateToken, adminOnly, async function(req, res) 
   }
 });
 
+// ── GET /api/admin/live — live activity analytics ──
+router.get('/live', authenticateToken, adminOnly, async function(req, res) {
+  try {
+    // ── Active users by time window (based on sessions) ──
+    var active24h = await safeGet("SELECT COUNT(DISTINCT user_id) as c FROM sessions WHERE created_at >= NOW() - INTERVAL '24 hours'", [], {c:0});
+    var active7d = await safeGet("SELECT COUNT(DISTINCT user_id) as c FROM sessions WHERE created_at >= NOW() - INTERVAL '7 days'", [], {c:0});
+    var active30d = await safeGet("SELECT COUNT(DISTINCT user_id) as c FROM sessions WHERE created_at >= NOW() - INTERVAL '30 days'", [], {c:0});
+
+    // ── Pulse: activity counts in last 24h ──
+    var signups24h = await safeGet("SELECT COUNT(*) as c FROM users WHERE created_at >= NOW() - INTERVAL '24 hours'", [], {c:0});
+    var logins24h = await safeGet("SELECT COUNT(*) as c FROM sessions WHERE created_at >= NOW() - INTERVAL '24 hours'", [], {c:0});
+    var nevChats24h = await safeGet("SELECT COUNT(*) as c FROM nev_messages WHERE role = 'user' AND created_at >= NOW() - INTERVAL '24 hours'", [], {c:0});
+    var joins24h = await safeGet("SELECT COUNT(*) as c FROM community_members WHERE joined_at >= NOW() - INTERVAL '24 hours'", [], {c:0});
+    var matches24h = await safeGet("SELECT COUNT(*) as c FROM event_matches WHERE created_at >= NOW() - INTERVAL '24 hours'", [], {c:0});
+    var canisterUpdates24h = await safeGet("SELECT COUNT(*) as c FROM stakeholder_profiles WHERE updated_at >= NOW() - INTERVAL '24 hours'", [], {c:0});
+
+    // ── Pulse: 7d for comparison ──
+    var signups7d = await safeGet("SELECT COUNT(*) as c FROM users WHERE created_at >= NOW() - INTERVAL '7 days'", [], {c:0});
+    var logins7d = await safeGet("SELECT COUNT(*) as c FROM sessions WHERE created_at >= NOW() - INTERVAL '7 days'", [], {c:0});
+    var nevChats7d = await safeGet("SELECT COUNT(*) as c FROM nev_messages WHERE role = 'user' AND created_at >= NOW() - INTERVAL '7 days'", [], {c:0});
+    var joins7d = await safeGet("SELECT COUNT(*) as c FROM community_members WHERE joined_at >= NOW() - INTERVAL '7 days'", [], {c:0});
+    var matches7d = await safeGet("SELECT COUNT(*) as c FROM event_matches WHERE created_at >= NOW() - INTERVAL '7 days'", [], {c:0});
+
+    // ── Daily signups for last 30 days ──
+    var dailySignups = await safeAll(
+      "SELECT DATE(created_at) as day, COUNT(*) as count FROM users WHERE created_at >= NOW() - INTERVAL '30 days' GROUP BY day ORDER BY day ASC",
+      [], []
+    );
+
+    // ── Daily active users (sessions) for last 30 days ──
+    var dailyActive = await safeAll(
+      "SELECT DATE(created_at) as day, COUNT(DISTINCT user_id) as count FROM sessions WHERE created_at >= NOW() - INTERVAL '30 days' GROUP BY day ORDER BY day ASC",
+      [], []
+    );
+
+    // ── Recent activity feed — last 50 actions ──
+    var recentActivity = await safeAll(`
+      (SELECT 'signup' as action, u.name as detail, NULL as extra, u.created_at as ts
+       FROM users u WHERE u.created_at >= NOW() - INTERVAL '7 days')
+      UNION ALL
+      (SELECT 'nev_chat' as action, u.name as detail, NULL as extra, nm.created_at as ts
+       FROM nev_messages nm JOIN users u ON u.id = nm.user_id
+       WHERE nm.role = 'user' AND nm.created_at >= NOW() - INTERVAL '7 days')
+      UNION ALL
+      (SELECT 'community_join' as action, u.name as detail, c.name as extra, cm.joined_at as ts
+       FROM community_members cm JOIN users u ON u.id = cm.user_id JOIN communities c ON c.id = cm.community_id
+       WHERE cm.joined_at >= NOW() - INTERVAL '7 days')
+      UNION ALL
+      (SELECT 'canister_update' as action, u.name as detail, sp.stakeholder_type as extra, sp.updated_at as ts
+       FROM stakeholder_profiles sp JOIN users u ON u.id = sp.user_id
+       WHERE sp.updated_at >= NOW() - INTERVAL '7 days' AND sp.stakeholder_type IS NOT NULL)
+      UNION ALL
+      (SELECT 'login' as action, u.name as detail, NULL as extra, s.created_at as ts
+       FROM sessions s JOIN users u ON u.id = s.user_id
+       WHERE s.created_at >= NOW() - INTERVAL '7 days')
+      ORDER BY ts DESC LIMIT 50
+    `, [], []);
+
+    // ── Nev engagement: users who chatted with Nev in last 7d ──
+    var nevUsers7d = await safeGet("SELECT COUNT(DISTINCT user_id) as c FROM nev_messages WHERE role = 'user' AND created_at >= NOW() - INTERVAL '7 days'", [], {c:0});
+
+    // ── Notification delivery stats ──
+    var notifsSent = await safeGet("SELECT COUNT(*) as c FROM notifications WHERE created_at >= NOW() - INTERVAL '7 days'", [], {c:0});
+    var notifsRead = await safeGet("SELECT COUNT(*) as c FROM notifications WHERE created_at >= NOW() - INTERVAL '7 days' AND read_at IS NOT NULL", [], {c:0});
+
+    res.json({
+      activeUsers: {
+        last24h: parseInt(active24h.c) || 0,
+        last7d: parseInt(active7d.c) || 0,
+        last30d: parseInt(active30d.c) || 0
+      },
+      pulse24h: {
+        signups: parseInt(signups24h.c) || 0,
+        logins: parseInt(logins24h.c) || 0,
+        nevChats: parseInt(nevChats24h.c) || 0,
+        communityJoins: parseInt(joins24h.c) || 0,
+        matches: parseInt(matches24h.c) || 0,
+        canisterUpdates: parseInt(canisterUpdates24h.c) || 0
+      },
+      pulse7d: {
+        signups: parseInt(signups7d.c) || 0,
+        logins: parseInt(logins7d.c) || 0,
+        nevChats: parseInt(nevChats7d.c) || 0,
+        communityJoins: parseInt(joins7d.c) || 0,
+        matches: parseInt(matches7d.c) || 0
+      },
+      dailySignups: dailySignups,
+      dailyActive: dailyActive,
+      recentActivity: recentActivity,
+      engagement: {
+        nevUsers7d: parseInt(nevUsers7d.c) || 0,
+        notifsSent7d: parseInt(notifsSent.c) || 0,
+        notifsRead7d: parseInt(notifsRead.c) || 0
+      }
+    });
+  } catch(e) {
+    console.error('Live analytics error:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ── GET /api/admin/dashboard/event/:id — single event drill-down ──
 router.get('/dashboard/event/:id', authenticateToken, adminOnly, async function(req, res) {
   try {
