@@ -74,7 +74,7 @@ body{font-family:var(--font);color:var(--txt);background:var(--bg);-webkit-font-
 .tag.intent{background:var(--okL);color:#059669}
 .tag.offering{background:#ede9fe;color:var(--s)}
 
-/* Deal details */
+/* Timing & priorities */
 .deal-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .deal-item{padding:12px 16px;background:var(--bg);border-radius:10px}
 .deal-item-label{font-size:11px;font-weight:600;color:var(--txtXL);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px}
@@ -268,22 +268,13 @@ async function loadCanister() {
       (offering.length ? '<div class="section-row"><div class="section-label">Offering</div><div class="tags">' + offering.map(function(t){return '<span class="tag offering">' + esc(t) + '</span>'}).join('') + '</div></div>' : '') +
     '</div>';
 
-    // Deal details (if investor or founder)
-    if (Object.keys(dealDetails).length && (type === 'investor' || type === 'founder')) {
-      html += '<div class="card"><div class="card-header"><h2>Deal Details</h2></div><div class="deal-grid">';
-      var ddFields = [
-        { key: 'stage', label: 'Stage' },
-        { key: 'check_size', label: 'Check Size' },
-        { key: 'raising', label: 'Raising' },
-        { key: 'revenue', label: 'Revenue' },
-        { key: 'sector', label: 'Sector' },
-        { key: 'geography', label: 'Target Geography' },
-        { key: 'thesis', label: 'Thesis' },
-        { key: 'fund_size', label: 'Fund Size' }
-      ];
-      ddFields.forEach(function(f) {
-        if (dealDetails[f.key]) {
-          html += '<div class="deal-item"><div class="deal-item-label">' + f.label + '</div><div class="deal-item-val">' + esc(String(dealDetails[f.key])) + '</div></div>';
+    // Timing & priorities
+    if (Object.keys(dealDetails).length) {
+      html += '<div class="card"><div class="card-header"><h2>Timing & Priorities</h2></div><div class="deal-grid">';
+      Object.keys(dealDetails).forEach(function(key) {
+        if (dealDetails[key]) {
+          var label = key.replace(/_/g, ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); });
+          html += '<div class="deal-item"><div class="deal-item-label">' + label + '</div><div class="deal-item-val">' + esc(String(dealDetails[key])) + '</div></div>';
         }
       });
       html += '</div></div>';

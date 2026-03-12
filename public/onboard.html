@@ -301,7 +301,7 @@ body{font-family:var(--font);color:var(--txt);background:var(--bg);-webkit-font-
         </div>
         <div class="progress-step" id="step-deal">
           <div class="step-icon" id="icon-deal"></div>
-          <span class="step-label">Deal details</span>
+          <span class="step-label">Timing & priorities</span>
           <span class="step-val" id="val-deal"></span>
         </div>
       </div>
@@ -351,7 +351,7 @@ body{font-family:var(--font);color:var(--txt);background:var(--bg);-webkit-font-
       </div>
 
       <div class="cp-section" id="cpDeal" style="display:none">
-        <div class="cp-label">Deal Details</div>
+        <div class="cp-label">Timing & Priorities</div>
         <div class="cp-deal-grid" id="cpDealVal"></div>
       </div>
 
@@ -610,7 +610,7 @@ function updateProgressSteps() {
     { id: 'intent', done: liveCanister.intent.length > 0, val: liveCanister.intent.slice(0, 2).join(', ') },
     { id: 'offering', done: liveCanister.offering.length > 0, val: liveCanister.offering.slice(0, 2).join(', ') },
     { id: 'context', done: !!(liveCanister.context || liveCanister.geography), val: liveCanister.geography || (liveCanister.context ? '✓' : '') },
-    { id: 'deal', done: Object.keys(liveCanister.deal_details).length > 0, val: liveCanister.deal_details.stage || (Object.keys(liveCanister.deal_details).length > 0 ? '✓' : '') }
+    { id: 'deal', done: Object.keys(liveCanister.deal_details).length > 0, val: liveCanister.deal_details.priority || liveCanister.deal_details.focus || liveCanister.deal_details.stage || (Object.keys(liveCanister.deal_details).length > 0 ? '✓' : '') }
   ];
 
   var foundActive = false;
@@ -690,19 +690,11 @@ function updateLiveCanister(data) {
   if (data.deal_details && Object.keys(data.deal_details).length) {
     liveCanister.deal_details = data.deal_details;
     var ddEl = document.getElementById('cpDealVal');
-    var fields = [
-      { key: 'stage', label: 'Stage' },
-      { key: 'check_size', label: 'Check Size' },
-      { key: 'raising', label: 'Raising' },
-      { key: 'revenue', label: 'Revenue' },
-      { key: 'sector', label: 'Sector' },
-      { key: 'thesis', label: 'Thesis' },
-      { key: 'fund_size', label: 'Fund Size' }
-    ];
     var ddHtml = '';
-    fields.forEach(function(f) {
-      if (data.deal_details[f.key]) {
-        ddHtml += '<div class="cp-deal-item"><div class="cp-deal-label">' + f.label + '</div><div class="cp-deal-val">' + esc(String(data.deal_details[f.key])) + '</div></div>';
+    Object.keys(data.deal_details).forEach(function(key) {
+      if (data.deal_details[key]) {
+        var label = key.replace(/_/g, ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); });
+        ddHtml += '<div class="cp-deal-item"><div class="cp-deal-label">' + label + '</div><div class="cp-deal-val">' + esc(String(data.deal_details[key])) + '</div></div>';
       }
     });
     if (ddHtml) {

@@ -95,8 +95,8 @@ async function loadUserCanister(userId) {
     gaps.push('offering (what they bring)');
   }
   var stakeholderType = profile ? (profile.stakeholder_type || '') : '';
-  if ((stakeholderType === 'founder' || stakeholderType === 'investor') && (!dealDetails || Object.keys(dealDetails).length === 0)) {
-    gaps.push('deal details');
+  if (!dealDetails || Object.keys(dealDetails).length === 0) {
+    gaps.push('timing and priorities — ask: "What is your most pressing priority in the next 90 days — raising, hiring, launching, partnering, or something else?"');
   }
 
   // 4. Load message history (nev_messages table)
@@ -166,7 +166,7 @@ function buildNevSystemPrompt(canisterData) {
       '- Focus: ' + (p.focus_text || 'not captured') + '\n' +
       '- Intent (what they seek): ' + (p.intent && Object.keys(p.intent).length > 0 ? JSON.stringify(p.intent) : 'not captured') + '\n' +
       '- Offering (what they bring): ' + (p.offering && Object.keys(p.offering).length > 0 ? JSON.stringify(p.offering) : 'not captured') + '\n' +
-      '- Deal details: ' + (p.deal_details && Object.keys(p.deal_details).length > 0 ? JSON.stringify(p.deal_details) : 'not captured') + '\n' +
+      '- Timing & priorities: ' + (p.deal_details && Object.keys(p.deal_details).length > 0 ? JSON.stringify(p.deal_details) : 'not captured') + '\n' +
       '- Prior Nev conversations: ' + priorMessageCount + ' messages on record\n' +
       '- Match feedback signals: ' + insightTypes;
   } else {
@@ -197,7 +197,7 @@ function buildNevSystemPrompt(canisterData) {
 // ── extractAndSaveCanisterUpdates: fire-and-forget write-back ──
 async function extractAndSaveCanisterUpdates(userId, nevResponse, userMessage) {
   try {
-    var extractionPrompt = 'Given this Nev response and the user message that preceded it, extract any of the following if they were clearly confirmed or updated in the conversation:\n\n- geography (string)\n- stakeholder_type (one of: founder, investor, researcher, corporate, advisor, operator)\n- themes (array from the 16 canonical themes: AI, Connectivity, IoT, Enterprise SaaS, Cybersecurity, FinTech, Climate Tech, HealthTech, Hardware, Privacy, Regulation, EdTech, Open Source, Robotics, SpaceTech, Gaming)\n- focus_text (string — their focus in their own words)\n- intent (object — what they are actively seeking)\n- offering (object — what they bring to others)\n- deal_details (object — funding stage, ticket size, valuation, terms if applicable)\n\nReturn ONLY a JSON object with the fields that were clearly confirmed. If nothing was confirmed, return {}.\nDo not invent or infer — only extract what was explicitly stated.\n\nUser message: ' + userMessage + '\nNev response: ' + nevResponse;
+    var extractionPrompt = 'Given this Nev response and the user message that preceded it, extract any of the following if they were clearly confirmed or updated in the conversation:\n\n- geography (string)\n- stakeholder_type (one of: founder, investor, researcher, corporate, advisor, operator)\n- themes (array from the 16 canonical themes: AI, Connectivity, IoT, Enterprise SaaS, Cybersecurity, FinTech, Climate Tech, HealthTech, Hardware, Privacy, Regulation, EdTech, Open Source, Robotics, SpaceTech, Gaming)\n- focus_text (string — their focus in their own words)\n- intent (object — what they are actively seeking)\n- offering (object — what they bring to others)\n- deal_details (object — timing and priorities: what they are focused on in the next 90 days, e.g. raising, hiring, launching, scaling, partnering, attending events, exploring new markets)\n\nReturn ONLY a JSON object with the fields that were clearly confirmed. If nothing was confirmed, return {}.\nDo not invent or infer — only extract what was explicitly stated.\n\nUser message: ' + userMessage + '\nNev response: ' + nevResponse;
 
     var extractResp = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
