@@ -360,8 +360,10 @@ img{max-width:100%;display:block}
       <a href="#types">Who it's for</a>
       <a href="#organisers">For Organisers</a>
       <a href="/events.html">Browse Events</a>
-      <a href="/auth.html">Log in</a>
-      <a href="/auth.html" class="nav-cta">Get Started</a>
+      <a href="/matches.html" id="nav-matches" style="display:none">Matches</a>
+      <a href="/canister.html" id="nav-canister" style="display:none">My Canister</a>
+      <a href="/auth.html" id="nav-login">Log in</a>
+      <a href="/auth.html" id="nav-cta" class="nav-cta">Get Started</a>
     </div>
     <button class="nav-hamburger" onclick="document.getElementById('mobile-menu').classList.add('open')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
@@ -717,5 +719,6 @@ reveals.forEach(function(el) { observer.observe(el); });
   track.innerHTML = track.innerHTML + track.innerHTML;
 })();
 </script>
+<script src="/js/nav.js"></script>
 </body>
 </html>
