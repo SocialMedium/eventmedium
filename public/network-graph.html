@@ -169,6 +169,12 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
 .gcp-event-name{font-size:11px;color:#e2e8f0;line-height:1.3}
 .gcp-event-meta{font-size:10px;color:#475569}
 
+/* ── Geo toggle buttons ── */
+.geo-toggle-row{display:none;position:fixed;bottom:48px;left:50%;transform:translateX(-50%);z-index:110;gap:6px;background:rgba(13,20,33,0.9);backdrop-filter:blur(8px);border:1px solid var(--bar-border);border-radius:10px;padding:5px 8px}
+.geo-toggle-btn{padding:5px 14px;border-radius:20px;border:1px solid rgba(255,255,255,0.1);background:transparent;color:var(--text2);font-size:11px;font-weight:600;cursor:pointer;font-family:var(--sans);transition:all 0.15s}
+.geo-toggle-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.geo-toggle-btn:hover:not(.active){color:var(--text);border-color:rgba(255,255,255,0.25)}
+
 /* ── Geo map layer ── */
 .geo-land{fill:rgba(255,255,255,0.03);stroke:rgba(255,255,255,0.07);stroke-width:0.4}
 .geo-graticule{fill:none;stroke:rgba(255,255,255,0.03);stroke-width:0.3}
@@ -231,7 +237,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
     </a>
     <div class="mode-pills">
       <button class="mode-pill active" data-mode="me" onclick="setMode('me')">My Network</button>
-      <button class="mode-pill" data-mode="context" onclick="setMode('context')">Community / Event</button>
+      <button class="mode-pill" data-mode="communities" onclick="setMode('communities')">Communities</button>
+      <button class="mode-pill" data-mode="events" onclick="setMode('events')">Events</button>
       <button class="mode-pill" data-mode="global" onclick="setMode('global')">Global Network</button>
       <button class="mode-pill" data-mode="geo" onclick="setMode('geo')">Geo Map</button>
     </div>
@@ -307,6 +314,13 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
 <!-- ══ GEO DRILL-DOWN ══ -->
 <button id="geo-back" onclick="geoZoomOut()">← World</button>
 <div id="geo-city-panel"></div>
+
+<!-- ══ GEO LAYER TOGGLES ══ -->
+<div id="geo-toggles" class="geo-toggle-row">
+  <button class="geo-toggle-btn active" data-layer="users" onclick="toggleGeoLayer(this,'users')">Users</button>
+  <button class="geo-toggle-btn active" data-layer="communities" onclick="toggleGeoLayer(this,'communities')">Communities</button>
+  <button class="geo-toggle-btn active" data-layer="events" onclick="toggleGeoLayer(this,'events')">Events</button>
+</div>
 
 <!-- ══ EMPTY STATE ══ -->
 <div id="emptyState">
@@ -438,7 +452,7 @@ async function setMode(m) {
   });
   var cw = document.getElementById('contextWrap');
   var ticker = document.getElementById('ticker');
-  cw.style.display = m === 'context' ? 'flex' : 'none';
+  cw.style.display = (m === 'communities' || m === 'events') ? 'flex' : 'none';
   ticker.style.display = m === 'global' ? 'flex' : 'none';
 
   // Toggle geo layer vs force graph layer
@@ -446,6 +460,9 @@ async function setMode(m) {
   document.getElementById('graph-g').style.display = m === 'geo' ? 'none' : null;
   document.getElementById('legend').style.display = m === 'geo' ? 'none' : null;
   document.getElementById('filters').style.display = m === 'geo' ? 'none' : null;
+  // Toggle geo layer toggles
+  var geoToggles = document.getElementById('geo-toggles');
+  if (geoToggles) geoToggles.style.display = m === 'geo' ? 'flex' : 'none';
   // Reset geo drill-down state when leaving geo mode
   if (m !== 'geo') {
     _geoCityFocused = null;
@@ -460,8 +477,10 @@ async function setMode(m) {
 
   if (m === 'me') {
     await loadMe();
-  } else if (m === 'context') {
-    await loadContexts();
+  } else if (m === 'communities') {
+    await loadContexts('community');
+  } else if (m === 'events') {
+    await loadContexts('event');
   } else if (m === 'global') {
     await loadGlobal();
   } else if (m === 'geo') {
@@ -484,20 +503,23 @@ async function loadMe() {
 }
 
 // ── Load: Contexts dropdown ───────────────────────────────────────────────────
-async function loadContexts() {
+async function loadContexts(filterType) {
   try {
     var r = await fetch('/api/graph/contexts', { headers: { Authorization: 'Bearer ' + token } });
     var data = await r.json();
     if (!r.ok || data.error) { showError(data.error || 'HTTP ' + r.status); return; }
     var sel = document.getElementById('contextSel');
-    sel.innerHTML = '<option value="">Select…</option>';
-    (data.items || []).forEach(function(item) {
+    sel.innerHTML = '<option value="">Select ' + (filterType === 'community' ? 'a community' : 'an event') + '…</option>';
+    var filtered = (data.items || []).filter(function(item) {
+      return filterType ? item.type === filterType : true;
+    });
+    filtered.forEach(function(item) {
       var opt = document.createElement('option');
       opt.value = item.type + ':' + item.id;
       opt.textContent = (item.type === 'community' ? '⬡ ' : '◈ ') + item.name;
       sel.appendChild(opt);
     });
-    if (!data.items || !data.items.length) {
+    if (!filtered.length) {
       showEmpty();
     }
   } catch(e) { showError('Connection error — ' + e.message); }
@@ -814,6 +836,27 @@ function applyFilters(nodes, edges) {
     return allowed.has(sid) && allowed.has(tid);
   });
   return { nodes: filteredNodes, edges: filteredEdges };
+}
+
+// ── Geo layer toggle ─────────────────────────────────────────────────────────
+var geoLayerState = { users: true, communities: true, events: true };
+
+function toggleGeoLayer(btn, layer) {
+  btn.classList.toggle('active');
+  geoLayerState[layer] = btn.classList.contains('active');
+  applyGeoLayerVisibility();
+}
+
+function applyGeoLayerVisibility() {
+  // Users = city circles, halos, labels, corridors, detail dots
+  var userVis = geoLayerState.users ? null : 'none';
+  d3.select('#geo-cities-g').style('display', userVis);
+  d3.select('#geo-halos-g').style('display', userVis);
+  d3.select('#geo-labels-g').style('display', userVis);
+  d3.select('#geo-corridors-g').style('display', userVis);
+  d3.select('#geo-detail-g').style('display', userVis);
+  // Events = event diamond markers
+  d3.select('#geo-events-g').style('display', geoLayerState.events ? null : 'none');
 }
 
 // ── Geo Map ───────────────────────────────────────────────────────────────────
@@ -1232,7 +1275,7 @@ function showCityPanel(c) {
 function shareView() {
   var params = new URLSearchParams();
   params.set('mode', mode);
-  if (mode === 'context') {
+  if (mode === 'communities' || mode === 'events') {
     var val = document.getElementById('contextSel').value;
     if (val) params.set('ctx', val);
   }
@@ -1255,10 +1298,10 @@ function shareView() {
 
   var id = params.get('id');
   if ((modeParam === 'community' || modeParam === 'event') && id) {
-    await setMode('context');
+    var tabMode = modeParam === 'community' ? 'communities' : 'events';
+    await setMode(tabMode);
     var ctx = modeParam + ':' + id;
     var sel = document.getElementById('contextSel');
-    // Add option if not already present (page may not have loaded contexts yet)
     if (!sel.querySelector('option[value="' + ctx + '"]')) {
       var opt = document.createElement('option');
       opt.value = ctx;
@@ -1267,15 +1310,34 @@ function shareView() {
     }
     sel.value = ctx;
     await loadContext();
-  } else if (modeParam === 'context') {
-    await setMode('context');
+  } else if (modeParam === 'communities') {
+    await setMode('communities');
     var ctx = params.get('ctx');
     if (ctx) {
       document.getElementById('contextSel').value = ctx;
       await loadContext();
     }
+  } else if (modeParam === 'events') {
+    await setMode('events');
+    var ctx = params.get('ctx');
+    if (ctx) {
+      document.getElementById('contextSel').value = ctx;
+      await loadContext();
+    }
+  } else if (modeParam === 'context') {
+    // Legacy URL support
+    await setMode('communities');
+    var ctx = params.get('ctx');
+    if (ctx) {
+      var ctxType = ctx.split(':')[0];
+      if (ctxType === 'event') await setMode('events');
+      document.getElementById('contextSel').value = ctx;
+      await loadContext();
+    }
   } else if (modeParam === 'global') {
     await setMode('global');
+  } else if (modeParam === 'geo') {
+    await setMode('geo');
   } else {
     await setMode('me');
   }
