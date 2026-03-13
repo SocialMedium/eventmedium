@@ -191,6 +191,16 @@ router.post('/magic-verify', async function(req, res) {
         [namePart, email, 'magic']
       );
       user = { id: result.rows[0].id, name: namePart, email: email };
+
+      // Create stub profile so Nev write-back UPDATEs have a row to target
+      try {
+        await dbRun(
+          'INSERT INTO stakeholder_profiles (user_id, created_at, updated_at) VALUES ($1, NOW(), NOW()) ON CONFLICT (user_id) DO NOTHING',
+          [user.id]
+        );
+      } catch(e) {
+        console.error('[auth] stub profile creation failed:', e.message);
+      }
     }
 
     var token = await createSession(user.id);

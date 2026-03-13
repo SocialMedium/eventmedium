@@ -656,9 +656,9 @@ async function sendMessage() {
       updateLiveCanister(data.canister_data);
     }
 
-    // Auto-save when we have minimum viable canister
-    if (data.canister_data && data.canister_data.stakeholder_type && (data.canister_data.themes || []).length >= 1) {
-      saveCanister(data.canister_data);
+    // Auto-save whenever we have any canister field — use accumulated liveCanister
+    if (data.canister_data && (data.canister_data.stakeholder_type || (data.canister_data.themes || []).length > 0 || (data.canister_data.intent || []).length > 0 || (data.canister_data.offering || []).length > 0 || data.canister_data.geography)) {
+      saveCanister(liveCanister);
     }
   } catch (err) {
     hideTyping();
@@ -1026,8 +1026,8 @@ function handleIngestResult(data) {
       deal_details: cp.deal_details || {}
     });
 
-    // Auto-save if minimum viable
-    if (cp.stakeholder_type && (cp.themes || []).length >= 1) {
+    // Auto-save if any meaningful field present
+    if (cp.stakeholder_type || (cp.themes || []).length > 0 || (cp.intent || []).length > 0 || (cp.offering || []).length > 0 || cp.geography) {
       saveCanister({
         stakeholder_type: cp.stakeholder_type,
         themes: cp.themes,

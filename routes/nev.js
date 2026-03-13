@@ -179,8 +179,10 @@ function buildNevSystemPromptStable(canisterData) {
   if (gaps.length > 0) {
     sectionC = 'GAPS TO FILL — address these one at a time, never as a list of questions:\n' +
       gaps.map(function(g) { return '- ' + g; }).join('\n') + '\n\nAsk about the highest-priority gap first. One question per response.';
+  } else if (priorMessageCount < 8) {
+    sectionC = 'CANISTER IS WELL POPULATED. Do not re-ask basics.\nAsk ONE more deepening question from this list (pick the most relevant one you haven\'t covered):\n- What would make a meeting feel like a waste of time?\n- What does a perfect introduction look like to them?\n- Who specifically is NOT a fit, and why?\n\nAfter this question, you should be ready to wrap up.';
   } else {
-    sectionC = 'CANISTER IS WELL POPULATED. Do not re-ask basics.\nShift to deepening signal quality:\n- What would make a meeting feel like a waste of time?\n- What does a perfect introduction look like to them?\n- Who specifically is NOT a fit, and why?\n- What do they offer to people they meet beyond their product?\n- What\'s the one thing most people misunderstand about what they do?\n- Any timing pressure — are they at an event soon, raising in the next 60 days, hiring now?';
+    sectionC = 'CANISTER IS COMPLETE. You have enough signal for strong matching.\n\nWRAP UP NOW. Thank them warmly, confirm their canister is saved and matching is active. Tell them they can come back anytime to refine. Do NOT ask another question. End the conversation.\n\nKeep it brief — two or three sentences maximum.';
   }
 
   // Section D: Extraction targets
@@ -192,7 +194,10 @@ function buildNevSystemPromptStable(canisterData) {
   // Section F: Tone
   var sectionF = 'TONE:\nWarm, precise, unhurried. You are an attentive listener who occasionally reflects back what you\'ve heard to check you\'ve got it right. Not chatty. Not corporate. Not a form. Think thoughtful colleague, not customer service bot.';
 
-  return [sectionA, sectionB, sectionC, sectionD, sectionE, sectionF].join('\n\n---\n\n');
+  // Section G: Canister output
+  var sectionG = 'CANISTER OUTPUT — CRITICAL:\n\nAfter EVERY response, append a [CANISTER_READY] block containing the CUMULATIVE canister state based on everything you know so far. This is how the system saves profile data.\n\nFormat:\n[CANISTER_READY]\n{"stakeholder_type":"founder","themes":["AI","FinTech"],"intent":["fundraising","strategic partnerships"],"offering":["product expertise","market knowledge"],"context":"Building an AI-powered fintech platform","geography":"UK, US"}\n[/CANISTER_READY]\n\nRules:\n- Include ALL fields you have data for, not just what was mentioned in the latest message\n- stakeholder_type must be one of: founder, investor, researcher, corporate, advisor, operator (or compound like "founder/advisor")\n- Use empty string or empty array for fields with no data yet — never omit fields\n- This block is stripped from the visible reply — the user never sees it\n- Even after the first message, output whatever you can extract';
+
+  return [sectionA, sectionB, sectionC, sectionD, sectionE, sectionF, sectionG].join('\n\n---\n\n');
 }
 
 // ── extractAndSaveCanisterUpdates: fire-and-forget write-back ──
@@ -260,10 +265,20 @@ async function extractAndSaveCanisterUpdates(userId, nevResponse, userMessage) {
 
     if (setClauses.length === 0) return;
 
-    params.push(userId);
-    var updateSql = 'UPDATE stakeholder_profiles SET ' + setClauses.join(', ') + ' WHERE user_id = $' + idx;
-
+    // UPSERT: create profile row if it doesn't exist, then update
     try {
+      var existing = await dbGet('SELECT id FROM stakeholder_profiles WHERE user_id = $1', [userId]);
+      if (!existing) {
+        await dbRun(
+          'INSERT INTO stakeholder_profiles (user_id, onboarding_method, created_at, updated_at) VALUES ($1, $2, NOW(), NOW())',
+          [userId, 'chat']
+        );
+        console.log('[Nev] Created stakeholder_profiles row for user', userId);
+      }
+
+      setClauses.push('updated_at = NOW()');
+      params.push(userId);
+      var updateSql = 'UPDATE stakeholder_profiles SET ' + setClauses.join(', ') + ' WHERE user_id = $' + idx;
       await dbRun(updateSql, params);
       console.log('[Nev] Write-back updated fields:', Object.keys(extracted).join(', '), 'for user', userId);
     } catch(e) {
@@ -310,6 +325,9 @@ router.post('/chat', authenticateToken, nevChatLimiter, nevBehaviourCheck, async
 
     // Load canister data for canister-aware prompting
     var canisterData = await loadUserCanister(req.user.id);
+    // Include current session messages in count (DB may lag behind fire-and-forget writes)
+    var sessionMsgCount = conversation ? conversation.length : 0;
+    canisterData.priorMessageCount = Math.max(canisterData.priorMessageCount, sessionMsgCount);
     var stablePrompt = buildNevSystemPromptStable(canisterData);
 
     // Build system as content blocks with cache_control on stable part
@@ -366,10 +384,10 @@ router.post('/chat', authenticateToken, nevChatLimiter, nevBehaviourCheck, async
       });
     }
 
-    var reply = data.content[0].text;
+    var fullReply = data.content[0].text;
 
     // Strip markdown server-side
-    reply = reply.split('\n').map(function(l){
+    var reply = fullReply.split('\n').map(function(l){
       return l.replace(/^\s*#{1,4}\s+/,'').replace(/^\s*[-*]\s+/,'').replace(/^\s*\d+\.\s+/,'').replace(/\*\*(.*?)\*\*/g,'$1').replace(/\*(.*?)\*/g,'$1').replace(/^\s*[oc]\s+/,'');
     }).filter(function(l){return l.trim()!='';}).join(' ').trim();
 
@@ -407,31 +425,33 @@ router.post('/chat', authenticateToken, nevChatLimiter, nevBehaviourCheck, async
     }
     if (qSentence) { reply = qSentence; }
 
-    // If no canister from CANISTER_READY, extract separately
+    // If no canister from CANISTER_READY, extract separately using full conversation
     if (!canisterReply && anthropicMessages && anthropicMessages.length > 0) {
       try {
-        var convText = anthropicMessages.map(function(m){ return m.role + ': ' + m.content; }).join('\n') + '\nassistant: ' + reply;
+        // Use recent messages (tail) not head — latest context is richest
+        var convText = anthropicMessages.map(function(m){ return m.role + ': ' + m.content; }).join('\n') + '\nassistant: ' + fullReply;
+        if (convText.length > 4000) convText = convText.slice(-4000);
         var extResp = await fetch('https://api.anthropic.com/v1/messages', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
           body: JSON.stringify({
-            model: 'claude-haiku-4-5-20251001',
+            model: MODEL,
             max_tokens: 400,
             system: 'Extract profile data from this conversation. Respond ONLY with valid JSON, nothing else. No markdown, no explanation.\nJSON format: {"stakeholder_type":"","themes":[],"intent":[],"offering":[],"context":"","geography":""}\nstakeholder_type must be one of: founder/investor/researcher/corporate/advisor/operator\nUse empty string or empty array if unknown. Never use "...".',
-            messages: [{ role: 'user', content: 'Conversation:\n' + convText.slice(0, 2000) }]
+            messages: [{ role: 'user', content: 'Conversation:\n' + convText }]
           })
         });
         var extData = await extResp.json();
         if (extData.content && extData.content[0] && extData.content[0].text) {
           var extText = extData.content[0].text.trim();
           var extClean = extText.replace(/```json/g,"").replace(/```/g,"").trim(); var parsed = JSON.parse(extClean);
-          if (parsed.stakeholder_type || (parsed.themes && parsed.themes.length)) {
+          if (parsed.stakeholder_type || (parsed.themes && parsed.themes.length) || (parsed.intent && parsed.intent.length) || (parsed.offering && parsed.offering.length) || parsed.geography || parsed.context) {
             canisterReply = parsed;
-            console.log('Extraction succeeded:', JSON.stringify(canisterReply));
+            console.log('[Nev] Extraction succeeded:', JSON.stringify(canisterReply));
           }
         }
       } catch(extErr) {
-        console.error('Extraction error:', extErr.message);
+        console.error('[Nev] Extraction error:', extErr.message);
       }
     }
 
@@ -441,8 +461,24 @@ router.post('/chat', authenticateToken, nevChatLimiter, nevBehaviourCheck, async
       canister_data: canisterReply
     });
 
-    // Fire-and-forget write-back extraction (does not block the response)
-    extractAndSaveCanisterUpdates(req.user.id, reply, message).catch(function(e) {
+    // Fire-and-forget: persist messages to nev_messages (full reply, not stripped)
+    (async function() {
+      try {
+        await dbRun(
+          'INSERT INTO nev_messages (user_id, role, content, created_at) VALUES ($1, $2, $3, NOW())',
+          [req.user.id, 'user', message]
+        );
+        await dbRun(
+          'INSERT INTO nev_messages (user_id, role, content, created_at) VALUES ($1, $2, $3, NOW())',
+          [req.user.id, 'assistant', fullReply]
+        );
+      } catch(e) {
+        console.warn('[Nev] Message persist error:', e.message);
+      }
+    })();
+
+    // Fire-and-forget write-back extraction (uses full reply for richer context)
+    extractAndSaveCanisterUpdates(req.user.id, fullReply, message).catch(function(e) {
       console.error('[Nev] write-back error:', e);
     });
 

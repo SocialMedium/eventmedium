@@ -748,4 +748,89 @@ router.get('/abuse', authenticateToken, adminOnly, async function(req, res) {
   }
 });
 
+// ── GET /api/admin/nev-diagnostic — check Nev engagement & canister status for users ──
+router.get('/nev-diagnostic', authenticateToken, adminOnly, async function(req, res) {
+  try {
+    var emails = req.query.emails;
+    if (!emails) return res.status(400).json({ error: 'Provide ?emails=a@b.com,c@d.com' });
+    var emailList = emails.split(',').map(function(e) { return e.trim().toLowerCase(); });
+
+    var results = [];
+    for (var i = 0; i < emailList.length; i++) {
+      var email = emailList[i];
+      var user = await safeGet(
+        'SELECT id, name, email, created_at FROM users WHERE LOWER(email) = $1',
+        [email], null
+      );
+      if (!user) {
+        results.push({ email: email, status: 'user_not_found' });
+        continue;
+      }
+
+      // Canister status
+      var profile = await safeGet(
+        'SELECT stakeholder_type, themes, intent, offering, geography, focus_text, deal_details, canister_version, onboarding_method, created_at, updated_at FROM stakeholder_profiles WHERE user_id = $1',
+        [user.id], null
+      );
+
+      // Nev messages
+      var nevStats = await safeGet(
+        "SELECT COUNT(*) as total_messages, COUNT(CASE WHEN role = 'user' THEN 1 END) as user_messages, COUNT(CASE WHEN role = 'assistant' THEN 1 END) as assistant_messages, MIN(created_at) as first_message, MAX(created_at) as last_message FROM nev_messages WHERE user_id = $1",
+        [user.id], { total_messages: 0 }
+      );
+
+      // Last few Nev messages to see where they got stuck
+      var recentMessages = await safeAll(
+        "SELECT role, LEFT(content, 200) as content_preview, created_at FROM nev_messages WHERE user_id = $1 ORDER BY created_at DESC LIMIT 6",
+        [user.id], []
+      );
+
+      // Sessions (login activity)
+      var sessionCount = await safeGet(
+        'SELECT COUNT(*) as c, MAX(created_at) as last_login FROM sessions WHERE user_id = $1',
+        [user.id], { c: 0 }
+      );
+
+      // Community memberships
+      var communities = await safeAll(
+        'SELECT c.name, cm.role, cm.joined_at FROM community_members cm JOIN communities c ON c.id = cm.community_id WHERE cm.user_id = $1',
+        [user.id], []
+      );
+
+      var canisterStatus = 'no_profile';
+      if (profile) {
+        if (!profile.stakeholder_type) canisterStatus = 'started';
+        else if (!profile.themes || profile.themes === '[]') canisterStatus = 'partial';
+        else if ((!profile.intent || profile.intent === '[]') && (!profile.offering || profile.offering === '[]')) canisterStatus = 'partial';
+        else canisterStatus = 'complete';
+      }
+
+      results.push({
+        email: email,
+        user_id: user.id,
+        name: user.name,
+        signed_up: user.created_at,
+        canister_status: canisterStatus,
+        profile: profile,
+        nev_engagement: {
+          total_messages: parseInt(nevStats.total_messages) || 0,
+          user_messages: parseInt(nevStats.user_messages) || 0,
+          assistant_messages: parseInt(nevStats.assistant_messages) || 0,
+          first_message: nevStats.first_message,
+          last_message: nevStats.last_message
+        },
+        recent_nev_messages: recentMessages.reverse(),
+        login_count: parseInt(sessionCount.c) || 0,
+        last_login: sessionCount.last_login,
+        communities: communities
+      });
+    }
+
+    res.json({ diagnostic: results });
+  } catch(e) {
+    console.error('Nev diagnostic error:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 module.exports = router;
