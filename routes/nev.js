@@ -143,8 +143,8 @@ async function loadUserCanister(userId) {
   };
 }
 
-// ── buildNevSystemPrompt: canister-aware dynamic system prompt ──
-function buildNevSystemPrompt(canisterData) {
+// ── buildNevSystemPromptStable: all content that is stable within a session ──
+function buildNevSystemPromptStable(canisterData) {
   var p = canisterData.profile;
   var hasProfile = canisterData.hasProfile;
   var gaps = canisterData.gaps || [];
@@ -310,7 +310,16 @@ router.post('/chat', authenticateToken, nevChatLimiter, nevBehaviourCheck, async
 
     // Load canister data for canister-aware prompting
     var canisterData = await loadUserCanister(req.user.id);
-    var systemPrompt = buildNevSystemPrompt(canisterData);
+    var stablePrompt = buildNevSystemPromptStable(canisterData);
+
+    // Build system as content blocks with cache_control on stable part
+    var systemBlocks = [
+      {
+        type: 'text',
+        text: stablePrompt,
+        cache_control: { type: 'ephemeral' }
+      }
+    ];
 
     // Build messages for Anthropic format
     var anthropicMessages = [];
@@ -321,17 +330,18 @@ router.post('/chat', authenticateToken, nevChatLimiter, nevBehaviourCheck, async
     }
     anthropicMessages.push({ role: 'user', content: message });
 
-    // Call Anthropic
+    // Call Anthropic with prompt caching
     var resp = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'x-api-key': ANTHROPIC_API_KEY,
         'anthropic-version': '2023-06-01',
+        'anthropic-beta': 'prompt-caching-2024-07-31',
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         model: MODEL,
-        system: systemPrompt,
+        system: systemBlocks,
         messages: anthropicMessages,
         max_tokens: 500,
         temperature: 0.4
@@ -345,6 +355,17 @@ router.post('/chat', authenticateToken, nevChatLimiter, nevBehaviourCheck, async
     }
 
     var data = await resp.json();
+
+    // Log cache usage for cost monitoring
+    if (data.usage) {
+      console.log('[nev cache]', {
+        input_tokens: data.usage.input_tokens,
+        output_tokens: data.usage.output_tokens,
+        cache_creation_input_tokens: data.usage.cache_creation_input_tokens || 0,
+        cache_read_input_tokens: data.usage.cache_read_input_tokens || 0
+      });
+    }
+
     var reply = data.content[0].text;
 
     // Strip markdown server-side
