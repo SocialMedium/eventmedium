@@ -3,7 +3,7 @@ var fs = require('fs');
 var path = require('path');
 var { dbGet, dbAll, dbRun } = require('../db');
 var { authenticateToken } = require('../middleware/auth');
-var { normalizeThemes } = require('../lib/theme_taxonomy');
+var { normalizeThemes, getCanonicalThemes } = require('../lib/theme_taxonomy');
 var { nevChatLimiter, nevBehaviourCheck, flagUser, checkCanisterVelocity } = require('../middleware/anti_abuse');
 
 var router = express.Router();
@@ -81,7 +81,7 @@ async function loadUserCanister(userId) {
     gaps.push('stakeholder type');
   }
   if (!themes || themes.length === 0) {
-    gaps.push('themes/sectors');
+    gaps.push('themes/sectors — ask what industry or technology areas they work in. Map their answer to the closest from: ' + getCanonicalThemes().join(', '));
   }
   if (!profile || !profile.geography || profile.geography === '') {
     gaps.push('geography');
@@ -195,7 +195,8 @@ function buildNevSystemPromptStable(canisterData) {
   var sectionF = 'TONE:\nWarm, precise, unhurried. You are an attentive listener who occasionally reflects back what you\'ve heard to check you\'ve got it right. Not chatty. Not corporate. Not a form. Think thoughtful colleague, not customer service bot.';
 
   // Section G: Canister output
-  var sectionG = 'CANISTER OUTPUT — CRITICAL:\n\nAfter EVERY response, append a [CANISTER_READY] block containing the CUMULATIVE canister state based on everything you know so far. This is how the system saves profile data.\n\nFormat:\n[CANISTER_READY]\n{"stakeholder_type":"founder","themes":["AI","FinTech"],"intent":["fundraising","strategic partnerships"],"offering":["product expertise","market knowledge"],"context":"Building an AI-powered fintech platform","geography":"UK, US"}\n[/CANISTER_READY]\n\nRules:\n- Include ALL fields you have data for, not just what was mentioned in the latest message\n- stakeholder_type must be one of: founder, investor, researcher, corporate, advisor, operator (or compound like "founder/advisor")\n- Use empty string or empty array for fields with no data yet — never omit fields\n- This block is stripped from the visible reply — the user never sees it\n- Even after the first message, output whatever you can extract';
+  var themeList = getCanonicalThemes().join(', ');
+  var sectionG = 'CANISTER OUTPUT — CRITICAL:\n\nAfter EVERY response, append a [CANISTER_READY] block containing the CUMULATIVE canister state based on everything you know so far. This is how the system saves profile data.\n\nFormat:\n[CANISTER_READY]\n{"stakeholder_type":"founder","themes":["AI","Fintech"],"intent":["fundraising","strategic partnerships"],"offering":["product expertise","market knowledge"],"context":"Building an AI-powered fintech platform","geography":"UK, US"}\n[/CANISTER_READY]\n\nRules:\n- Include ALL fields you have data for, not just what was mentioned in the latest message\n- stakeholder_type must be one of: founder, investor, researcher, corporate, advisor, operator (or compound like "founder/advisor")\n- themes MUST use ONLY these canonical values: ' + themeList + '\n- Map what the user describes to the closest canonical theme(s). For example: "workforce technology" → "Enterprise SaaS", "video production platform" → "Media & Entertainment", "GTM consultancy" → "Enterprise SaaS". If someone works across multiple domains, include all relevant themes.\n- If their work does not fit any canonical theme, pick the closest match — never leave themes empty if they have described what they do\n- Use empty string or empty array for fields with genuinely no data yet — never omit fields\n- This block is stripped from the visible reply — the user never sees it\n- Even after the first message, output whatever you can extract';
 
   return [sectionA, sectionB, sectionC, sectionD, sectionE, sectionF, sectionG].join('\n\n---\n\n');
 }
@@ -203,7 +204,8 @@ function buildNevSystemPromptStable(canisterData) {
 // ── extractAndSaveCanisterUpdates: fire-and-forget write-back ──
 async function extractAndSaveCanisterUpdates(userId, nevResponse, userMessage) {
   try {
-    var extractionPrompt = 'Given this Nev response and the user message that preceded it, extract any of the following if they were clearly confirmed or updated in the conversation:\n\n- geography (string)\n- stakeholder_type (one of: founder, investor, researcher, corporate, advisor, operator)\n- themes (array from the 16 canonical themes: AI, Connectivity, IoT, Enterprise SaaS, Cybersecurity, FinTech, Climate Tech, HealthTech, Hardware, Privacy, Regulation, EdTech, Open Source, Robotics, SpaceTech, Gaming)\n- focus_text (string — their focus in their own words)\n- intent (object — what they are actively seeking)\n- offering (object — what they bring to others)\n- deal_details (object — timing and priorities: what they are focused on in the next 90 days, e.g. raising, hiring, launching, scaling, partnering, attending events, exploring new markets)\n\nReturn ONLY a JSON object with the fields that were clearly confirmed. If nothing was confirmed, return {}.\nDo not invent or infer — only extract what was explicitly stated.\n\nUser message: ' + userMessage + '\nNev response: ' + nevResponse;
+    var themeList = getCanonicalThemes().join(', ');
+    var extractionPrompt = 'Given this Nev response and the user message that preceded it, extract any of the following if they were clearly confirmed or updated in the conversation:\n\n- geography (string)\n- stakeholder_type (one of: founder, investor, researcher, corporate, advisor, operator — or compound like "founder/advisor")\n- themes (array — MUST use only these canonical values: ' + themeList + '. Map what the user describes to the closest theme(s). Never leave empty if they described their work.)\n- focus_text (string — their focus in their own words)\n- intent (object — what they are actively seeking)\n- offering (object — what they bring to others)\n- deal_details (object — timing and priorities: what they are focused on in the next 90 days, e.g. raising, hiring, launching, scaling, partnering, attending events, exploring new markets)\n\nReturn ONLY a JSON object with the fields that were clearly confirmed. If nothing was confirmed, return {}.\nDo not invent or infer — only extract what was explicitly stated.\n\nUser message: ' + userMessage + '\nNev response: ' + nevResponse;
 
     var extractResp = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -437,7 +439,7 @@ router.post('/chat', authenticateToken, nevChatLimiter, nevBehaviourCheck, async
           body: JSON.stringify({
             model: MODEL,
             max_tokens: 400,
-            system: 'Extract profile data from this conversation. Respond ONLY with valid JSON, nothing else. No markdown, no explanation.\nJSON format: {"stakeholder_type":"","themes":[],"intent":[],"offering":[],"context":"","geography":""}\nstakeholder_type must be one of: founder/investor/researcher/corporate/advisor/operator\nUse empty string or empty array if unknown. Never use "...".',
+            system: 'Extract profile data from this conversation. Respond ONLY with valid JSON, nothing else. No markdown, no explanation.\nJSON format: {"stakeholder_type":"","themes":[],"intent":[],"offering":[],"context":"","geography":""}\nstakeholder_type must be one of: founder/investor/researcher/corporate/advisor/operator (or compound like "founder/advisor")\nthemes MUST use only these canonical values: ' + getCanonicalThemes().join(', ') + '. Map what the user describes to the closest theme(s). Never leave themes empty if the user described what they do.\nUse empty string or empty array if genuinely unknown. Never use "...".',
             messages: [{ role: 'user', content: 'Conversation:\n' + convText }]
           })
         });
