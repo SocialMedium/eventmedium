@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Community Intelligence Report — EventMedium</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0a0a0f;color:#e0e0e0;padding:24px}
+h1{font-size:1.6rem;color:#fff;margin-bottom:4px}
+h2{font-size:1.2rem;color:#c0c0c0;margin:28px 0 14px;border-bottom:1px solid #222;padding-bottom:6px}
+h3{font-size:1rem;color:#a0a0b0;margin:16px 0 8px}
+.header{margin-bottom:28px}
+.header .meta{color:#888;font-size:0.85rem;margin-top:4px}
+.grid{display:grid;gap:16px}
+.grid-2{grid-template-columns:1fr 1fr}
+.grid-3{grid-template-columns:1fr 1fr 1fr}
+.grid-4{grid-template-columns:1fr 1fr 1fr 1fr}
+@media(max-width:800px){.grid-2,.grid-3,.grid-4{grid-template-columns:1fr}}
+.card{background:#14141f;border:1px solid #222;border-radius:10px;padding:18px}
+.card-highlight{border-color:#f59e0b33;background:#1a1a10}
+.kpi{text-align:center}
+.kpi .value{font-size:2rem;font-weight:700;color:#fff}
+.kpi .label{font-size:0.8rem;color:#888;margin-top:2px}
+.kpi.green .value{color:#22c55e}
+.kpi.amber .value{color:#f59e0b}
+.kpi.red .value{color:#ef4444}
+.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:0.85rem}
+.bar-row .label{width:130px;text-align:right;flex-shrink:0;color:#aaa}
+.bar-row .bar{flex:1;height:16px;background:#1e1e2e;border-radius:4px;overflow:hidden}
+.bar-row .bar .fill{height:100%;border-radius:4px;transition:width 0.3s}
+.bar-row .pct{width:40px;text-align:right;color:#888;font-size:0.8rem}
+.list{list-style:none}
+.list li{padding:6px 0;border-bottom:1px solid #1a1a2a;font-size:0.88rem;color:#ccc}
+.list li:last-child{border-bottom:none}
+.list li.fail{color:#f59e0b}
+.match-card{background:#1a1a2a;border-radius:8px;padding:14px;margin-bottom:10px}
+.match-card .pair{font-weight:600;color:#fff;margin-bottom:4px}
+.match-card .logic{font-size:0.85rem;color:#aaa}
+.btn{padding:10px 20px;border:none;border-radius:6px;font-size:0.9rem;cursor:pointer;margin-right:8px;margin-top:8px}
+.btn-primary{background:#6366f1;color:#fff}
+.btn-primary:hover{background:#4f46e5}
+.btn-secondary{background:#222;color:#ccc;border:1px solid #333}
+.btn-secondary:hover{background:#2a2a3a}
+.weight-table{width:100%;border-collapse:collapse;font-size:0.85rem}
+.weight-table th,.weight-table td{padding:6px 10px;text-align:left;border-bottom:1px solid #1a1a2a}
+.weight-table th{color:#888}
+canvas{max-height:250px}
+.loading{text-align:center;padding:60px;color:#888;font-size:1.1rem}
+.error{text-align:center;padding:60px;color:#ef4444}
+.insight-card{background:linear-gradient(135deg,#1a1a30,#14141f);border:1px solid #6366f133;border-radius:10px;padding:20px;margin-bottom:12px}
+.insight-card .headline{font-size:1.1rem;color:#fff;margin-bottom:8px}
+.insight-card .body{color:#aaa;font-size:0.9rem;line-height:1.5}
+#controls{margin-top:24px;padding-top:16px;border-top:1px solid #222}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div class="loading" id="loading">Loading community intelligence report...</div>
+  <div class="error" id="error" style="display:none"></div>
+  <div id="report" style="display:none"></div>
+</div>
+
+<script>
+var API = '/api/admin/community-report/';
+var ADMIN_SECRET = localStorage.getItem('admin_secret') || '';
+var TOKEN = localStorage.getItem('auth_token') || '';
+
+// Get test_run_id from URL
+var params = new URLSearchParams(window.location.search);
+var testRunId = params.get('id');
+
+if (!testRunId) {
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('error').style.display = 'block';
+  document.getElementById('error').textContent = 'No test run ID. Use ?id=<test_run_id>';
+} else {
+  loadReport(testRunId);
+}
+
+async function loadReport(id) {
+  try {
+    var resp = await fetch(API + id, {
+      headers: {
+        'Authorization': 'Bearer ' + TOKEN,
+        'x-admin-secret': ADMIN_SECRET
+      }
+    });
+    if (!resp.ok) throw new Error('Failed to load report: ' + resp.status);
+    var data = await resp.json();
+    renderReport(data);
+  } catch (err) {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('error').style.display = 'block';
+    document.getElementById('error').textContent = err.message;
+  }
+}
+
+function renderReport(data) {
+  document.getElementById('loading').style.display = 'none';
+  var el = document.getElementById('report');
+  el.style.display = 'block';
+
+  var run = data.test_run;
+  var tax = data.taxonomy;
+  var evalReport = data.evaluation;
+
+  // Parse evaluation if string
+  if (typeof evalReport === 'string') {
+    try { evalReport = JSON.parse(evalReport); } catch(e) { evalReport = null; }
+  }
+
+  var html = '';
+
+  // ── Header ──
+  html += '<div class="header">';
+  html += '<h1>Community Intelligence Report</h1>';
+  html += '<div class="meta">' + (run.test_cohort_label || 'Test Run #' + run.id) + ' &mdash; ' + new Date(run.run_at).toLocaleDateString() + ' &mdash; Status: <strong>' + run.status + '</strong></div>';
+  html += '</div>';
+
+  // ── Section 1: KPIs ──
+  html += '<h2>Test Run Statistics</h2>';
+  html += '<div class="grid grid-4">';
+  html += kpiCard('Profiles', run.profile_count || 0);
+  html += kpiCard('Matches', run.match_count || 0);
+  html += kpiCard('Avg Score', ((run.avg_match_score || 0) * 100).toFixed(1) + '%');
+  var evalScore = run.evaluator_score || 0;
+  var evalClass = evalScore >= 0.70 ? 'green' : evalScore >= 0.50 ? 'amber' : 'red';
+  html += '<div class="card kpi ' + evalClass + '"><div class="value">' + (evalScore * 100).toFixed(0) + '%</div><div class="label">Evaluator Score</div></div>';
+  html += '</div>';
+
+  // Score distribution
+  html += '<div class="grid grid-3" style="margin-top:12px">';
+  html += kpiCard('Strong (75%+)', ((run.strong_match_pct || 0) * 100).toFixed(1) + '%', 'green');
+  html += kpiCard('Moderate (50-74%)', ((run.moderate_match_pct || 0) * 100).toFixed(1) + '%', 'amber');
+  html += kpiCard('Thin (<50%)', ((run.thin_match_pct || 0) * 100).toFixed(1) + '%', 'red');
+  html += '</div>';
+
+  // ── Section 2: Taxonomy ──
+  if (tax) {
+    html += '<h2>Community Taxonomy</h2>';
+
+    // Sector + Theme charts
+    html += '<div class="grid grid-2">';
+    html += '<div class="card"><h3>Sector Distribution</h3><canvas id="sectorChart"></canvas></div>';
+    html += '<div class="card"><h3>Theme Distribution</h3><canvas id="themeChart"></canvas></div>';
+    html += '</div>';
+
+    html += '<div class="grid grid-2" style="margin-top:12px">';
+    // Stakeholder distribution
+    html += '<div class="card"><h3>Stakeholder Distribution</h3><canvas id="stakeholderChart"></canvas></div>';
+    // Career stage
+    html += '<div class="card"><h3>Career Stage</h3><canvas id="careerChart"></canvas></div>';
+    html += '</div>';
+
+    // Geography clusters
+    if (tax.geography_clusters && tax.geography_clusters.length) {
+      html += '<div class="card" style="margin-top:12px"><h3>Geography Clusters</h3>';
+      var geos = tax.geography_clusters.sort(function(a, b) { return b.weight - a.weight; });
+      geos.forEach(function(g) {
+        var label = g.city + (g.state ? ', ' + g.state : '') + ', ' + g.country;
+        html += barRow(label, g.weight);
+      });
+      html += '</div>';
+    }
+
+    // Matching challenge
+    if (tax.matching_challenge) {
+      html += '<div class="card card-highlight" style="margin-top:12px"><h3>Matching Challenge</h3>';
+      html += '<p style="color:#f59e0b;margin-bottom:8px">' + (tax.matching_challenge.primary_challenge || '') + '</p>';
+      html += '<p style="color:#aaa;font-size:0.85rem">' + (tax.matching_challenge.rationale || '') + '</p>';
+      if (tax.matching_challenge.recommended_weight_adjustments) {
+        html += '<h3 style="margin-top:12px">Recommended Weights</h3>';
+        html += '<table class="weight-table"><tr><th>Dimension</th><th>Weight</th></tr>';
+        var w = tax.matching_challenge.recommended_weight_adjustments;
+        Object.keys(w).forEach(function(k) {
+          html += '<tr><td>' + k + '</td><td>' + w[k] + '</td></tr>';
+        });
+        html += '</table>';
+      }
+      html += '</div>';
+    }
+  }
+
+  // ── Section 3: Evaluator Report ──
+  if (evalReport) {
+    html += '<h2>Evaluator Report</h2>';
+
+    html += '<div class="grid grid-2">';
+    // Success patterns
+    html += '<div class="card"><h3>Success Patterns</h3><ul class="list">';
+    (evalReport.success_patterns || []).forEach(function(s) {
+      html += '<li>' + escHtml(s) + '</li>';
+    });
+    html += '</ul></div>';
+
+    // Failure patterns
+    html += '<div class="card"><h3>Failure Patterns</h3><ul class="list">';
+    (evalReport.failure_patterns || []).forEach(function(f) {
+      html += '<li class="fail">' + escHtml(f) + '</li>';
+    });
+    html += '</ul></div>';
+    html += '</div>';
+
+    // Weight recommendations
+    if (evalReport.weight_recommendations) {
+      html += '<div class="card" style="margin-top:12px"><h3>Weight Recommendations</h3>';
+      html += '<table class="weight-table"><tr><th>Dimension</th><th>Current</th><th>Recommended</th></tr>';
+      var currentW = (tax && tax.matching_weights) || {};
+      var recW = evalReport.weight_recommendations;
+      Object.keys(recW).forEach(function(k) {
+        html += '<tr><td>' + k + '</td><td>' + (currentW[k] || '—') + '</td><td>' + recW[k] + '</td></tr>';
+      });
+      html += '</table></div>';
+    }
+
+    // Nev recommendations
+    if (evalReport.nev_recommendations && evalReport.nev_recommendations.length) {
+      html += '<div class="card" style="margin-top:12px"><h3>Nev Recommendations</h3><ul class="list">';
+      evalReport.nev_recommendations.forEach(function(n) {
+        html += '<li>' + escHtml(n) + '</li>';
+      });
+      html += '</ul></div>';
+    }
+
+    // Canister quality issues
+    if (evalReport.canister_quality_issues && evalReport.canister_quality_issues.length) {
+      html += '<div class="card" style="margin-top:12px"><h3>Canister Quality Issues</h3><ul class="list">';
+      evalReport.canister_quality_issues.forEach(function(c) {
+        html += '<li class="fail">' + escHtml(c) + '</li>';
+      });
+      html += '</ul></div>';
+    }
+
+    // Overall assessment
+    if (evalReport.overall_assessment) {
+      html += '<div class="card card-highlight" style="margin-top:12px"><h3>Overall Assessment</h3>';
+      html += '<p style="color:#e0e0e0;line-height:1.6">' + escHtml(evalReport.overall_assessment) + '</p>';
+      html += '</div>';
+    }
+  }
+
+  // ── Section 4: Community Intelligence Preview ──
+  if (tax && tax.community_intelligence_preview) {
+    var cip = tax.community_intelligence_preview;
+    html += '<h2>Community Intelligence Preview</h2>';
+    html += '<div class="insight-card"><div class="headline">' + escHtml(cip.headline || '') + '</div>';
+    html += '<div class="body">' + escHtml(cip.key_insight || '') + '</div></div>';
+
+    if (cip.example_match_types && cip.example_match_types.length) {
+      html += '<div class="grid grid-3">';
+      cip.example_match_types.forEach(function(m) {
+        html += '<div class="match-card"><div class="pair">' + escHtml(m.type_a) + ' ↔ ' + escHtml(m.type_b) + '</div>';
+        html += '<div class="logic">' + escHtml(m.connection_logic) + '</div></div>';
+      });
+      html += '</div>';
+    }
+  }
+
+  // ── Section 5: Controls ──
+  html += '<div id="controls">';
+  html += '<button class="btn btn-primary" onclick="applyWeights()">Apply Recommended Weights</button>';
+  html += '<button class="btn btn-secondary" onclick="rerunMatches()">Run Another Test</button>';
+  html += '<button class="btn btn-secondary" onclick="exportJSON()">Export Report as JSON</button>';
+  html += '</div>';
+
+  el.innerHTML = html;
+
+  // Draw charts after DOM is ready
+  if (tax) {
+    setTimeout(function() { drawCharts(tax); }, 50);
+  }
+}
+
+function kpiCard(label, value, colorClass) {
+  return '<div class="card kpi ' + (colorClass || '') + '"><div class="value">' + value + '</div><div class="label">' + label + '</div></div>';
+}
+
+function barRow(label, weight) {
+  var pct = Math.round(weight * 100);
+  var colors = ['#6366f1','#8b5cf6','#a78bfa','#c4b5fd','#818cf8','#6d28d9'];
+  var color = colors[Math.floor(Math.random() * colors.length)];
+  return '<div class="bar-row"><span class="label">' + escHtml(label) + '</span><div class="bar"><div class="fill" style="width:' + pct + '%;background:' + color + '"></div></div><span class="pct">' + pct + '%</span></div>';
+}
+
+function escHtml(s) {
+  if (!s) return '';
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function drawCharts(tax) {
+  // Sector distribution
+  if (tax.sector_distribution && tax.sector_distribution.sectors) {
+    var sectors = tax.sector_distribution.sectors.sort(function(a, b) { return b.weight - a.weight; }).slice(0, 12);
+    makeBarChart('sectorChart', sectors.map(function(s) { return s.sector; }), sectors.map(function(s) { return s.weight; }), '#6366f1');
+  }
+
+  // Theme distribution
+  if (tax.theme_distribution && tax.theme_distribution.themes) {
+    var themes = tax.theme_distribution.themes.sort(function(a, b) { return b.weight - a.weight; }).slice(0, 12);
+    makeBarChart('themeChart', themes.map(function(t) { return t.theme; }), themes.map(function(t) { return t.weight; }), '#22c55e');
+  }
+
+  // Stakeholder distribution
+  if (tax.stakeholder_distribution && tax.stakeholder_distribution.types) {
+    var types = tax.stakeholder_distribution.types;
+    makeDoughnutChart('stakeholderChart', types.map(function(t) { return t.type; }), types.map(function(t) { return t.weight; }));
+  }
+
+  // Career stage
+  if (tax.career_stage_distribution) {
+    var cs = tax.career_stage_distribution;
+    makeDoughnutChart('careerChart', ['Early', 'Mid', 'Senior'], [cs.early || 0, cs.mid || 0, cs.senior || 0]);
+  }
+}
+
+function makeBarChart(canvasId, labels, data, color) {
+  var canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{ data: data.map(function(d) { return Math.round(d * 100); }), backgroundColor: color + '99', borderColor: color, borderWidth: 1 }]
+    },
+    options: {
+      indexAxis: 'y',
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#888', callback: function(v) { return v + '%'; } }, grid: { color: '#1a1a2a' } },
+        y: { ticks: { color: '#ccc', font: { size: 11 } }, grid: { display: false } }
+      }
+    }
+  });
+}
+
+function makeDoughnutChart(canvasId, labels, data) {
+  var canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  var colors = ['#6366f1','#22c55e','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#ec4899','#84cc16'];
+  new Chart(canvas, {
+    type: 'doughnut',
+    data: {
+      labels: labels,
+      datasets: [{ data: data.map(function(d) { return Math.round(d * 100); }), backgroundColor: colors.slice(0, labels.length) }]
+    },
+    options: {
+      plugins: {
+        legend: { position: 'right', labels: { color: '#ccc', font: { size: 11 }, padding: 8 } }
+      }
+    }
+  });
+}
+
+// ── Controls ──
+async function applyWeights() {
+  try {
+    var resp = await fetch('/api/admin/apply-weight-recommendations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + TOKEN, 'x-admin-secret': ADMIN_SECRET },
+      body: JSON.stringify({ test_run_id: parseInt(testRunId) })
+    });
+    var data = await resp.json();
+    alert(data.status || data.error || 'Done');
+  } catch (err) { alert('Error: ' + err.message); }
+}
+
+async function rerunMatches() {
+  try {
+    var resp = await fetch('/api/admin/run-test-matches', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + TOKEN, 'x-admin-secret': ADMIN_SECRET },
+      body: JSON.stringify({ test_run_id: parseInt(testRunId) })
+    });
+    var data = await resp.json();
+    alert(data.status || data.error || 'Started');
+    if (data.status === 'started') location.reload();
+  } catch (err) { alert('Error: ' + err.message); }
+}
+
+function exportJSON() {
+  fetch(API + testRunId, {
+    headers: { 'Authorization': 'Bearer ' + TOKEN, 'x-admin-secret': ADMIN_SECRET }
+  }).then(function(r) { return r.json(); }).then(function(data) {
+    var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'community-report-' + testRunId + '.json';
+    a.click();
+  });
+}
+</script>
+</body>
+</html>

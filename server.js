@@ -79,6 +79,7 @@ app.use('/api/network', require('./routes/network'));
 app.use('/api/admin', require('./routes/dashboard'));
 app.use('/api/privacy', require('./routes/privacy'));
 app.use('/api/documents', require('./routes/documents').router);
+app.use('/api/admin', require('./routes/community_setup'));
 
 // ── Landing page ──
 app.get('/', function(req, res) {
@@ -122,6 +123,27 @@ async function runMigrations() {
     // Event visibility for community events
     await dbRun('ALTER TABLE events ADD COLUMN IF NOT EXISTS community_id INTEGER REFERENCES communities(id)');
     await dbRun('ALTER TABLE events ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT FALSE');
+    // Community intelligence tables
+    await dbRun(`CREATE TABLE IF NOT EXISTS community_taxonomies (
+      id SERIAL PRIMARY KEY, community_id INTEGER REFERENCES communities(id),
+      generated_at TIMESTAMPTZ DEFAULT NOW(), sector_distribution JSONB, theme_distribution JSONB,
+      stakeholder_distribution JSONB, career_stage_distribution JSONB, geography_clusters JSONB,
+      values_language JSONB, signal_sources JSONB, raw_ingestion_summary TEXT,
+      matching_weights JSONB, calibration_run_at TIMESTAMPTZ, calibration_notes TEXT
+    )`);
+    await dbRun(`CREATE TABLE IF NOT EXISTS community_test_runs (
+      id SERIAL PRIMARY KEY, community_id INTEGER REFERENCES communities(id),
+      test_cohort_label VARCHAR(100), run_at TIMESTAMPTZ DEFAULT NOW(),
+      profile_count INTEGER, match_count INTEGER, avg_match_score FLOAT,
+      strong_match_pct FLOAT, moderate_match_pct FLOAT, thin_match_pct FLOAT,
+      evaluator_score FLOAT, weight_recommendations JSONB, evaluation_report TEXT,
+      status VARCHAR(50) DEFAULT 'running'
+    )`);
+    await dbRun(`CREATE TABLE IF NOT EXISTS synthetic_test_users (
+      id SERIAL PRIMARY KEY, test_run_id INTEGER REFERENCES community_test_runs(id),
+      fake_user_id INTEGER, persona_brief TEXT, career_stage VARCHAR(50),
+      canister_completeness FLOAT, is_event_subset BOOLEAN DEFAULT FALSE
+    )`);
     console.log('[Migrations] Schema up to date');
   } catch(err) {
     console.error('[Migrations] Error:', err);
