@@ -1247,4 +1247,73 @@ router.post('/:id/sidecars', async function(req, res) {
   }
 });
 
+// ── GET /api/events/feed.json — public machine-readable events feed ──
+// No auth required. Designed for external ingestion (Autonodal, RSS readers, etc.)
+router.get('/feed.json', async function(req, res) {
+  try {
+    var status = req.query.status || 'upcoming'; // upcoming | past | all
+    var regionFilter = req.query.region || null;  // optional country filter
+    var limit = Math.min(parseInt(req.query.limit) || 500, 1000);
+
+    var conditions = ['(community_id IS NULL OR is_public = true)'];
+    var params = [];
+    var idx = 1;
+
+    if (status === 'upcoming') {
+      conditions.push('event_date >= CURRENT_DATE');
+    } else if (status === 'past') {
+      conditions.push('event_date < CURRENT_DATE');
+    }
+
+    if (regionFilter) {
+      conditions.push('country ILIKE $' + idx);
+      params.push('%' + regionFilter + '%');
+      idx++;
+    }
+
+    var where = conditions.length ? ' WHERE ' + conditions.join(' AND ') : '';
+
+    var events = await dbAll(
+      'SELECT e.id, e.name, e.slug, e.description, e.event_date, e.city, e.country, e.themes, ' +
+      'e.expected_attendees, e.event_type, e.is_public, ' +
+      '(SELECT COUNT(*)::int FROM event_registrations WHERE event_id = e.id AND status = \'active\') as rsvp_count ' +
+      'FROM events e' + where +
+      ' ORDER BY e.event_date ASC LIMIT $' + idx,
+      params.concat([limit])
+    );
+
+    var items = events.map(function(e) {
+      var themes = e.themes;
+      if (typeof themes === 'string') { try { themes = JSON.parse(themes); } catch(err) { themes = []; } }
+
+      return {
+        id: e.id,
+        name: e.name,
+        description: e.description || '',
+        date: e.event_date,
+        city: e.city || '',
+        country: e.country || '',
+        themes: Array.isArray(themes) ? themes : [],
+        url: (process.env.APP_URL || 'https://eventmedium.ai') + '/event.html?slug=' + (e.slug || e.id),
+        rsvp_count: e.rsvp_count || 0,
+        expected_attendees: e.expected_attendees || null,
+        event_type: e.event_type || null,
+        status: e.event_date >= new Date().toISOString().split('T')[0] ? 'upcoming' : 'past'
+      };
+    });
+
+    res.set('Cache-Control', 'public, max-age=3600'); // 1hr cache
+    res.json({
+      feed: 'EventMedium Events Feed',
+      version: '1.0',
+      generated_at: new Date().toISOString(),
+      count: items.length,
+      events: items
+    });
+  } catch (err) {
+    console.error('Events feed error:', err);
+    res.status(500).json({ error: 'Failed to generate events feed' });
+  }
+});
+
 module.exports = { router };
