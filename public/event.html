@@ -216,7 +216,7 @@ async function loadEvent() {
       '<div class="event-actions">' +
         (token && !isPast ? '<button class="btn-primary ' + (isRegistered ? 'registered' : '') + '" id="regBtn" onclick="toggleRegister()"><i data-lucide="' + (isRegistered ? 'check' : 'users') + '"></i> ' + (isRegistered ? "I'm Going \u2713" : 'Find My People') + '</button>' : '') +
         (!token && !isPast ? '<a href="/auth.html" class="btn-primary"><i data-lucide="users"></i> Sign in to find your people</a>' : '') +
-        (e.website_url ? '<a href="' + esc(e.website_url) + '" target="_blank" class="btn-secondary"><i data-lucide="external-link"></i> Event website</a>' : '') +
+        (e.source_url ? '<a href="' + esc(e.source_url) + '" target="_blank" class="btn-secondary"><i data-lucide="external-link"></i> Event website</a>' : '') +
         (isRegistered ? '<button class="btn-secondary" onclick="openCalendarModal()"><i data-lucide="calendar-plus"></i> Add to calendar</button>' : '') +
         '<button class="btn-secondary btn-sidecar-detail" id="sidecar-detail-btn" style="display:none" onclick="openSidecars(' + e.id + ')"><i data-lucide="layers"></i> <span id="sidecar-detail-label">Sidecar Events</span></button>' +
         '<span class="attendee-count"><i data-lucide="bar-chart-2"></i> Event insights reveal @ 100+</span>' +

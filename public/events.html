@@ -108,8 +108,6 @@ body{font-family:var(--font);color:var(--txt);background:var(--bg);-webkit-font-
 .register-btn.registered{background:var(--okL);color:#059669}
 .btn-event-link{display:inline-flex;align-items:center;gap:5px;padding:8px 14px;background:var(--bg);color:var(--txtL);border:1px solid var(--bdr);border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;text-decoration:none;transition:all 0.2s;font-family:var(--font)}
 .btn-event-link:hover{border-color:var(--p);color:var(--p);background:var(--pL)}
-.btn-claim-card{display:inline-flex;align-items:center;gap:5px;padding:8px 14px;background:var(--card);color:var(--p);border:1px solid var(--p);border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;text-decoration:none;transition:all 0.2s;font-family:var(--font)}
-.btn-claim-card:hover{background:var(--pL)}
 .register-btn.registered:hover{background:#d1fae5}
 
 /* Skeleton loading */
@@ -438,8 +436,7 @@ function renderEvents() {
       (!isPast && date ? buildCountdown(date) : '') +
       '<div class="event-footer">' +
         '<div class="event-footer-left">' +
-          '<a href="/event.html?id=' + e.id + '" class="btn-event-link" onclick="event.stopPropagation()"><i data-lucide="external-link" style="width:12px;height:12px"></i> Event Page</a>' +
-          (token && !isPast ? '<button class="btn-claim-card" onclick="event.stopPropagation();claimFromCard(' + e.id + ',\'' + esc(e.name) + '\')"><i data-lucide="shield-check" style="width:12px;height:12px"></i> Claim Event</button>' : '') +
+          (e.source_url ? '<a href="' + esc(e.source_url) + '" target="_blank" class="btn-event-link" onclick="event.stopPropagation()"><i data-lucide="external-link" style="width:12px;height:12px"></i> Event Site</a>' : '') +
         '</div>' +
         '<div class="event-footer-right">' +
           '<button class="share-icon-btn btn-sidecar-card" onclick="event.stopPropagation();openSidecars(' + e.id + ')" title="Sidecar Events" style="display:none" id="sidecar-btn-' + e.id + '"><i data-lucide="layers"></i><span class="sidecar-badge-count" id="sidecar-count-' + e.id + '"></span></button>' +
@@ -481,10 +478,6 @@ function goPage(p) {
 
 function goToEvent(id) { window.location.href = '/event.html?id=' + id; }
 
-function claimFromCard(eventId, eventName) {
-  // Navigate to the event page which has the full claim modal
-  window.location.href = '/event.html?id=' + eventId + '&claim=1';
-}
 
 function openShareForEvent(eventId) {
   var ev = getEventById(eventId);
