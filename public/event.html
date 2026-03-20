@@ -391,6 +391,11 @@ function openClaimModal() {
 }
 function closeClaimModal() { document.getElementById('claimModal').classList.remove('active'); }
 
+// Auto-open claim modal if ?claim=1 in URL
+if (new URLSearchParams(window.location.search).get('claim') === '1') {
+  setTimeout(function() { openClaimModal(); }, 800);
+}
+
 document.addEventListener('click', function(e) {
   if (e.target === document.getElementById('claimModal')) closeClaimModal();
 });

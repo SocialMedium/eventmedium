@@ -95,7 +95,8 @@ body{font-family:var(--font);color:var(--txt);background:var(--bg);-webkit-font-
 .cd-label{font-size:10px;color:var(--txtXL);text-transform:uppercase;letter-spacing:0.5px}
 
 /* Footer row */
-.event-footer{display:flex;justify-content:space-between;align-items:center;margin-top:auto;padding-top:14px;border-top:1px solid var(--bdr)}
+.event-footer{display:flex;justify-content:space-between;align-items:center;margin-top:auto;padding-top:14px;border-top:1px solid var(--bdr);flex-wrap:wrap;gap:8px}
+.event-footer-left{display:flex;gap:6px;align-items:center}
 .event-attendees{font-size:13px;color:var(--txtL);display:flex;align-items:center;gap:5px}
 .event-attendees i{width:14px;height:14px}
 .event-footer-right{display:flex;gap:6px;align-items:center}
@@ -105,6 +106,10 @@ body{font-family:var(--font);color:var(--txt);background:var(--bg);-webkit-font-
 .register-btn{padding:8px 18px;background:var(--p);color:white;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.2s;font-family:var(--font)}
 .register-btn:hover{background:var(--pD)}
 .register-btn.registered{background:var(--okL);color:#059669}
+.btn-event-link{display:inline-flex;align-items:center;gap:5px;padding:8px 14px;background:var(--bg);color:var(--txtL);border:1px solid var(--bdr);border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;text-decoration:none;transition:all 0.2s;font-family:var(--font)}
+.btn-event-link:hover{border-color:var(--p);color:var(--p);background:var(--pL)}
+.btn-claim-card{display:inline-flex;align-items:center;gap:5px;padding:8px 14px;background:var(--card);color:var(--p);border:1px solid var(--p);border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;text-decoration:none;transition:all 0.2s;font-family:var(--font)}
+.btn-claim-card:hover{background:var(--pL)}
 .register-btn.registered:hover{background:#d1fae5}
 
 /* Skeleton loading */
@@ -432,7 +437,10 @@ function renderEvents() {
       (themes.length ? '<div class="event-themes">' + themes.slice(0, 4).map(function(t) { return '<span class="event-theme">' + esc(t) + '</span>'; }).join('') + (themes.length > 4 ? '<span class="event-theme" style="background:var(--bg);color:var(--txtXL)">+' + (themes.length - 4) + '</span>' : '') + '</div>' : '') +
       (!isPast && date ? buildCountdown(date) : '') +
       '<div class="event-footer">' +
-        '<span class="event-attendees"><i data-lucide="bar-chart-2"></i> Event insights reveal @ 100+</span>' +
+        '<div class="event-footer-left">' +
+          '<a href="/event.html?id=' + e.id + '" class="btn-event-link" onclick="event.stopPropagation()"><i data-lucide="external-link" style="width:12px;height:12px"></i> Event Page</a>' +
+          (token && !isPast ? '<button class="btn-claim-card" onclick="event.stopPropagation();claimFromCard(' + e.id + ',\'' + esc(e.name) + '\')"><i data-lucide="shield-check" style="width:12px;height:12px"></i> Claim Event</button>' : '') +
+        '</div>' +
         '<div class="event-footer-right">' +
           '<button class="share-icon-btn btn-sidecar-card" onclick="event.stopPropagation();openSidecars(' + e.id + ')" title="Sidecar Events" style="display:none" id="sidecar-btn-' + e.id + '"><i data-lucide="layers"></i><span class="sidecar-badge-count" id="sidecar-count-' + e.id + '"></span></button>' +
           (isRegistered ? '<button class="share-icon-btn" style="background:var(--pL);color:var(--p)" onclick="event.stopPropagation();openShareForEvent(' + e.id + ')" title="Add to Calendar"><i data-lucide="calendar-plus"></i></button>' : '') +
@@ -472,6 +480,11 @@ function goPage(p) {
 }
 
 function goToEvent(id) { window.location.href = '/event.html?id=' + id; }
+
+function claimFromCard(eventId, eventName) {
+  // Navigate to the event page which has the full claim modal
+  window.location.href = '/event.html?id=' + eventId + '&claim=1';
+}
 
 function openShareForEvent(eventId) {
   var ev = getEventById(eventId);

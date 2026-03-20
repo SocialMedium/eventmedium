@@ -332,7 +332,7 @@ router.post('/:id/claim', authenticateToken, async function(req, res) {
       return res.status(409).json({ error: 'A claim is already pending for this event' });
     }
 
-    // Domain match check
+    // Domain match check — email must match both the website they provide AND the event source_url
     var emailDomain = organiser_email.split('@')[1] ? organiser_email.split('@')[1].toLowerCase() : '';
     var websiteDomain = '';
     try {
@@ -342,6 +342,17 @@ router.post('/:id/claim', authenticateToken, async function(req, res) {
     }
     if (!emailDomain || emailDomain !== websiteDomain) {
       return res.status(400).json({ error: 'Please use an email address from your event\'s official domain (' + websiteDomain + ')' });
+    }
+
+    // If event has a source_url, email domain must also match it
+    if (event.source_url) {
+      var sourceUrlDomain = '';
+      try {
+        sourceUrlDomain = new URL(event.source_url).hostname.replace(/^www\./, '').toLowerCase();
+      } catch(e) { /* ignore malformed source_url */ }
+      if (sourceUrlDomain && emailDomain !== sourceUrlDomain) {
+        return res.status(400).json({ error: 'Your email domain must match the event\'s official domain (' + sourceUrlDomain + ')' });
+      }
     }
 
     // Generate token
@@ -396,28 +407,26 @@ router.post('/:id/claim', authenticateToken, async function(req, res) {
       `
     });
 
-    // Notify admin if flagship
-    if (event.is_flagship) {
-      try {
-        await resend.emails.send({
-          from: process.env.FROM_EMAIL || 'nev@eventmedium.ai',
-          to: 'jon@mitchellake.com',
-          subject: 'Flagship claim pending: ' + event.name,
-          html: `
-            <div style="font-family:system-ui,-apple-system,sans-serif;max-width:520px;margin:0 auto;padding:40px 24px">
-              <h2 style="font-size:18px;font-weight:700;color:#1a1a2e;margin-bottom:16px">Flagship claim pending approval</h2>
-              <p style="font-size:14px;color:#555;margin-bottom:8px"><strong>${userName}</strong> (${organiser_email}) has claimed <strong>${event.name}</strong>.</p>
-              <p style="font-size:14px;color:#555;margin-bottom:8px">Role: ${organiser_role || 'Not specified'}</p>
-              <p style="font-size:14px;color:#555;margin-bottom:24px">Website provided: ${website}</p>
-              <p style="font-size:13px;color:#888;margin-bottom:16px">Use this admin endpoint to approve (POST with your auth token):</p>
-              <code style="display:block;padding:12px 16px;background:#f0f4ff;border-radius:8px;font-size:13px;color:#0066ff;word-break:break-all">POST ${process.env.APP_URL || 'https://eventmedium.ai'}/api/events/${eventId}/approve-claim</code>
-              <div style="margin-top:32px;padding-top:16px;border-top:1px solid rgba(0,0,0,0.06);font-size:11px;color:#999">EventMedium.ai</div>
-            </div>
-          `
-        });
-      } catch(adminEmailErr) {
-        console.error('Admin notification email failed:', adminEmailErr);
-      }
+    // Notify admin of all claims
+    try {
+      await resend.emails.send({
+        from: process.env.FROM_EMAIL || 'nev@eventmedium.ai',
+        to: 'jt@socialmedium.ai',
+        subject: (event.is_flagship ? '[Flagship] ' : '') + 'Event claim: ' + event.name,
+        html: `
+          <div style="font-family:system-ui,-apple-system,sans-serif;max-width:520px;margin:0 auto;padding:40px 24px">
+            <h2 style="font-size:18px;font-weight:700;color:#1a1a2e;margin-bottom:16px">${event.is_flagship ? 'Flagship claim pending approval' : 'New event claim'}</h2>
+            <p style="font-size:14px;color:#555;margin-bottom:8px"><strong>${userName}</strong> (${organiser_email}) has claimed <strong>${event.name}</strong>.</p>
+            <p style="font-size:14px;color:#555;margin-bottom:8px">Role: ${organiser_role || 'Not specified'}</p>
+            <p style="font-size:14px;color:#555;margin-bottom:24px">Website provided: ${website}</p>
+            <p style="font-size:13px;color:#888;margin-bottom:16px">Use this admin endpoint to approve (POST with your auth token):</p>
+            <code style="display:block;padding:12px 16px;background:#f0f4ff;border-radius:8px;font-size:13px;color:#0066ff;word-break:break-all">POST ${process.env.APP_URL || 'https://eventmedium.ai'}/api/events/${eventId}/approve-claim</code>
+            <div style="margin-top:32px;padding-top:16px;border-top:1px solid rgba(0,0,0,0.06);font-size:11px;color:#999">EventMedium.ai</div>
+          </div>
+        `
+      });
+    } catch(adminEmailErr) {
+      console.error('Admin notification email failed:', adminEmailErr);
     }
 
     res.json({ message: 'Check your email at ' + organiser_email + ' to verify your claim. The link expires in 24 hours.' });
