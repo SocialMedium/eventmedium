@@ -40,7 +40,16 @@ async function renderEMC2Wallet(containerId) {
   var ogTagHTML = isOG ? '<div class="emc2-og-tag">\u2B21 Original Genesis</div>' : '';
   var logoHTML = '<div class="emc2-logo">EMC\u00B2</div>';
 
-  // Match cost table (replaces tier progress)
+  // Canister number display
+  var cohortNumber = wallet.emc2_cohort_number;
+  var numberColor = isOG ? '#C9A84C' : 'rgba(255,255,255,0.9)';
+  var numberLabelColor = isOG ? 'rgba(201,168,76,0.6)' : 'rgba(255,255,255,0.3)';
+  var numberHTML = cohortNumber
+    ? '<div style="font-size:22px;font-weight:500;color:' + numberColor + ';letter-spacing:0.02em;margin-top:4px;line-height:1">#' + cohortNumber.toLocaleString() + '</div>' +
+      '<div style="font-size:10px;color:' + numberLabelColor + ';letter-spacing:0.06em;text-transform:uppercase;margin-top:3px">' + (isOG ? 'OG canister' : 'Canister') + ' number</div>'
+    : '';
+
+  // Match cost table
   var summary = wallet.access_summary;
   var accessHTML = '<div class="emc2-access-block">' +
     '<div class="emc2-access-row"><span class="emc2-access-label">Community matches</span><span class="emc2-access-value free">Free</span></div>' +
@@ -70,12 +79,13 @@ async function renderEMC2Wallet(containerId) {
     }
   }
 
-  // OG footer
+  // Footer with canister number
+  var footerColor = isOG ? 'rgba(201,168,76,0.5)' : 'rgba(255,255,255,0.3)';
   var footerExtra = '';
-  if (isOG && wallet.emc2_cohort_number) {
-    footerExtra = '<div class="emc2-og-footer">OG Member #' + wallet.emc2_cohort_number + ' of 10,000</div>';
-  } else if (isOG) {
-    footerExtra = '<div class="emc2-og-footer">OG Member \u2014 First 10,000</div>';
+  if (cohortNumber) {
+    footerExtra = '<div style="font-size:11px;color:' + footerColor + ';text-align:center;margin-top:12px;line-height:1.6">' +
+      'Canister #' + cohortNumber.toLocaleString() + ' of ' + (isOG ? '10,000 OG members' : 'the network') +
+      '<br><span style="font-size:10px;opacity:0.7">This number is permanent and on-chain verifiable</span></div>';
   }
 
   container.innerHTML =
@@ -95,6 +105,7 @@ async function renderEMC2Wallet(containerId) {
         '</div>' +
       '</div>' +
       (accessBadge ? '<div class="emc2-access-row">' + accessBadge + '</div>' : '') +
+      numberHTML +
       accessHTML +
       '<div class="emc2-history">' +
         '<div class="emc2-history-title">Recent Activity</div>' +
