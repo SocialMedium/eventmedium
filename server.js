@@ -83,6 +83,7 @@ app.use('/api/admin', require('./routes/dashboard'));
 app.use('/api/privacy', require('./routes/privacy'));
 app.use('/api/documents', require('./routes/documents').router);
 app.use('/api/admin', require('./routes/community_setup'));
+app.use('/api', require('./routes/feedback'));
 
 // ── Landing page ──
 app.get('/', function(req, res) {
@@ -198,6 +199,10 @@ async function runMigrations() {
     await dbRun('ALTER TABLE users ADD COLUMN IF NOT EXISTS location_set BOOLEAN DEFAULT FALSE');
     await dbRun('ALTER TABLE users ADD COLUMN IF NOT EXISTS referral_code VARCHAR(20) UNIQUE');
     await dbRun("CREATE TABLE IF NOT EXISTS reserved_codes (id SERIAL PRIMARY KEY, code VARCHAR(20) UNIQUE NOT NULL, reason VARCHAR(100), assigned_to INTEGER REFERENCES users(id), assigned_at TIMESTAMP, reserved_at TIMESTAMP DEFAULT NOW())");
+    // Feedback table
+    await dbRun("CREATE TABLE IF NOT EXISTS feedback (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id), session_token VARCHAR(255), category VARCHAR(50), message TEXT NOT NULL, page_context VARCHAR(255), user_agent VARCHAR(500), severity VARCHAR(20) DEFAULT 'unreviewed', status VARCHAR(20) DEFAULT 'open', admin_notes TEXT, created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW())");
+    await dbRun('CREATE INDEX IF NOT EXISTS idx_feedback_status ON feedback(status)');
+    await dbRun('CREATE INDEX IF NOT EXISTS idx_feedback_created ON feedback(created_at DESC)');
     // emc2_ledger indexes
     await dbRun('CREATE INDEX IF NOT EXISTS idx_emc2_ledger_user_id ON emc2_ledger(user_id)');
     await dbRun('CREATE INDEX IF NOT EXISTS idx_emc2_ledger_created_at ON emc2_ledger(created_at)');
