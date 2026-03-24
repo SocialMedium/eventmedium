@@ -412,7 +412,7 @@ router.post('/:id/claim', authenticateToken, async function(req, res) {
     try {
       await resend.emails.send({
         from: process.env.FROM_EMAIL || 'nev@eventmedium.ai',
-        to: 'jt@socialmedium.ai',
+        to: process.env.ADMIN_EMAIL || 'jt@socialmedium.ai',
         subject: (event.is_flagship ? '[Flagship] ' : '') + 'Event claim: ' + event.name,
         html: `
           <div style="font-family:system-ui,-apple-system,sans-serif;max-width:520px;margin:0 auto;padding:40px 24px">
