@@ -1,6 +1,6 @@
 var express = require('express');
 var router = express.Router();
-var { dbGet, dbAll } = require('../db');
+var { dbGet, dbAll, dbRun } = require('../db');
 var { authenticateToken } = require('../middleware/auth');
 var { fireCommunityWelcomeTrigger } = require('../lib/community_triggers');
 var { getAbuseSummary, getSuspiciousProfiles } = require('../middleware/anti_abuse');
@@ -870,6 +870,80 @@ router.post('/analyse-feedback', authenticateToken, adminOnly, async function(re
   } catch(err) {
     console.error('[Feedback Analysis] Error:', err.message);
     res.status(500).json({ error: err.message });
+  }
+});
+
+// ── POST /api/admin/fix-emc2-now — one-shot EMC² state fix for user 2 ──
+router.post('/fix-emc2-now', authenticateToken, adminOnly, async function(req, res) {
+  var results = [];
+  try {
+    // 1. Fix action_type column — switch from ENUM to VARCHAR if needed
+    try {
+      await dbRun("ALTER TABLE emc2_ledger ALTER COLUMN action_type TYPE VARCHAR(50)");
+      results.push('action_type column converted to VARCHAR');
+    } catch(e) {
+      results.push('action_type already VARCHAR or no change needed: ' + e.message);
+    }
+
+    // 2. Check current ledger state
+    var ledger = await dbAll("SELECT id, action_type, amount, balance_after, tx_hash FROM emc2_ledger WHERE user_id = 2 ORDER BY created_at ASC");
+    results.push('Current ledger entries: ' + JSON.stringify(ledger));
+    var currentBalance = ledger.length > 0 ? ledger[ledger.length - 1].balance_after : 0;
+
+    // 3. Apply correction if needed
+    if (currentBalance < 1000) {
+      var correction = 1000 - currentBalance;
+      var lastTxHash = ledger.length > 0 ? ledger[ledger.length - 1].tx_hash : null;
+      var balanceAfter = currentBalance + correction;
+      var createdAt = new Date();
+      var crypto = require('crypto');
+      var payload = JSON.stringify({
+        user_id: 2, amount: correction, action_type: 'admin_adjustment',
+        entity_id: null, entity_type: 'correction',
+        balance_after: balanceAfter, prev_tx_hash: lastTxHash || '0000000000000000',
+        created_at: createdAt
+      });
+      var txHash = crypto.createHash('sha256').update(payload).digest('hex');
+
+      await dbRun(
+        "INSERT INTO emc2_ledger (user_id, amount, action_type, entity_id, entity_type, balance_after, metadata, prev_tx_hash, tx_hash, created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)",
+        [2, correction, 'admin_adjustment', null, 'correction', balanceAfter,
+         JSON.stringify({ reason: 'canister_complete_correction', corrected_from: currentBalance }),
+         lastTxHash, txHash, createdAt]
+      );
+      await dbRun("UPDATE stakeholder_profiles SET emc2_balance = $1, emc2_lifetime_earned = $1 WHERE user_id = 2", [balanceAfter]);
+      results.push('Ledger correction applied: +' + correction + ', new balance: ' + balanceAfter);
+    } else {
+      results.push('Balance already correct: ' + currentBalance);
+    }
+
+    // 4. Set OG status and Genesis cohort
+    var cols = [['og_member', 'BOOLEAN DEFAULT FALSE'], ['emc2_cohort', 'VARCHAR(20)'], ['emc2_cohort_number', 'INTEGER'], ['emc2_earn_multiplier', 'NUMERIC(3,1) DEFAULT 1.0']];
+    for (var i = 0; i < cols.length; i++) {
+      await dbRun('ALTER TABLE stakeholder_profiles ADD COLUMN IF NOT EXISTS ' + cols[i][0] + ' ' + cols[i][1]).catch(function() {});
+    }
+    await dbRun("UPDATE stakeholder_profiles SET og_member = TRUE, emc2_cohort = 'genesis', emc2_cohort_number = 1, emc2_earn_multiplier = 3.0 WHERE user_id = 2");
+    results.push('OG status set: genesis, #1, 3.0x multiplier');
+
+    // 5. Fix referral code to OG-0002
+    await dbRun("ALTER TABLE users ADD COLUMN IF NOT EXISTS referral_code VARCHAR(20)").catch(function() {});
+    await dbRun("UPDATE users SET referral_code = 'OG-0002' WHERE id = 2");
+    results.push('Referral code set to OG-0002');
+
+    // 6. Reserve OG-0001
+    await dbRun("CREATE TABLE IF NOT EXISTS reserved_codes (id SERIAL PRIMARY KEY, code VARCHAR(20) UNIQUE NOT NULL, reason VARCHAR(100), assigned_to INTEGER REFERENCES users(id), assigned_at TIMESTAMP, reserved_at TIMESTAMP DEFAULT NOW())");
+    await dbRun("INSERT INTO reserved_codes (code, reason) VALUES ('OG-0001', 'platform_genesis_collectible') ON CONFLICT (code) DO NOTHING");
+    results.push('OG-0001 reserved as platform collectible');
+
+    // 7. Verify final state
+    var finalProfile = await dbGet("SELECT sp.emc2_balance, sp.emc2_lifetime_earned, sp.og_member, sp.emc2_cohort, sp.emc2_cohort_number, sp.emc2_earn_multiplier, u.referral_code FROM stakeholder_profiles sp JOIN users u ON u.id = sp.user_id WHERE sp.user_id = 2");
+    results.push('Final state: ' + JSON.stringify(finalProfile));
+
+    res.json({ success: true, results: results });
+  } catch(err) {
+    results.push('FATAL ERROR: ' + err.message);
+    console.error('[fix-emc2-now]', err);
+    res.status(500).json({ success: false, error: err.message, results: results });
   }
 });
 
