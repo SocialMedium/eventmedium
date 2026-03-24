@@ -947,4 +947,196 @@ router.post('/fix-emc2-now', authenticateToken, adminOnly, async function(req, r
   }
 });
 
+// ── Beta email campaign ──────────────────────────────────────────────────────
+
+function getSegment(user) {
+  var hasCity = !!(user.city && user.city !== 'Unknown');
+  var themes = user.themes;
+  if (typeof themes === 'string') try { themes = JSON.parse(themes); } catch(e) { themes = null; }
+  var isComplete = !!(user.stakeholder_type && user.focus_text && themes && (Array.isArray(themes) ? themes.length > 0 : !!themes));
+  var isPartial = !!(user.user_id && !isComplete && (user.stakeholder_type || user.focus_text));
+  if (isComplete && !hasCity) return 'complete_no_city';
+  if (isComplete && hasCity) return 'complete_with_city';
+  if (isPartial) return 'partial';
+  return 'zero';
+}
+
+function getSubject(segment, user) {
+  var name = user.name ? user.name.split(' ')[0] : null;
+  var p = name ? name + ' \u2014 ' : '';
+  switch(segment) {
+    case 'complete_with_city': return p + 'your Founding Member position on EventMedium is confirmed';
+    case 'complete_no_city': return p + 'one thing missing from your Founding Member profile';
+    case 'partial': return p + 'your Founding Member position is still open';
+    default: return p + 'your Founding Member position is waiting';
+  }
+}
+
+function emailWrapper(headerContent, bodyContent, refCode) {
+  return '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>' +
+  '<body style="margin:0;padding:0;background:#f4f4f0;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',sans-serif">' +
+  '<div style="max-width:560px;margin:32px auto;background:#ffffff;border-radius:12px;overflow:hidden">' +
+    '<div style="background:#0a0a0a;padding:28px 32px 24px;border-bottom:2px solid #C9A84C">' +
+      '<div style="font-size:13px;font-weight:500;letter-spacing:0.08em;color:#C9A84C;margin-bottom:8px">EMC\u00B2 \u00b7 EventMedium</div>' +
+      headerContent +
+    '</div>' +
+    '<div style="padding:28px 32px">' + bodyContent + '</div>' +
+    '<div style="height:1px;background:#f0efe9"></div>' +
+    '<div style="padding:20px 32px;font-size:12px;color:#9ca3af;line-height:1.7">' +
+      (refCode ? '<div style="background:#0a0a0a;border-radius:8px;padding:16px 20px;margin-bottom:16px">' +
+        '<div style="font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:8px">Your referral code</div>' +
+        '<div style="font-size:22px;font-weight:500;letter-spacing:0.1em;color:#C9A84C;margin-bottom:6px">' + refCode + '</div>' +
+        '<div style="font-size:12px;color:rgba(255,255,255,0.45);line-height:1.6">Earn 200 EMC\u00B2 when someone you invite completes their profile, 100 more when they get their first match, and 50 when they confirm a meeting.<br><br>eventmedium.ai/join?ref=' + refCode + '</div>' +
+      '</div>' : '') +
+      'EventMedium is in live beta \u2014 we\'re actively improving the platform. If anything doesn\'t work as expected, <a href="https://www.eventmedium.ai/feedback.html" style="color:#1a1d29;text-decoration:none">share your feedback here</a>.<br><br>' +
+      'EventMedium \u00b7 eventmedium.ai \u00b7 <a href="https://www.eventmedium.ai/canister.html" style="color:#1a1d29;text-decoration:none">Open my canister</a>' +
+    '</div>' +
+  '</div></body></html>';
+}
+
+function sectionDiv(content) { return '<div style="margin-bottom:20px">' + content + '</div>'; }
+function hookP(text) { return '<p style="font-size:16px;line-height:1.6;color:#1a1d29;font-style:italic;margin:0">' + text + '</p>'; }
+function bodyP(text) { return '<p style="font-size:15px;line-height:1.7;color:#4b5563;margin:0">' + text + '</p>'; }
+function urgencyP(text) { return '<p style="font-size:13px;color:#6b7280;font-style:italic;margin:0">' + text + '</p>'; }
+function ctaBtn(href, text) { return '<a href="' + href + '" style="display:block;background:#1a1d29;color:#ffffff;text-decoration:none;text-align:center;padding:14px 24px;border-radius:8px;font-size:15px;font-weight:500">' + text + '</a>'; }
+function benefitRow(label, value, cls) { return '<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:7px 0;border-bottom:1px solid #eeede9;font-size:14px"><span style="color:#6b7280;flex:1">' + label + '</span><span style="font-weight:500;text-align:right;margin-left:16px;color:' + (cls === 'gold' ? '#92700a' : cls === 'green' ? '#065f46' : '#1a1d29') + '">' + value + '</span></div>'; }
+function benefitBlock(rows) { return '<div style="background:#f9f9f7;border-radius:8px;padding:16px 20px">' + rows + '</div>'; }
+function actionBlock(text) { return '<div style="background:#fffbeb;border-left:3px solid #C9A84C;border-radius:0 8px 8px 0;padding:14px 16px"><p style="color:#92400e;font-size:14px;margin:0">' + text + '</p></div>'; }
+
+var hookLine = 'The connection that could have changed everything\u2026 was probably in the room.<br>But you didn\'t meet. And neither did they.';
+
+function buildCompleteNoCityEmail(opts) {
+  var user = opts.user; var refCode = opts.refCode; var refUrl = opts.refUrl;
+  var header = '<div style="font-size:18px;font-weight:500;color:#ffffff;line-height:1.4">Founding Member Invitation</div><div style="font-size:12px;color:rgba(255,255,255,0.4);margin-top:6px;letter-spacing:0.04em;text-transform:uppercase">EventMedium.AI \u00b7 Position confirmed</div>';
+  var body =
+    sectionDiv(hookP(hookLine)) +
+    sectionDiv(bodyP('EventMedium exists to fix that. We match people before events begin \u2014 privately, anonymously, and only when the fit is mutual. So when you walk in, the right conversations are already waiting.')) +
+    sectionDiv(bodyP('Your canister is complete and your Founding Member position is confirmed.')) +
+    sectionDiv(benefitBlock(
+      benefitRow('Status', 'Founding Member', 'gold') +
+      benefitRow('Member number', '#' + (user.emc2_cohort_number || '\u2014') + ' \u00b7 permanent', 'gold') +
+      benefitRow('EMC\u00B2 opening balance', '1,000 EMC\u00B2', 'gold') +
+      benefitRow('Earn multiplier', (user.emc2_earn_multiplier || 2) + '\u00d7 for life', 'gold') +
+      benefitRow('Community matching', 'Free', 'green')
+    )) +
+    sectionDiv(actionBlock('<strong>One thing missing: your home city.</strong> Without it you won\'t appear on the network map and local matching won\'t find you. Confirm your home city with Nev \u2014 it takes 30 seconds.')) +
+    sectionDiv(ctaBtn(refUrl, 'Confirm my city with Nev \u2192')) +
+    sectionDiv(urgencyP('Then let the network work for you.'));
+  return emailWrapper(header, body, refCode);
+}
+
+function buildPartialEmail(opts) {
+  var user = opts.user; var refCode = opts.refCode; var refUrl = opts.refUrl;
+  var header = '<div style="font-size:18px;font-weight:500;color:#ffffff;line-height:1.4">Founding Member Invitation</div><div style="font-size:12px;color:rgba(255,255,255,0.4);margin-top:6px;letter-spacing:0.04em;text-transform:uppercase">EventMedium.AI \u00b7 Position still open</div>';
+  var body =
+    sectionDiv(hookP(hookLine)) +
+    sectionDiv(bodyP('A few things since your last visit: we\'ve tuned Nev to be a little less chatty, and we\'d love you to come back and finish your canister, claim your Founding Member position, and activate your wallet and rewards.')) +
+    sectionDiv(bodyP('EventMedium matches people before events begin \u2014 privately, anonymously, and only when the fit is mutual. So when you walk in, the right conversations are already waiting.')) +
+    sectionDiv(bodyP('Your Founding Member position is still open. Your member number, 1,000 EMC\u00B2 opening balance, and accelerated rewards for life are all sitting there \u2014 they activate the moment your canister is complete.')) +
+    sectionDiv(benefitBlock(
+      benefitRow('EMC\u00B2 opening balance', '1,000 EMC\u00B2', 'gold') +
+      benefitRow('Earn multiplier', 'Accelerated \u00b7 for life', 'gold') +
+      benefitRow('Community matching', 'Free', 'green') +
+      benefitRow('Member number', 'Permanent \u00b7 yours on completion', 'gold')
+    )) +
+    sectionDiv(urgencyP('We\'re still in the first 10,000. The live beta window closes soon.')) +
+    sectionDiv(ctaBtn(refUrl, 'Finish my canister with Nev \u2192')) +
+    sectionDiv(urgencyP('Takes 5 minutes. Talk to Nev and share your mission, then let the network work for you.'));
+  return emailWrapper(header, body, refCode);
+}
+
+function buildZeroEmail(opts) {
+  var user = opts.user; var refCode = opts.refCode; var refUrl = opts.refUrl;
+  var header = '<div style="font-size:18px;font-weight:500;color:#ffffff;line-height:1.4">Founding Member Invitation</div><div style="font-size:12px;color:rgba(255,255,255,0.4);margin-top:6px;letter-spacing:0.04em;text-transform:uppercase">EventMedium.AI \u00b7 Your position is waiting</div>';
+  var body =
+    sectionDiv(hookP(hookLine)) +
+    sectionDiv(bodyP('A few things since you signed up: we\'ve tuned Nev to be a little less chatty, and we\'d love you to come back, build your canister, claim your Founding Member position, and activate your wallet and rewards.')) +
+    sectionDiv(bodyP('EventMedium matches people before events begin \u2014 privately, anonymously, and only when the fit is mutual. So when you walk in, the right conversations are already waiting.')) +
+    sectionDiv(bodyP('Your Founding Member position is reserved \u2014 but the network can\'t match you until your profile exists. Your member number, 1,000 EMC\u00B2 opening balance, and accelerated rewards are all on hold.')) +
+    sectionDiv(benefitBlock(
+      benefitRow('EMC\u00B2 opening balance', '1,000 EMC\u00B2', 'gold') +
+      benefitRow('Earn multiplier', 'Accelerated \u00b7 for life', 'gold') +
+      benefitRow('Community matching', 'Free', 'green') +
+      benefitRow('Member number', 'Permanent \u00b7 yours on completion', 'gold')
+    )) +
+    sectionDiv(urgencyP('We\'re still in the first 10,000. The live beta window closes soon.')) +
+    sectionDiv(ctaBtn(refUrl, 'Build my canister with Nev \u2192')) +
+    sectionDiv(urgencyP('Takes 5 minutes. Talk to Nev and share your mission, then let the network work for you.'));
+  return emailWrapper(header, body, refCode);
+}
+
+function buildCompleteWithCityEmail(opts) {
+  var user = opts.user; var refCode = opts.refCode;
+  var header = '<div style="font-size:18px;font-weight:500;color:#ffffff;line-height:1.4">Founding Member Invitation</div><div style="font-size:12px;color:rgba(255,255,255,0.4);margin-top:6px;letter-spacing:0.04em;text-transform:uppercase">EventMedium.AI \u00b7 Everything is active</div>';
+  var body =
+    sectionDiv(hookP(hookLine)) +
+    sectionDiv(bodyP('EventMedium exists to fix that. We match people before events begin \u2014 privately, anonymously, and only when the fit is mutual. So when you walk in, the right conversations are already waiting.')) +
+    sectionDiv(bodyP('Your canister is complete, your home city is set, and your Founding Member position is fully active.')) +
+    sectionDiv(benefitBlock(
+      benefitRow('Status', 'Founding Member \u00b7 confirmed', 'gold') +
+      benefitRow('Member number', '#' + (user.emc2_cohort_number || '\u2014') + ' \u00b7 permanent', 'gold') +
+      benefitRow('EMC\u00B2 balance', '1,000 EMC\u00B2', 'gold') +
+      benefitRow('Earn multiplier', (user.emc2_earn_multiplier || 2) + '\u00d7 for life', 'gold') +
+      benefitRow('Community matching', 'Free', 'green')
+    )) +
+    sectionDiv(ctaBtn('https://www.eventmedium.ai/canister.html', 'Open my canister and wallet \u2192')) +
+    sectionDiv(urgencyP('The network is working for you. Keep your canister current \u2014 update your mission with Nev whenever your focus changes.'));
+  return emailWrapper(header, body, refCode);
+}
+
+// ── POST /api/admin/send-beta-emails ──
+router.post('/send-beta-emails', authenticateToken, adminOnly, async function(req, res) {
+  try {
+    var dryRun = req.body.dry_run !== false;
+    var users = await dbAll("SELECT u.id, u.name, u.email, u.referral_code, u.city, u.country, sp.user_id, sp.emc2_cohort, sp.emc2_cohort_number, sp.og_member, sp.emc2_balance, sp.emc2_earn_multiplier, sp.stakeholder_type, sp.focus_text, sp.themes FROM users u LEFT JOIN stakeholder_profiles sp ON sp.user_id = u.id WHERE u.email IS NOT NULL AND u.id != 2 ORDER BY u.id ASC");
+
+    var results = { total: users.length, sent: [], errors: [] };
+    var Resend, resend;
+    if (!dryRun && process.env.RESEND_API_KEY) {
+      Resend = require('resend').Resend;
+      resend = new Resend(process.env.RESEND_API_KEY);
+    }
+
+    for (var i = 0; i < users.length; i++) {
+      var user = users[i];
+      var segment = getSegment(user);
+      var subject = getSubject(segment, user);
+      var firstName = user.name ? user.name.split(' ')[0] : 'there';
+      var refCode = user.referral_code || null;
+      var refUrl = 'https://www.eventmedium.ai/onboard.html';
+
+      if (dryRun) {
+        results.sent.push({ id: user.id, email: user.email, subject: subject, segment: segment, refCode: refCode, dry_run: true });
+        continue;
+      }
+
+      try {
+        var html;
+        var emailOpts = { user: user, firstName: firstName, refCode: refCode, refUrl: refUrl };
+        switch(segment) {
+          case 'complete_no_city': html = buildCompleteNoCityEmail(emailOpts); break;
+          case 'partial': html = buildPartialEmail(emailOpts); break;
+          case 'zero': html = buildZeroEmail(emailOpts); break;
+          case 'complete_with_city': default: html = buildCompleteWithCityEmail(emailOpts); break;
+        }
+
+        await resend.emails.send({
+          from: process.env.FROM_EMAIL || 'nev@eventmedium.ai',
+          to: user.email,
+          subject: subject,
+          html: html
+        });
+        results.sent.push({ id: user.id, email: user.email, subject: subject, segment: segment, refCode: refCode });
+      } catch(sendErr) {
+        results.errors.push({ id: user.id, email: user.email, error: sendErr.message });
+      }
+    }
+
+    res.json({ success: true, dry_run: dryRun, results: results });
+  } catch(err) {
+    console.error('[Beta emails] Error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
