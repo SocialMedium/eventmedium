@@ -19,18 +19,37 @@ router.get('/profile', authenticateToken, async function(req, res) {
     // EMC² backfill: if profile has base fields and user has no canister_complete credit, award it now
     // recordTransaction is idempotent (once: true) so this is safe to call on every load
     if (profile.stakeholder_type && profile.geography && profile.themes) {
-      var themes = profile.themes;
-      if (typeof themes === 'string') try { themes = JSON.parse(themes); } catch(e) { themes = []; }
-      if (themes.length > 0) {
-        emc2.recordTransaction({
-          user_id: req.user.id,
-          action_type: 'canister_complete'
-        }).catch(function(e) {
-          // Swallow errors — EMC² tables may not exist yet
+      var bfThemes = profile.themes;
+      if (typeof bfThemes === 'string') try { bfThemes = JSON.parse(bfThemes); } catch(e) { bfThemes = []; }
+      if (bfThemes.length > 0) {
+        try {
+          var result = await emc2.recordTransaction({
+            user_id: req.user.id,
+            action_type: 'canister_complete'
+          });
+          // If credit was just awarded (not skipped), also assign OG status + cohort number
+          if (result && !result.skipped) {
+            try {
+              var ogCount = await dbGet("SELECT COUNT(*) as count FROM stakeholder_profiles WHERE emc2_balance > 0 OR og_member = TRUE");
+              if (ogCount && parseInt(ogCount.count) <= 10000) {
+                // Assign cohort number: count + 1 (offset for OG-0001 reservation)
+                var cohortNum = parseInt(ogCount.count) + 1;
+                await dbRun("UPDATE stakeholder_profiles SET og_member = TRUE, emc2_cohort = 'genesis', emc2_cohort_number = $1, emc2_earn_multiplier = 3.0 WHERE user_id = $2", [cohortNum, req.user.id]);
+              }
+            } catch(ogErr) {
+              console.warn('[EMC² backfill] OG status error:', ogErr.message);
+            }
+            // Reload profile so response includes updated balance
+            profile = await dbGet(
+              'SELECT sp.*, u.name, u.email, u.company, u.avatar_url FROM stakeholder_profiles sp JOIN users u ON u.id = sp.user_id WHERE sp.user_id = $1',
+              [req.user.id]
+            );
+          }
+        } catch(e) {
           if (e.message !== 'INSUFFICIENT_EMC2_BALANCE') {
             console.warn('[EMC² backfill] canister_complete error:', e.message);
           }
-        });
+        }
       }
     }
 
@@ -196,11 +215,15 @@ router.post('/profile', authenticateToken, async function(req, res) {
         });
       }
 
-      // OG status: first 10,000 completed canisters
+      // OG status: first 10,000 completed canisters — assign cohort number
       try {
-        var ogCount = await dbGet("SELECT COUNT(*) as count FROM stakeholder_profiles WHERE emc2_balance > 0 OR og_member = TRUE");
-        if (ogCount && parseInt(ogCount.count) <= 10000) {
-          await dbRun('UPDATE stakeholder_profiles SET og_member = TRUE WHERE user_id = $1', [req.user.id]);
+        var ogCheck = await dbGet('SELECT og_member FROM stakeholder_profiles WHERE user_id = $1', [req.user.id]);
+        if (!ogCheck || !ogCheck.og_member) {
+          var ogCount = await dbGet("SELECT COUNT(*) as count FROM stakeholder_profiles WHERE emc2_balance > 0 OR og_member = TRUE");
+          if (ogCount && parseInt(ogCount.count) <= 10000) {
+            var cohortNum = parseInt(ogCount.count) + 1;
+            await dbRun("UPDATE stakeholder_profiles SET og_member = TRUE, emc2_cohort = 'genesis', emc2_cohort_number = $1, emc2_earn_multiplier = 3.0 WHERE user_id = $2", [cohortNum, req.user.id]);
+          }
         }
       } catch(ogErr) {
         console.error('[EMC²] OG status check error:', ogErr.message);
