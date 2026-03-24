@@ -922,7 +922,7 @@ router.post('/fix-emc2-now', authenticateToken, adminOnly, async function(req, r
     for (var i = 0; i < cols.length; i++) {
       await dbRun('ALTER TABLE stakeholder_profiles ADD COLUMN IF NOT EXISTS ' + cols[i][0] + ' ' + cols[i][1]).catch(function() {});
     }
-    await dbRun("UPDATE stakeholder_profiles SET og_member = TRUE, emc2_cohort = 'genesis', emc2_cohort_number = 1, emc2_earn_multiplier = 3.0 WHERE user_id = 2");
+    await dbRun("UPDATE stakeholder_profiles SET og_member = TRUE, emc2_cohort = 'genesis', emc2_cohort_number = 2, emc2_earn_multiplier = 3.0 WHERE user_id = 2");
     results.push('OG status set: genesis, #1, 3.0x multiplier');
 
     // 5. Fix referral code to OG-0002
