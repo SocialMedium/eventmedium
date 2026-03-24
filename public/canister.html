@@ -345,8 +345,8 @@ body{font-family:var(--font);color:var(--txt);background:var(--bg);-webkit-font-
     <div class="invite-templates">
       <div class="templates-label">Copy a message</div>
       <div class="template-tabs">
-        <button class="tmpl-tab active" onclick="switchTemplate('short',this)">Short</button>
-        <button class="tmpl-tab" onclick="switchTemplate('long',this)">Full intro</button>
+        <button class="tmpl-tab active" onclick="switchTemplate('short',this)">DM</button>
+        <button class="tmpl-tab" onclick="switchTemplate('long',this)">Email</button>
       </div>
       <div class="template-body" id="template-body"></div>
       <button class="copy-template-btn" onclick="copyActiveTemplate()">Copy message</button>
@@ -886,10 +886,9 @@ function closeInviteModal(event) {
 }
 
 function buildInviteTemplates(code, url) {
-  var copy = "This is an invitation to join me as a founding member of EventMedium.\n\nThe connection that could have changed everything\u2026 was probably in the room.\nBut you didn\u2019t meet. And neither did they.\n\nEventMedium exists to fix that. We match people before events begin \u2014 privately, anonymously, and only when the fit is mutual. So when you walk in, the right conversations are already waiting.\n\nAs a Founding Member, you get a permanent position on the network: your own member number, 1,000 EMC\u00B2 opening balance, accelerated community rewards for life, and free matching within every community you join.\n\nWe are still in the first 10,000. The live beta window closes soon.\n\nTakes 5 minutes. Talk to Nev and share your mission, then let the network work for you:\n" + url;
   _inviteTemplates = {
-    short: copy,
-    long: copy
+    short: "Thought of you for this \u2014 EventMedium is a private matching network for events and communities. It finds the people already looking for what you bring before you walk in the room.\n\nStill in the first 10,000 founding members so the window is open: " + url,
+    long: "This is an invitation to join me as a founding member of EventMedium.\n\nThe connection that could have changed everything\u2026 was probably in the room.\nBut you didn\u2019t meet. And neither did they.\n\nEventMedium exists to fix that. We match people before events begin \u2014 privately, anonymously, and only when the fit is mutual. So when you walk in, the right conversations are already waiting.\n\nAs a Founding Member, you get a permanent position on the network: your own member number, 1,000 EMC\u00B2 opening balance, accelerated community rewards for life, and free matching within every community you join.\n\nWe are still in the first 10,000. The live beta window closes soon.\n\nTakes 5 minutes. Talk to Nev and share your mission, then let the network work for you:\n" + url
   };
   switchTemplate('short', document.querySelector('.tmpl-tab.active'));
 }
