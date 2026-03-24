@@ -43,7 +43,7 @@ async function loadUserCanister(userId) {
   // 1. Load stakeholder profile joined with user
   try {
     profile = await dbGet(
-      'SELECT sp.*, u.name, u.email, u.company FROM stakeholder_profiles sp JOIN users u ON u.id = sp.user_id WHERE sp.user_id = $1',
+      'SELECT sp.*, u.name, u.email, u.company, u.city as user_city, u.country as user_country, u.location_set FROM stakeholder_profiles sp JOIN users u ON u.id = sp.user_id WHERE sp.user_id = $1',
       [userId]
     );
   } catch(e) {
@@ -85,6 +85,9 @@ async function loadUserCanister(userId) {
   }
   if (!profile || !profile.geography || profile.geography === '') {
     gaps.push('geography');
+  }
+  if (!profile || !profile.user_city || !profile.location_set) {
+    gaps.push('home city — ask: "Where are you currently based? City and country."');
   }
   if (!profile || !profile.focus_text || profile.focus_text.trim().length < 40) {
     gaps.push('focus description');
@@ -146,7 +149,9 @@ async function loadUserCanister(userId) {
       themes: themes,
       intent: intent,
       offering: offering,
-      deal_details: dealDetails
+      deal_details: dealDetails,
+      user_city: profile ? (profile.user_city || null) : null,
+      user_country: profile ? (profile.user_country || null) : null
     },
     hasProfile: hasProfile,
     gaps: gaps,
@@ -174,7 +179,8 @@ function buildNevSystemPromptStable(canisterData) {
       '- Name: ' + (p.name || 'not captured') + '\n' +
       '- Company: ' + (p.company || 'not captured') + '\n' +
       '- Stakeholder type: ' + (p.stakeholder_type || 'not captured') + '\n' +
-      '- Geography: ' + (p.geography || 'not captured') + '\n' +
+      '- Home city: ' + (p.user_city ? p.user_city + (p.user_country ? ', ' + p.user_country : '') : 'not captured') + '\n' +
+      '- Market geography: ' + (p.geography || 'not captured') + '\n' +
       '- Themes/sectors: ' + (p.themes && p.themes.length > 0 ? p.themes.join(', ') : 'not captured') + '\n' +
       '- Focus: ' + (p.focus_text || 'not captured') + '\n' +
       '- Intent (what they seek): ' + (p.intent && Object.keys(p.intent).length > 0 ? JSON.stringify(p.intent) : 'not captured') + '\n' +
@@ -208,7 +214,7 @@ function buildNevSystemPromptStable(canisterData) {
 
   // Section G: Canister output
   var themeList = getCanonicalThemes().join(', ');
-  var sectionG = 'CANISTER OUTPUT — CRITICAL:\n\nAfter EVERY response, append a [CANISTER_READY] block containing the CUMULATIVE canister state based on everything you know so far. This is how the system saves profile data.\n\nFormat:\n[CANISTER_READY]\n{"stakeholder_type":"founder","themes":["AI","Fintech"],"intent":["fundraising","strategic partnerships"],"offering":["product expertise","market knowledge"],"context":"Building an AI-powered fintech platform","geography":"UK, US","deal_details":{"priority":"launching MVP","timeline":"next 90 days","capacity":"full-time"}}\n[/CANISTER_READY]\n\nRules:\n- Include ALL fields you have data for, not just what was mentioned in the latest message\n- stakeholder_type must be one of: founder, investor, researcher, corporate, advisor, operator (or compound like "founder/advisor")\n- themes MUST use ONLY these canonical values: ' + themeList + '\n- Map what the user describes to the closest canonical theme(s). For example: "workforce technology" → "Enterprise SaaS", "video production platform" → "Media & Entertainment", "GTM consultancy" → "Enterprise SaaS". If someone works across multiple domains, include all relevant themes.\n- If their work does not fit any canonical theme, pick the closest match — never leave themes empty if they have described what they do\n- deal_details captures timing and priorities — this field applies to ALL stakeholder types, not just founders. Use keys like "priority" (their current focus), "timeline" (when/how soon), "capacity" (availability/bandwidth), "stage" (where they are in their process). Examples by type: founder → {"priority":"fundraising","timeline":"next 90 days","stage":"pre-seed"}, investor → {"priority":"deploying Fund II","timeline":"Q2 2026","capacity":"3-4 new deals"}, advisor → {"priority":"open to new boards","timeline":"immediate","capacity":"2 days/month"}, job seeker → {"priority":"new role","timeline":"available now","capacity":"full-time"}. Use empty object {} if not yet captured.\n- Use empty string or empty array for fields with genuinely no data yet — never omit fields\n- This block is stripped from the visible reply — the user never sees it\n- Even after the first message, output whatever you can extract';
+  var sectionG = 'CANISTER OUTPUT — CRITICAL:\n\nAfter EVERY response, append a [CANISTER_READY] block containing the CUMULATIVE canister state based on everything you know so far. This is how the system saves profile data.\n\nFormat:\n[CANISTER_READY]\n{"stakeholder_type":"founder","themes":["AI","Fintech"],"intent":["fundraising","strategic partnerships"],"offering":["product expertise","market knowledge"],"context":"Building an AI-powered fintech platform","geography":"UK, US","city":"London","country":"UK","deal_details":{"priority":"launching MVP","timeline":"next 90 days","capacity":"full-time"}}\n[/CANISTER_READY]\n\nRules:\n- Include ALL fields you have data for, not just what was mentioned in the latest message\n- stakeholder_type must be one of: founder, investor, researcher, corporate, advisor, operator (or compound like "founder/advisor")\n- themes MUST use ONLY these canonical values: ' + themeList + '\n- Map what the user describes to the closest canonical theme(s). For example: "workforce technology" → "Enterprise SaaS", "video production platform" → "Media & Entertainment", "GTM consultancy" → "Enterprise SaaS". If someone works across multiple domains, include all relevant themes.\n- If their work does not fit any canonical theme, pick the closest match — never leave themes empty if they have described what they do\n- deal_details captures timing and priorities — this field applies to ALL stakeholder types, not just founders. Use keys like "priority" (their current focus), "timeline" (when/how soon), "capacity" (availability/bandwidth), "stage" (where they are in their process). Examples by type: founder → {"priority":"fundraising","timeline":"next 90 days","stage":"pre-seed"}, investor → {"priority":"deploying Fund II","timeline":"Q2 2026","capacity":"3-4 new deals"}, advisor → {"priority":"open to new boards","timeline":"immediate","capacity":"2 days/month"}, job seeker → {"priority":"new role","timeline":"available now","capacity":"full-time"}. Use empty object {} if not yet captured.\n- city and country: the user\'s actual home base (a specific city name, e.g. "London", "San Francisco", "Berlin"). This is separate from geography which is their market focus. Always ask where they are based if not captured.\n- Use empty string or empty array for fields with genuinely no data yet — never omit fields\n- This block is stripped from the visible reply — the user never sees it\n- Even after the first message, output whatever you can extract';
 
   return [sectionA, sectionB, sectionC, sectionD, sectionE, sectionF, sectionG].join('\n\n---\n\n');
 }
@@ -217,7 +223,7 @@ function buildNevSystemPromptStable(canisterData) {
 async function extractAndSaveCanisterUpdates(userId, nevResponse, userMessage) {
   try {
     var themeList = getCanonicalThemes().join(', ');
-    var extractionPrompt = 'Given this Nev response and the user message that preceded it, extract any of the following if they were clearly confirmed or updated in the conversation:\n\n- geography (string)\n- stakeholder_type (one of: founder, investor, researcher, corporate, advisor, operator — or compound like "founder/advisor")\n- themes (array — MUST use only these canonical values: ' + themeList + '. Map what the user describes to the closest theme(s). Never leave empty if they described their work.)\n- focus_text (string — their focus in their own words)\n- intent (object — what they are actively seeking)\n- offering (object — what they bring to others)\n- deal_details (object — timing and priorities for ANY stakeholder type. Use keys like "priority", "timeline", "capacity", "stage". E.g. founder: raising/hiring/launching, investor: deploying/evaluating, advisor: capacity/engagement, corporate: partnering/piloting, researcher: grant cycle/collaboration)\n\nReturn ONLY a JSON object with the fields that were clearly confirmed. If nothing was confirmed, return {}.\nDo not invent or infer — only extract what was explicitly stated.\n\nUser message: ' + userMessage + '\nNev response: ' + nevResponse;
+    var extractionPrompt = 'Given this Nev response and the user message that preceded it, extract any of the following if they were clearly confirmed or updated in the conversation:\n\n- geography (string)\n- stakeholder_type (one of: founder, investor, researcher, corporate, advisor, operator — or compound like "founder/advisor")\n- themes (array — MUST use only these canonical values: ' + themeList + '. Map what the user describes to the closest theme(s). Never leave empty if they described their work.)\n- focus_text (string — their focus in their own words)\n- intent (object — what they are actively seeking)\n- offering (object — what they bring to others)\n- deal_details (object — timing and priorities for ANY stakeholder type. Use keys like "priority", "timeline", "capacity", "stage". E.g. founder: raising/hiring/launching, investor: deploying/evaluating, advisor: capacity/engagement, corporate: partnering/piloting, researcher: grant cycle/collaboration)\n- city (string — the user\'s actual home base city, e.g. "London", "San Francisco", "Berlin")\n- country (string — the user\'s country, e.g. "UK", "US", "Germany")\n\nReturn ONLY a JSON object with the fields that were clearly confirmed. If nothing was confirmed, return {}.\nDo not invent or infer — only extract what was explicitly stated.\n\nUser message: ' + userMessage + '\nNev response: ' + nevResponse;
 
     var extractResp = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -295,6 +301,25 @@ async function extractAndSaveCanisterUpdates(userId, nevResponse, userMessage) {
       var updateSql = 'UPDATE stakeholder_profiles SET ' + setClauses.join(', ') + ' WHERE user_id = $' + idx;
       await dbRun(updateSql, params);
       console.log('[Nev] Write-back updated fields:', Object.keys(extracted).join(', '), 'for user', userId);
+
+      // Save city/country to users table if extracted
+      if (extracted.city) {
+        try {
+          var getCityCoords = require('../lib/geocode.js').getCityCoords;
+          var extractedCity = extracted.city;
+          var extractedCountry = extracted.country || '';
+          var coords = getCityCoords(extractedCity, extractedCountry);
+          var lat = coords ? coords[0] + (Math.random() - 0.5) * 0.02 : null;
+          var lng = coords ? coords[1] + (Math.random() - 0.5) * 0.02 : null;
+          await dbRun(
+            'UPDATE users SET city = $1, country = $2, city_lat = $3, city_lng = $4, location_set = TRUE WHERE id = $5',
+            [extractedCity, extractedCountry, lat, lng, userId]
+          );
+          console.log('[Nev] Updated user city:', extractedCity, extractedCountry);
+        } catch(locErr) {
+          console.warn('[Nev] City update error:', locErr.message);
+        }
+      }
     } catch(e) {
       console.warn('[Nev] Write-back DB error:', e.message);
     }
@@ -451,7 +476,7 @@ router.post('/chat', authenticateToken, nevChatLimiter, nevBehaviourCheck, async
           body: JSON.stringify({
             model: MODEL,
             max_tokens: 400,
-            system: 'Extract profile data from this conversation. Respond ONLY with valid JSON, nothing else. No markdown, no explanation.\nJSON format: {"stakeholder_type":"","themes":[],"intent":[],"offering":[],"context":"","geography":"","deal_details":{}}\nstakeholder_type must be one of: founder/investor/researcher/corporate/advisor/operator (or compound like "founder/advisor")\nthemes MUST use only these canonical values: ' + getCanonicalThemes().join(', ') + '. Map what the user describes to the closest theme(s). Never leave themes empty if the user described what they do.\ndeal_details captures timing and priorities for ALL stakeholder types — not just founders. Use keys like "priority" (current focus), "timeline" (when), "capacity" (availability), "stage" (where in process). Use empty object {} if not discussed.\nUse empty string or empty array if genuinely unknown. Never use "...".',
+            system: 'Extract profile data from this conversation. Respond ONLY with valid JSON, nothing else. No markdown, no explanation.\nJSON format: {"stakeholder_type":"","themes":[],"intent":[],"offering":[],"context":"","geography":"","deal_details":{},"city":"","country":""}\nstakeholder_type must be one of: founder/investor/researcher/corporate/advisor/operator (or compound like "founder/advisor")\nthemes MUST use only these canonical values: ' + getCanonicalThemes().join(', ') + '. Map what the user describes to the closest theme(s). Never leave themes empty if the user described what they do.\ndeal_details captures timing and priorities for ALL stakeholder types — not just founders. Use keys like "priority" (current focus), "timeline" (when), "capacity" (availability), "stage" (where in process). Use empty object {} if not discussed.\nUse empty string or empty array if genuinely unknown. Never use "...".',
             messages: [{ role: 'user', content: 'Conversation:\n' + convText }]
           })
         });

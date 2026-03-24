@@ -674,6 +674,14 @@ async function sendMessage() {
 
     if (data.canister_data) {
       updateLiveCanister(data.canister_data);
+      // Save city to users table if extracted by Nev
+      if (data.canister_data.city && data.canister_data.city !== '') {
+        fetch('/api/auth/location', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ city: data.canister_data.city, country: data.canister_data.country || '' })
+        }).catch(function() {});
+      }
     }
 
     // After signals are complete and canister has been saved, ensure exit is prominent

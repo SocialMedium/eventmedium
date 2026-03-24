@@ -227,14 +227,39 @@ router.post('/logout', authenticateToken, async function(req, res) {
 router.get('/me', authenticateToken, async function(req, res) {
   try {
     var user = await dbGet(
-      'SELECT id, name, email, company, avatar_url, role, tier FROM users WHERE id = $1',
+      'SELECT id, name, email, company, avatar_url, role, tier, city, country, location_set FROM users WHERE id = $1',
       [req.user.id]
     );
     if (!user) return res.status(404).json({ error: 'User not found' });
-    res.json({ user });
+    res.json({ user: user });
   } catch (err) {
     console.error('Auth check error:', err);
     res.status(500).json({ error: 'Auth check failed' });
+  }
+});
+
+// ── POST /api/auth/location ── (set user's home city)
+router.post('/location', authenticateToken, async function(req, res) {
+  try {
+    var city = (req.body.city || '').trim();
+    var country = (req.body.country || '').trim();
+    if (!city) return res.status(400).json({ error: 'City is required' });
+
+    var getCityCoords = require('../lib/geocode.js').getCityCoords;
+    var coords = getCityCoords(city, country);
+
+    var lat = coords ? coords[0] + (Math.random() - 0.5) * 0.02 : null;
+    var lng = coords ? coords[1] + (Math.random() - 0.5) * 0.02 : null;
+
+    await dbRun(
+      'UPDATE users SET city = $1, country = $2, city_lat = $3, city_lng = $4, location_set = TRUE WHERE id = $5',
+      [city, country, lat, lng, req.user.id]
+    );
+
+    res.json({ success: true, geocoded: !!coords, city: city, country: country });
+  } catch (err) {
+    console.error('Location update error:', err);
+    res.status(500).json({ error: err.message });
   }
 });
 

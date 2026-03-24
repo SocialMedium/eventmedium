@@ -329,7 +329,10 @@ async function loadCanister() {
         '</div>' +
       '</div>' +
       (profile.focus_text ? '<div class="section-row"><div class="section-label">Focus</div><p class="section-text">' + esc(profile.focus_text) + '</p></div>' : '') +
-      (profile.geography ? '<div class="section-row"><div class="section-label">Geography</div><p class="section-text">' + esc(profile.geography) + '</p></div>' : '') +
+      '<div class="section-row"><div class="section-label">Based in</div><p class="section-text">' +
+        (user.city ? esc(user.city) + (user.country ? ', ' + esc(user.country) : '') : '<span style="color:var(--txtXL);font-size:13px">Not set \u2014 <a href="#" onclick="showLocationModal();return false" style="color:var(--p)">add your city</a></span>') +
+      '</p></div>' +
+      (profile.geography ? '<div class="section-row"><div class="section-label">Market Geography</div><p class="section-text">' + esc(profile.geography) + '</p></div>' : '') +
       (themes.length ? '<div class="section-row"><div class="section-label">Themes</div><div class="tags">' + themes.map(function(t){return '<span class="tag">' + esc(t) + '</span>'}).join('') + '</div></div>' : '') +
       (intent.length ? '<div class="section-row"><div class="section-label">Looking for</div><div class="tags">' + intent.map(function(t){return '<span class="tag intent">' + esc(t) + '</span>'}).join('') + '</div></div>' : '') +
       (offering.length ? '<div class="section-row"><div class="section-label">Offering</div><div class="tags">' + offering.map(function(t){return '<span class="tag offering">' + esc(t) + '</span>'}).join('') + '</div></div>' : '') +
@@ -476,15 +479,15 @@ async function loadCanister() {
     setupDropZone();
     loadDocumentList();
     loadRecommendedFeed();
-    // Render EMC² wallet into sidebar (container now exists in DOM)
-    console.log('[canister] WALLET CONTAINER:', document.getElementById('emc2-wallet-container'));
-    console.log('[canister] renderEMC2Wallet defined:', typeof renderEMC2Wallet);
+    // Render EMC² wallet into sidebar
     if (typeof renderEMC2Wallet === 'function') {
       renderEMC2Wallet('emc2-wallet-container').catch(function(e) {
         console.error('[canister] renderEMC2Wallet failed:', e);
       });
-    } else {
-      console.error('[canister] renderEMC2Wallet is not defined — emc2-wallet.js failed to load');
+    }
+    // Prompt for location if not set
+    if (user && !user.location_set) {
+      showLocationModal();
     }
   } catch(err) {
     console.error(err);
@@ -501,6 +504,55 @@ function logout() {
   fetch('/api/auth/logout', { method: 'POST', headers: { 'Authorization': 'Bearer ' + token } });
   localStorage.removeItem('auth_token');
   window.location.href = '/';
+}
+
+function showLocationModal() {
+  if (document.getElementById('location-modal')) return;
+  var modal = document.createElement('div');
+  modal.id = 'location-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:9999';
+  modal.innerHTML =
+    '<div style="background:#fff;border-radius:12px;padding:28px;max-width:380px;width:90%;font-family:var(--font)">' +
+      '<div style="font-size:18px;font-weight:600;color:#1a1d29;margin-bottom:8px">Where are you based?</div>' +
+      '<div style="font-size:14px;color:#6b7280;margin-bottom:20px;line-height:1.5">Your location helps us find relevant matches in your area and show you on the global network map.</div>' +
+      '<input id="location-city" type="text" placeholder="City (e.g. London, Sydney, Berlin)" style="width:100%;padding:10px 12px;border:1px solid #e5e7eb;border-radius:8px;font-size:14px;margin-bottom:10px;box-sizing:border-box;font-family:var(--font)">' +
+      '<input id="location-country" type="text" placeholder="Country (optional)" style="width:100%;padding:10px 12px;border:1px solid #e5e7eb;border-radius:8px;font-size:14px;margin-bottom:16px;box-sizing:border-box;font-family:var(--font)">' +
+      '<div style="display:flex;gap:10px">' +
+        '<button onclick="submitLocation()" style="flex:1;padding:10px;background:#1a1d29;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;font-family:var(--font)">Save location</button>' +
+        '<button onclick="skipLocation()" style="padding:10px 16px;background:transparent;color:#6b7280;border:1px solid #e5e7eb;border-radius:8px;font-size:14px;cursor:pointer;font-family:var(--font)">Skip</button>' +
+      '</div>' +
+    '</div>';
+  document.body.appendChild(modal);
+}
+
+async function submitLocation() {
+  var city = document.getElementById('location-city').value.trim();
+  var country = document.getElementById('location-country').value.trim();
+  if (!city) { document.getElementById('location-city').style.borderColor = '#ef4444'; return; }
+  try {
+    var res = await fetch('/api/auth/location', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ city: city, country: country })
+    });
+    var data = await res.json();
+    if (data.success) {
+      var el = document.getElementById('location-modal');
+      if (el) el.remove();
+      showToast('Location saved' + (data.geocoded ? '' : ' (city not on map yet)'), 'success');
+      loadCanister();
+    }
+  } catch(e) { showToast('Failed to save location'); }
+}
+
+function skipLocation() {
+  fetch('/api/auth/location', {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ city: 'Unknown', country: '' })
+  });
+  var el = document.getElementById('location-modal');
+  if (el) el.remove();
 }
 
 lucide.createIcons();
