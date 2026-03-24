@@ -263,13 +263,13 @@ body{font-family:var(--font);color:var(--txt);background:var(--bg);-webkit-font-
 .share-channel-btn:hover{background:#f3f4f6;border-color:#1a1d29;color:#1a1d29}
 .share-channel-btn.wide{grid-column:span 3;flex-direction:row;gap:8px;padding:10px}
 .share-channel-btn.copied{background:#f0fdf4;border-color:#22c55e;color:#065f46}
-.share-channel-icon{font-size:16px;line-height:1;font-style:normal;font-weight:600}
+.share-channel-icon{font-size:13px;font-weight:700;line-height:1;font-style:normal;color:#1a1d29;letter-spacing:-0.02em}
 .invite-templates{background:#f9f9f7;border-radius:8px;padding:12px 14px;margin-bottom:12px}
 .templates-label{font-size:11px;font-weight:500;color:#9ca3af;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px}
 .template-tabs{display:flex;gap:4px;margin-bottom:10px}
 .tmpl-tab{padding:4px 10px;border-radius:4px;font-size:12px;border:1px solid #e5e7eb;background:transparent;color:#6b7280;cursor:pointer;font-family:var(--font);transition:all 0.15s}
 .tmpl-tab.active{background:#1a1d29;color:#fff;border-color:#1a1d29}
-.template-body{font-size:13px;color:#4b5563;line-height:1.65;min-height:60px;margin-bottom:10px;white-space:pre-wrap}
+.template-body{font-size:13px;color:#374151;line-height:1.7;min-height:80px;margin-bottom:10px;white-space:pre-wrap;background:#ffffff;border:1px solid #e5e7eb;border-radius:6px;padding:10px 12px}
 .copy-template-btn{width:100%;padding:8px;background:#fff;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;color:#6b7280;cursor:pointer;font-family:var(--font);transition:all 0.15s}
 .copy-template-btn:hover{border-color:#1a1d29;color:#1a1d29}
 .invite-conversions{border-top:1px solid #f0efe9;padding-top:12px}
@@ -334,19 +334,19 @@ body{font-family:var(--font);color:var(--txt);background:var(--bg);-webkit-font-
     <div class="invite-share-section">
       <div class="invite-share-label">Share via</div>
       <div class="invite-share-grid">
-        <button class="share-channel-btn" onclick="shareVia('whatsapp')"><span class="share-channel-icon">\uD83D\uDCAC</span>WhatsApp</button>
+        <button class="share-channel-btn" onclick="shareVia('whatsapp')"><span class="share-channel-icon">WA</span>WhatsApp</button>
         <button class="share-channel-btn" onclick="shareVia('linkedin')"><span class="share-channel-icon">in</span>LinkedIn</button>
-        <button class="share-channel-btn" onclick="shareVia('email')"><span class="share-channel-icon">\u2709</span>Email</button>
-        <button class="share-channel-btn" onclick="shareVia('sms')"><span class="share-channel-icon">\uD83D\uDCF1</span>SMS</button>
-        <button class="share-channel-btn" onclick="shareVia('twitter')"><span class="share-channel-icon">\uD835\uDD4F</span>X / Twitter</button>
-        <button class="share-channel-btn wide" onclick="shareVia('copy')"><span class="share-channel-icon">\u29C9</span>Copy link</button>
+        <button class="share-channel-btn" onclick="shareVia('email')"><span class="share-channel-icon">@</span>Email</button>
+        <button class="share-channel-btn" onclick="shareVia('sms')"><span class="share-channel-icon">SMS</span>Text</button>
+        <button class="share-channel-btn" onclick="shareVia('twitter')"><span class="share-channel-icon">&Xopf;</span>X</button>
+        <button class="share-channel-btn wide" onclick="shareVia('copy')"><span class="share-channel-icon">&oplus;</span>Copy link</button>
       </div>
     </div>
     <div class="invite-templates">
       <div class="templates-label">Copy a message</div>
       <div class="template-tabs">
         <button class="tmpl-tab active" onclick="switchTemplate('short',this)">Short</button>
-        <button class="tmpl-tab" onclick="switchTemplate('long',this)">Email</button>
+        <button class="tmpl-tab" onclick="switchTemplate('long',this)">Full intro</button>
       </div>
       <div class="template-body" id="template-body"></div>
       <button class="copy-template-btn" onclick="copyActiveTemplate()">Copy message</button>
@@ -886,14 +886,10 @@ function closeInviteModal(event) {
 }
 
 function buildInviteTemplates(code, url) {
-  var isOG = _inviteData && _inviteData.og_member;
+  var copy = "This is an invitation to join me as a founding member of EventMedium.\n\nThe connection that could have changed everything\u2026 was probably in the room.\nBut you didn\u2019t meet. And neither did they.\n\nEventMedium exists to fix that. We match people before events begin \u2014 privately, anonymously, and only when the fit is mutual. So when you walk in, the right conversations are already waiting.\n\nAs a Founding Member, you get a permanent position on the network: your own member number, 1,000 EMC\u00B2 opening balance, accelerated community rewards for life, and free matching within every community you join.\n\nWe are still in the first 10,000. The live beta window closes soon.\n\nTakes 5 minutes. Talk to Nev and share your mission, then let the network work for you:\n" + url;
   _inviteTemplates = {
-    short: isOG
-      ? "I'm on EventMedium \u2014 AI-powered professional matching at events. We're still in the first 10,000 so OG status and 1,000 EMC\u00B2 opening balance are still available. Worth building your canister now: " + url
-      : "I'm on EventMedium \u2014 signal-based professional matching at events. Takes 10 minutes to build your canister. Join here: " + url,
-    long: isOG
-      ? "I wanted to flag EventMedium to you specifically.\n\nIt's a signal-based professional matching platform for events \u2014 builds a private profile of your actual intent and matches you with people who are structurally aligned. Anonymous until you both say yes. No public directory, no cold outreach.\n\nWe're still in the first 10,000 members. If you complete your canister now you get OG status permanently \u2014 comes with a 1,000 EMC\u00B2 opening balance, an accelerated earn rate on the network, and a canister number that's yours forever.\n\nUse my code " + code + " to join: " + url
-      : "I wanted to flag EventMedium \u2014 it's a signal-based professional matching platform for events.\n\nRather than the usual badge-swap networking, it builds a private profile of your actual focus and intent, then matches you with people who are genuinely aligned. Anonymous until you both say yes.\n\nTakes about 10 minutes to set up your canister. Join here: " + url
+    short: copy,
+    long: copy
   };
   switchTemplate('short', document.querySelector('.tmpl-tab.active'));
 }
@@ -952,8 +948,8 @@ async function copyInviteLink(text) {
   var copyBtn = document.querySelector('.share-channel-btn.wide');
   if (copyBtn) {
     copyBtn.classList.add('copied');
-    copyBtn.innerHTML = '<span class="share-channel-icon">\u2713</span>Link copied';
-    setTimeout(function() { copyBtn.classList.remove('copied'); copyBtn.innerHTML = '<span class="share-channel-icon">\u29C9</span>Copy link'; }, 2000);
+    copyBtn.innerHTML = '<span class="share-channel-icon">\u2713</span> Link copied';
+    setTimeout(function() { copyBtn.classList.remove('copied'); copyBtn.innerHTML = '<span class="share-channel-icon">\u2295</span> Copy link'; }, 2000);
   }
 }
 
