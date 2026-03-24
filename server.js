@@ -190,6 +190,9 @@ async function runMigrations() {
     await dbRun('ALTER TABLE stakeholder_profiles ADD COLUMN IF NOT EXISTS emc2_cohort_number INTEGER');
     await dbRun('ALTER TABLE stakeholder_profiles ADD COLUMN IF NOT EXISTS emc2_earn_multiplier NUMERIC(3,1) DEFAULT 1.0');
     await dbRun('ALTER TABLE stakeholder_profiles ADD COLUMN IF NOT EXISTS og_member BOOLEAN DEFAULT FALSE');
+    // User geocoding columns
+    await dbRun('ALTER TABLE users ADD COLUMN IF NOT EXISTS city_lat NUMERIC(9,6)');
+    await dbRun('ALTER TABLE users ADD COLUMN IF NOT EXISTS city_lng NUMERIC(9,6)');
     // emc2_ledger indexes
     await dbRun('CREATE INDEX IF NOT EXISTS idx_emc2_ledger_user_id ON emc2_ledger(user_id)');
     await dbRun('CREATE INDEX IF NOT EXISTS idx_emc2_ledger_created_at ON emc2_ledger(created_at)');
@@ -199,7 +202,62 @@ async function runMigrations() {
     console.error('[Migrations] Error:', err);
   }
 }
-runMigrations();
+
+async function backfillEMC2Corrections() {
+  try {
+    var emc2 = require('./lib/emc2.js');
+    // Check if correction already applied for user 2
+    var already = await dbRun("SELECT id FROM emc2_ledger WHERE user_id = 2 AND action_type = 'admin_adjustment' AND metadata->>'reason' = 'canister_complete_correction' LIMIT 1");
+    if (already && already.rows && already.rows.length > 0) return;
+    // Check user 2 has a canister_complete entry
+    var original = await dbGet("SELECT tx_id FROM emc2_ledger WHERE user_id = 2 AND action_type = 'canister_complete' LIMIT 1");
+    if (!original) return;
+    // Issue correction for 900 difference
+    await emc2.recordTransaction({
+      user_id: 2,
+      action_type: 'admin_adjustment',
+      amount_override: 900,
+      entity_type: 'correction',
+      metadata: { reason: 'canister_complete_correction', original_tx_id: original.tx_id }
+    });
+    console.log('[EMC² backfill] Correction applied for user 2: +900');
+    // Confirm OG status for user 2
+    var profile = await dbGet('SELECT og_member FROM stakeholder_profiles WHERE user_id = 2');
+    if (profile && !profile.og_member) {
+      await dbRun('UPDATE stakeholder_profiles SET og_member = TRUE WHERE user_id = 2');
+      console.log('[EMC² backfill] OG status granted to user 2');
+    }
+  } catch(err) {
+    console.error('[EMC² backfill] Error:', err.message);
+  }
+}
+
+async function geocodeUsers() {
+  try {
+    var { getCityCoords } = require('./lib/geocode.js');
+    // Geocode from stakeholder_profiles.geography since users table has no city column
+    var rows = await dbAll("SELECT sp.user_id, sp.geography FROM stakeholder_profiles sp JOIN users u ON u.id = sp.user_id WHERE sp.geography IS NOT NULL AND sp.geography != '' AND u.city_lat IS NULL");
+    var geocoded = 0;
+    for (var i = 0; i < rows.length; i++) {
+      var city = rows[i].geography.split(',')[0].trim();
+      var coords = getCityCoords(city);
+      if (coords) {
+        var lat = coords[0] + (Math.random() - 0.5) * 0.02;
+        var lng = coords[1] + (Math.random() - 0.5) * 0.02;
+        await dbRun('UPDATE users SET city_lat = $1, city_lng = $2 WHERE id = $3', [lat, lng, rows[i].user_id]);
+        geocoded++;
+      }
+    }
+    if (geocoded > 0) console.log('[Geocode] Geocoded ' + geocoded + ' users');
+  } catch(err) {
+    console.error('[Geocode] Error:', err.message);
+  }
+}
+
+runMigrations().then(function() {
+  backfillEMC2Corrections();
+  geocodeUsers();
+});
 
 // ── Scheduled matching: 3x daily (8am, 1pm, 6pm UTC) ──────────────────────────
 // node-cron is not installed — using setInterval with hour checking

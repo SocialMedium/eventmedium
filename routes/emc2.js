@@ -25,18 +25,12 @@ router.get('/history', authenticateToken, async function(req, res) {
   }
 });
 
-// POST /api/emc2/unlock-global — legacy endpoint, now returns tier info
+// POST /api/emc2/unlock-global — legacy endpoint, access is now universal
 router.post('/unlock-global', authenticateToken, async function(req, res) {
-  try {
-    var wallet = await emc2.getWallet(req.user.id);
-    res.json({
-      success: true,
-      message: 'Access tier is earned automatically through network activity.',
-      access_tier: wallet ? wallet.access_tier : null
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  res.json({
+    success: true,
+    message: 'Access is universal. EMC\u00B2 is spent per accepted match based on context: community matches are free, event and location matches cost 5 EMC\u00B2, global network matches cost 10 EMC\u00B2.'
+  });
 });
 
 // POST /api/emc2/connect-wallet — store web3 wallet address

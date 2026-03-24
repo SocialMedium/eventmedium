@@ -167,36 +167,57 @@ router.get('/graph', async function(req, res) {
   }
 });
 
-// ── GET /api/network/my-network ── user-centric graph data ────────────────────
+// ── GET /api/network/my-network ── all users, tagged by relationship ──────────
 router.get('/my-network', authenticateToken, async function(req, res) {
   try {
+    var myId = req.user.id;
+
     // Self node
     var self = await dbGet(
-      "SELECT u.id, u.name, u.avatar_url, sp.stakeholder_type, sp.emc2_cohort, sp.emc2_cohort_number, sp.og_member, sp.emc2_lifetime_earned, sp.themes, sp.geography FROM users u JOIN stakeholder_profiles sp ON sp.user_id = u.id WHERE u.id = $1",
-      [req.user.id]
+      "SELECT u.id, u.name, u.avatar_url, u.city_lat, u.city_lng, sp.stakeholder_type, sp.emc2_cohort, sp.emc2_cohort_number, sp.og_member, sp.emc2_lifetime_earned, sp.themes, sp.geography FROM users u JOIN stakeholder_profiles sp ON sp.user_id = u.id WHERE u.id = $1",
+      [myId]
     );
     if (!self) return res.json({ success: true, self: null, nodes: [], edges: [] });
 
-    // Match nodes — revealed matches (mutual accept)
-    var matchNodes = await dbAll(
-      "SELECT DISTINCT u.id, sp.stakeholder_type, sp.emc2_cohort, sp.og_member, sp.themes, sp.geography, em.score_total as match_score, CASE WHEN em.status = 'revealed' THEN true ELSE false END as confirmed, em.id as match_id, em.status as match_status, 'match' as node_type FROM event_matches em JOIN users u ON u.id = CASE WHEN em.user_a_id = $1 THEN em.user_b_id ELSE em.user_a_id END JOIN stakeholder_profiles sp ON sp.user_id = u.id WHERE (em.user_a_id = $1 OR em.user_b_id = $1) AND em.status IN ('revealed')",
-      [req.user.id]
+    // My direct matches
+    var matchRows = await dbAll(
+      "SELECT DISTINCT CASE WHEN user_a_id = $1 THEN user_b_id ELSE user_a_id END as connected_id, id as match_id, score_total, status FROM event_matches WHERE (user_a_id = $1 OR user_b_id = $1) AND status = 'revealed'",
+      [myId]
+    );
+    var matchIdSet = {};
+    matchRows.forEach(function(m) { matchIdSet[m.connected_id] = m; });
+
+    // ALL platform users with a profile
+    var allUsers = await dbAll(
+      "SELECT u.id, u.city_lat, u.city_lng, sp.stakeholder_type, sp.emc2_cohort, sp.emc2_cohort_number, sp.og_member, sp.emc2_lifetime_earned, sp.themes, sp.geography FROM users u JOIN stakeholder_profiles sp ON sp.user_id = u.id WHERE u.id != $1 AND sp.stakeholder_type IS NOT NULL",
+      [myId]
     );
 
-    // Build edges
-    var edges = matchNodes.map(function(n) {
+    // Tag each node by relationship
+    var nodes = allUsers.map(function(u) {
+      var matchInfo = matchIdSet[u.id];
+      return Object.assign({}, u, {
+        node_type: matchInfo ? 'match' : 'network',
+        confirmed: matchInfo ? true : false,
+        match_score: matchInfo ? matchInfo.score_total : null,
+        node_status: 'active'
+      });
+    });
+
+    // Build edges only for direct matches
+    var edges = matchRows.map(function(m) {
       return {
-        source: req.user.id,
-        target: n.id,
-        type: n.confirmed ? 'match_confirmed' : 'match_accepted',
-        match_score: n.match_score
+        source: myId,
+        target: m.connected_id,
+        type: 'match_confirmed',
+        match_score: m.score_total
       };
     });
 
     res.json({
       success: true,
       self: Object.assign({}, self, { node_type: 'self' }),
-      nodes: matchNodes,
+      nodes: nodes,
       edges: edges
     });
   } catch (err) {

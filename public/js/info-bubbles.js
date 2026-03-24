@@ -7,10 +7,12 @@ var TIPS = {
   // EMC² WALLET
   emc2_balance: {
     title: "Your EMC\u00B2 balance",
-    body: "Credits available to spend. Use them to unlock " +
-          "global network matching or run Nev concierge " +
-          "queries across the ecosystem.",
-    tag: "Spend on global access"
+    body: "Spent when you accept matches: community " +
+          "matches are free, event and location matches " +
+          "cost 5 EMC\u00B2 each, global network matches cost " +
+          "10 EMC\u00B2 each. Earn more through debriefs, " +
+          "canister updates, and referrals.",
+    tag: "Free in your community"
   },
   emc2_lifetime: {
     title: "Lifetime earned",
@@ -20,10 +22,10 @@ var TIPS = {
     tag: "Permanent provenance"
   },
   emc2_global_access: {
-    title: "Global access active",
-    body: "Your matches extend beyond your events and " +
-          "communities into the full EventMedium professional " +
-          "intent network.",
+    title: "Universal access",
+    body: "All members can match across the full EventMedium " +
+          "network. Community matches are free, event matches " +
+          "cost 5 EMC\u00B2, global matches cost 10 EMC\u00B2.",
     tag: null
   },
   emc2_genesis: {
