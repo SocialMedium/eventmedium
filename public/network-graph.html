@@ -3,1355 +3,498 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Network — Event Medium</title>
-<script src="https://d3js.org/d3.v7.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/topojson@3/dist/topojson.min.js"></script>
+<title>My Network — EventMedium</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="icon" type="image/png" href="/images/em-logo.png">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-:root{
-  --bg:#080c14;--bar:#0d1421;--bar-border:rgba(255,255,255,0.06);
-  --text:#e2e8f0;--text2:#94a3b8;--text3:#475569;
-  --accent:#6366f1;--accent2:#4f46e5;
-  --sans:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-}
-html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-family:var(--sans);color:var(--text)}
+body{font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a0a0f;color:#fff;height:100vh;overflow:hidden}
 
-/* ── Top bar ── */
-#topbar{
-  position:fixed;top:0;left:0;right:0;z-index:100;
-  background:var(--bar);border-bottom:1px solid var(--bar-border);
-  backdrop-filter:blur(12px);
-  display:flex;align-items:center;justify-content:space-between;
-  padding:0 20px;height:56px;gap:12px;
-}
-.tb-left{display:flex;align-items:center;gap:16px;min-width:0}
-.tb-brand{display:flex;align-items:center;gap:8px;text-decoration:none;color:var(--text);font-size:14px;font-weight:700;white-space:nowrap;flex-shrink:0}
-.tb-brand em{color:var(--accent);font-style:normal}
-.mode-pills{display:flex;background:rgba(255,255,255,0.04);border:1px solid var(--bar-border);border-radius:10px;padding:3px;gap:2px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;flex-shrink:0}
-.mode-pills::-webkit-scrollbar{display:none}
-.mode-pill{padding:6px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;background:transparent;color:var(--text2);font-family:var(--sans);transition:all 0.2s;white-space:nowrap;flex-shrink:0}
-.mode-pill.active{background:var(--accent);color:#fff}
-.mode-pill:hover:not(.active){color:var(--text);background:rgba(255,255,255,0.06)}
+#graph-canvas,#map-canvas{position:absolute;inset:0;width:100%;height:100%}
+#map-canvas{display:none}
 
-#contextWrap{display:none;align-items:center;gap:8px}
-#contextSel{background:rgba(255,255,255,0.05);border:1px solid var(--bar-border);border-radius:8px;color:var(--text);font-size:13px;font-family:var(--sans);padding:6px 12px;outline:none;cursor:pointer}
-#contextSel option{background:#1e293b;color:var(--text)}
+/* Top bar */
+.top-bar{position:absolute;top:0;left:0;right:0;height:52px;background:rgba(10,10,15,0.85);backdrop-filter:blur(8px);border-bottom:0.5px solid rgba(255,255,255,0.08);display:flex;align-items:center;padding:0 16px;gap:12px;z-index:100}
+.top-bar-back{display:flex;align-items:center;gap:6px;color:rgba(255,255,255,0.6);text-decoration:none;font-size:12px;font-weight:500;padding:4px 8px;border-radius:6px;transition:all 0.15s}
+.top-bar-back:hover{background:rgba(255,255,255,0.06);color:#fff}
+.top-bar-title{font-size:13px;font-weight:500;color:rgba(255,255,255,0.9);margin-right:8px}
 
-.tb-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
-.tb-btn{display:flex;align-items:center;gap:6px;padding:7px 14px;border:1px solid var(--bar-border);border-radius:8px;background:rgba(255,255,255,0.04);color:var(--text2);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--sans);text-decoration:none;transition:all 0.2s;white-space:nowrap}
-.tb-btn:hover{border-color:rgba(99,102,241,0.4);color:var(--accent)}
-.tb-btn svg{flex-shrink:0}
+.mode-toggle{display:flex;background:rgba(255,255,255,0.06);border-radius:6px;padding:2px;gap:2px}
+.mode-btn{padding:4px 10px;border-radius:4px;font-size:11px;cursor:pointer;border:none;background:transparent;color:rgba(255,255,255,0.5);font-family:inherit;transition:all 0.15s}
+.mode-btn.active{background:rgba(255,255,255,0.12);color:#fff}
 
-/* ── Graph canvas ── */
-#graph{
-  position:fixed;top:56px;left:0;right:0;bottom:0;
-  width:100%;height:calc(100vh - 56px);
-}
-#graph-g{will-change:transform}
+.layer-toggles{display:flex;gap:6px;margin-left:8px}
+.layer-btn{padding:4px 10px;border-radius:20px;font-size:11px;cursor:pointer;border:1px solid transparent;font-family:inherit;transition:all 0.15s;white-space:nowrap}
+.layer-btn[data-layer="matches"]{border-color:rgba(99,102,241,0.5);color:rgba(99,102,241,0.8);background:rgba(99,102,241,0.08)}
+.layer-btn[data-layer="matches"].active{background:rgba(99,102,241,0.2);color:#818cf8}
+.layer-btn[data-layer="communities"]{border-color:rgba(16,185,129,0.5);color:rgba(16,185,129,0.8);background:rgba(16,185,129,0.08)}
+.layer-btn[data-layer="communities"].active{background:rgba(16,185,129,0.2);color:#34d399}
+.layer-btn[data-layer="global"]{border-color:rgba(255,255,255,0.2);color:rgba(255,255,255,0.5);background:transparent}
+.layer-btn[data-layer="global"].active{background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.8)}
 
-/* ── Loading ── */
-#loading{
-  position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
-  display:flex;flex-direction:column;align-items:center;gap:16px;
-  color:var(--text2);font-size:14px;pointer-events:none;
-}
-.spinner{width:32px;height:32px;border:2px solid rgba(99,102,241,0.2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
+.filter-toggle{margin-left:auto;padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;border:0.5px solid rgba(255,255,255,0.15);background:transparent;color:rgba(255,255,255,0.6);font-family:inherit;transition:all 0.15s}
+.filter-toggle:hover{background:rgba(255,255,255,0.06);color:#fff}
 
-/* ── Tooltip ── */
-#tooltip{
-  position:fixed;pointer-events:none;z-index:200;
-  background:rgba(13,20,33,0.96);backdrop-filter:blur(12px);
-  border:1px solid rgba(255,255,255,0.1);border-radius:10px;
-  padding:12px 14px;max-width:220px;font-size:12px;line-height:1.6;
-  color:var(--text);opacity:0;transition:opacity 0.15s;
-  box-shadow:0 8px 32px rgba(0,0,0,0.5);
-}
-.tt-title{font-size:13px;font-weight:700;color:#fff;margin-bottom:4px}
-.tt-row{display:flex;justify-content:space-between;gap:8px;color:var(--text2)}
-.tt-val{color:var(--text)}
-.tt-chip{display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:600;margin:1px 1px 0 0}
+/* Filter panel */
+.filter-panel{position:absolute;top:64px;right:16px;width:220px;background:rgba(10,10,15,0.9);backdrop-filter:blur(8px);border:0.5px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px;z-index:100;display:none}
+.filter-panel.open{display:block}
+.filter-section{margin-bottom:14px}
+.filter-label{font-size:10px;letter-spacing:0.06em;color:rgba(255,255,255,0.35);text-transform:uppercase;margin-bottom:6px}
+.filter-select{width:100%;background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.1);border-radius:6px;color:rgba(255,255,255,0.8);font-size:12px;padding:6px 8px;font-family:inherit}
+.filter-chips{display:flex;flex-wrap:wrap;gap:4px}
+.filter-chip{padding:3px 8px;border-radius:20px;font-size:11px;cursor:pointer;border:0.5px solid rgba(255,255,255,0.12);color:rgba(255,255,255,0.5);background:transparent;font-family:inherit;transition:all 0.15s}
+.filter-chip.active{border-color:rgba(255,255,255,0.3);color:#fff;background:rgba(255,255,255,0.08)}
 
-/* ── Legend ── */
-#legend{
-  position:fixed;bottom:80px;left:24px;z-index:100;
-  background:rgba(13,20,33,0.85);backdrop-filter:blur(8px);
-  border:1px solid var(--bar-border);border-radius:10px;
-  padding:12px 14px;display:flex;flex-direction:column;gap:7px;
-}
-.leg-row{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text2)}
-.leg-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
-.leg-ring{width:10px;height:10px;border-radius:50%;border:2px solid #fff;flex-shrink:0}
-.leg-diamond{width:9px;height:9px;transform:rotate(45deg);flex-shrink:0;border-radius:1px}
-.leg-sq{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+/* Stats bar */
+.stats-bar{position:absolute;bottom:20px;left:16px;display:flex;gap:16px;z-index:100}
+.stat-pill{background:rgba(10,10,15,0.85);backdrop-filter:blur(8px);border:0.5px solid rgba(255,255,255,0.08);border-radius:20px;padding:6px 12px;font-size:11px;color:rgba(255,255,255,0.6)}
+.stat-pill strong{color:#fff;font-weight:500}
+.stat-pill .new{color:#34d399;margin-left:4px}
 
-/* ── Filters ── */
-#filters{
-  position:fixed;top:68px;right:20px;z-index:100;
-  display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px;max-width:300px;
-}
-.filter-chip{
-  padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;
-  border:1.5px solid transparent;opacity:0.7;transition:all 0.15s;color:#fff;
-}
-.filter-chip.on{opacity:1;border-color:rgba(255,255,255,0.4)}
-.filter-chip:hover{opacity:1}
+/* Node tooltip */
+.node-tooltip{position:absolute;background:rgba(10,10,15,0.95);border:0.5px solid rgba(255,255,255,0.12);border-radius:8px;padding:10px 12px;width:200px;pointer-events:none;z-index:200;display:none}
+.tooltip-type{font-size:10px;letter-spacing:0.06em;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:6px}
+.tooltip-cohort{font-size:11px;color:#C9A84C;margin-bottom:8px}
 
-/* ── Global ticker ── */
-#ticker{
-  position:fixed;bottom:0;left:0;right:0;height:36px;
-  background:rgba(13,20,33,0.9);backdrop-filter:blur(8px);
-  border-top:1px solid var(--bar-border);
-  display:none;align-items:center;overflow:hidden;
-}
-.ticker-inner{
-  display:flex;gap:0;white-space:nowrap;
-  animation:tickerScroll 30s linear infinite;
-  font-size:12px;color:var(--text2);
-}
-@keyframes tickerScroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
-.ticker-item{padding:0 32px;border-right:1px solid var(--bar-border)}
-.ticker-item span{color:var(--accent);font-weight:700}
+/* Legend */
+.legend{position:absolute;bottom:20px;right:16px;background:rgba(10,10,15,0.85);backdrop-filter:blur(8px);border:0.5px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px 12px;z-index:100}
+.legend-row{display:flex;align-items:center;gap:8px;font-size:11px;color:rgba(255,255,255,0.5);margin-bottom:5px}
+.legend-row:last-child{margin-bottom:0}
+.legend-line{width:24px;height:2px;border-radius:1px}
+.legend-dot{width:8px;height:8px;border-radius:50%}
 
-/* ── Empty state ── */
-#emptyState{
-  position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
-  text-align:center;pointer-events:none;display:none;
-}
-#emptyState h3{font-size:18px;font-weight:700;color:var(--text);margin-bottom:8px}
-#emptyState p{font-size:13px;color:var(--text2);line-height:1.6;max-width:300px}
-
-/* ── Geo city drill-down ── */
-#geo-back{
-  position:fixed;top:68px;left:20px;z-index:110;
-  display:none;align-items:center;gap:6px;
-  padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;
-  background:rgba(13,20,33,0.9);border:1px solid rgba(255,255,255,0.12);
-  color:#e2e8f0;backdrop-filter:blur(8px);transition:border-color .15s;
-}
-#geo-back:hover{border-color:rgba(99,102,241,0.5);color:#a5b4fc}
-#geo-city-panel{
-  position:fixed;top:68px;right:20px;z-index:110;
-  display:none;flex-direction:column;gap:0;
-  width:240px;background:rgba(13,20,33,0.92);
-  border:1px solid rgba(255,255,255,0.1);border-radius:12px;
-  backdrop-filter:blur(12px);overflow:hidden;
-  box-shadow:0 8px 32px rgba(0,0,0,0.5);
-}
-.gcp-header{padding:14px 16px 10px;border-bottom:1px solid rgba(255,255,255,0.06)}
-.gcp-city{font-size:15px;font-weight:700;color:#fff;margin-bottom:2px}
-.gcp-sub{font-size:11px;color:#64748b}
-.gcp-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;border-bottom:1px solid rgba(255,255,255,0.06)}
-.gcp-stat{padding:10px 0;text-align:center}
-.gcp-stat-val{font-size:18px;font-weight:700;color:#e2e8f0}
-.gcp-stat-lbl{font-size:9px;color:#475569;text-transform:uppercase;letter-spacing:.06em}
-.gcp-section{padding:10px 14px}
-.gcp-section-lbl{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#475569;margin-bottom:7px}
-.gcp-themes{display:flex;flex-wrap:wrap;gap:4px}
-.gcp-theme{padding:2px 7px;border-radius:100px;font-size:10px;font-weight:600}
-.gcp-archs{display:flex;flex-direction:column;gap:4px}
-.gcp-arch-row{display:flex;align-items:center;gap:7px}
-.gcp-arch-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
-.gcp-arch-bar-wrap{flex:1;height:3px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden}
-.gcp-arch-bar{height:3px;border-radius:2px}
-.gcp-arch-name{font-size:10px;color:#94a3b8;width:60px;flex-shrink:0}
-.gcp-arch-n{font-size:10px;color:#475569;font-variant-numeric:tabular-nums}
-.gcp-corr{display:flex;flex-direction:column;gap:4px}
-.gcp-corr-row{display:flex;align-items:center;gap:6px;font-size:11px;color:#64748b}
-.gcp-corr-name{min-width:80px;color:#94a3b8}
-.gcp-corr-bar-w{flex:1;height:2px;background:rgba(255,255,255,0.05);border-radius:1px}
-.gcp-corr-bar{height:2px;border-radius:1px;background:#6366f1;opacity:.6}
-.gcp-events{display:flex;flex-direction:column;gap:4px}
-.gcp-event-row{display:flex;align-items:flex-start;gap:6px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04)}
-.gcp-event-row:last-child{border:none}
-.gcp-event-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0;margin-top:4px}
-.gcp-event-name{font-size:11px;color:#e2e8f0;line-height:1.3}
-.gcp-event-meta{font-size:10px;color:#475569}
-
-/* ── Geo toggle buttons ── */
-.geo-toggle-row{display:none;position:fixed;bottom:48px;left:50%;transform:translateX(-50%);z-index:110;gap:6px;background:rgba(13,20,33,0.9);backdrop-filter:blur(8px);border:1px solid var(--bar-border);border-radius:10px;padding:5px 8px}
-.geo-toggle-btn{padding:5px 14px;border-radius:20px;border:1px solid rgba(255,255,255,0.1);background:transparent;color:var(--text2);font-size:11px;font-weight:600;cursor:pointer;font-family:var(--sans);transition:all 0.15s}
-.geo-toggle-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
-.geo-toggle-btn:hover:not(.active){color:var(--text);border-color:rgba(255,255,255,0.25)}
-
-/* ── Geo map layer ── */
-.geo-land{fill:rgba(255,255,255,0.03);stroke:rgba(255,255,255,0.07);stroke-width:0.4}
-.geo-graticule{fill:none;stroke:rgba(255,255,255,0.03);stroke-width:0.3}
-.geo-city-halo{pointer-events:none}
-.geo-city{cursor:pointer}
-.geo-city-label{font-size:10px;font-weight:500;fill:rgba(255,255,255,0.4);text-anchor:middle;pointer-events:none}
-.geo-corridor{fill:none;stroke-linecap:round;pointer-events:none}
-.geo-event{cursor:pointer}
-
-/* ── Edge shimmer animation ── */
-@keyframes edgeShimmer{
-  0%{stroke-dashoffset:0}100%{stroke-dashoffset:-40}
-}
-.edge-match{stroke-dasharray:6 10;animation:edgeShimmer 3s linear infinite}
-.edge-theme{stroke-dasharray:3 7;animation:edgeShimmer 4s linear infinite}
-.edge-geo{stroke-dasharray:2 8;animation:edgeShimmer 5s linear infinite}
-.edge-co{stroke-dasharray:5 8;animation:edgeShimmer 4s linear infinite}
-
-/* ── Node pulse ── */
-@keyframes nodePulse{
-  0%,100%{opacity:0.7;transform:scale(1)}
-  50%{opacity:1;transform:scale(1.08)}
-}
-@keyframes meGlow{
-  0%,100%{filter:drop-shadow(0 0 8px rgba(99,102,241,0.6))}
-  50%{filter:drop-shadow(0 0 20px rgba(99,102,241,0.9))}
-}
-@keyframes themeGrow{
-  0%,100%{filter:drop-shadow(0 0 4px rgba(255,255,255,0.1))}
-  50%{filter:drop-shadow(0 0 12px rgba(255,255,255,0.25))}
-}
-@keyframes growthPulse{
-  0%,100%{filter:drop-shadow(0 0 6px rgba(34,197,94,0.5))}
-  50%{filter:drop-shadow(0 0 20px rgba(34,197,94,1))}
-}
-.node-me{animation:meGlow 2.5s ease-in-out infinite}
-.node-theme{animation:themeGlow 3s ease-in-out infinite}
-.node-growing{animation:growthPulse 2s ease-in-out infinite}
-
-@media(max-width:640px){
-  #topbar{height:auto;flex-wrap:wrap;padding:10px 14px;gap:8px;align-items:flex-start}
-  .tb-left{flex-direction:column;align-items:flex-start;width:100%;gap:8px}
-  .mode-pills{width:100%;max-width:100%}
-  .mode-pill{padding:6px 12px;font-size:12px}
-  .tb-right{display:none}
-  #graph{top:96px;height:calc(100vh - 96px)}
-  #legend{display:none}
-  #filters{top:108px}
+@media(max-width:768px){
+  .layer-toggles{display:none}
+  .filter-toggle{display:none}
+  .legend{display:none}
+  .top-bar{padding:0 10px;gap:8px}
 }
 </style>
 </head>
 <body>
 
-<!-- ══ TOP BAR ══ -->
-<div id="topbar">
-  <div class="tb-left">
-    <a href="/" class="tb-brand">
-      <img src="/images/em-logo.png" alt="" style="width:26px;height:26px;border-radius:6px">
-      Event <em>Medium</em>
-    </a>
-    <div class="mode-pills">
-      <button class="mode-pill active" data-mode="me" onclick="setMode('me')">My Network</button>
-      <button class="mode-pill" data-mode="communities" onclick="setMode('communities')">Communities</button>
-      <button class="mode-pill" data-mode="events" onclick="setMode('events')">Events</button>
-      <button class="mode-pill" data-mode="global" onclick="setMode('global')">Global Network</button>
-      <button class="mode-pill" data-mode="geo" onclick="setMode('geo')">Geo Map</button>
-    </div>
-    <div id="contextWrap">
-      <select id="contextSel" onchange="loadContext()">
-        <option value="">Select…</option>
-      </select>
+<svg id="graph-canvas"></svg>
+<div id="map-canvas"></div>
+
+<div class="top-bar">
+  <a href="/canister.html" class="top-bar-back">&larr; Canister</a>
+  <span class="top-bar-title">My Network</span>
+
+  <div class="mode-toggle">
+    <button class="mode-btn active" data-mode="graph">Graph</button>
+    <button class="mode-btn" data-mode="map">Map</button>
+  </div>
+
+  <div class="layer-toggles">
+    <button class="layer-btn active" data-layer="matches">Matches</button>
+    <button class="layer-btn" data-layer="communities">Communities</button>
+    <button class="layer-btn" data-layer="global">Global</button>
+  </div>
+
+  <button class="filter-toggle" id="filterToggle">Filters</button>
+</div>
+
+<div class="filter-panel" id="filterPanel">
+  <div class="filter-section">
+    <div class="filter-label">Community</div>
+    <select class="filter-select" id="filterCommunity"><option value="">All communities</option></select>
+  </div>
+  <div class="filter-section">
+    <div class="filter-label">Stakeholder type</div>
+    <div class="filter-chips" id="filterStakeholder">
+      <button class="filter-chip active" data-value="">All</button>
+      <button class="filter-chip" data-value="founder">Founder</button>
+      <button class="filter-chip" data-value="investor">Investor</button>
+      <button class="filter-chip" data-value="researcher">Researcher</button>
+      <button class="filter-chip" data-value="corporate">Corporate</button>
+      <button class="filter-chip" data-value="advisor">Advisor</button>
+      <button class="filter-chip" data-value="operator">Operator</button>
     </div>
   </div>
-  <div class="tb-right">
-    <button class="tb-btn" onclick="shareView()">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-      Share view
-    </button>
-    <a href="/communities.html" class="tb-btn">← Back</a>
-  </div>
 </div>
 
-<!-- ══ GRAPH SVG ══ -->
-<svg id="graph">
-  <defs>
-    <radialGradient id="starfield" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#0d1421" stop-opacity="0"/>
-      <stop offset="100%" stop-color="#030509" stop-opacity="0.8"/>
-    </radialGradient>
-    <filter id="glow">
-      <feGaussianBlur stdDeviation="3" result="blur"/>
-      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-    </filter>
-  </defs>
-  <!-- starfield bg -->
-  <rect id="starfieldRect" width="100%" height="100%" fill="#080c14"/>
-  <g id="stars"></g>
-  <!-- geo map layer (hidden until geo mode) -->
-  <g id="geo-g" style="display:none">
-    <g id="geo-map-g"></g>
-    <g id="geo-corridors-g"></g>
-    <g id="geo-halos-g"></g>
-    <g id="geo-cities-g"></g>
-    <g id="geo-events-g"></g>
-    <g id="geo-labels-g"></g>
-    <g id="geo-detail-g"></g>
-  </g>
-  <!-- main graph group (zoom target) -->
-  <g id="graph-g">
-    <g id="edges-g"></g>
-    <g id="nodes-g"></g>
-  </g>
-</svg>
+<div class="node-tooltip" id="nodeTooltip"></div>
 
-<!-- ══ LOADING ══ -->
-<div id="loading"><div class="spinner"></div><span>Loading network…</span></div>
-
-<!-- ══ TOOLTIP ══ -->
-<div id="tooltip"></div>
-
-<!-- ══ ACTIVE FILTERS ══ -->
-<div id="filters"></div>
-
-<!-- ══ LEGEND ══ -->
-<div id="legend">
-  <div class="leg-row"><div class="leg-ring" style="border-color:#6366f1"></div><span>You</span></div>
-  <div class="leg-row"><div class="leg-dot" style="background:#94a3b8"></div><span>Match / Member</span></div>
-  <div id="leg-theme-row" class="leg-row"><div class="leg-sq" style="background:rgba(255,255,255,0.15)"></div><span>Theme node</span></div>
-  <div id="leg-geo-row" class="leg-row"><div class="leg-diamond" style="background:#64748b"></div><span>Geography</span></div>
+<div class="stats-bar">
+  <div class="stat-pill">My network: <strong id="statMyCount">&mdash;</strong></div>
+  <div class="stat-pill">Global: <strong id="statGlobalCount">&mdash;</strong><span class="new" id="statToday"></span></div>
 </div>
 
-<!-- ══ TICKER (global only) ══ -->
-<div id="ticker">
-  <div class="ticker-inner" id="tickerInner"></div>
+<div class="legend">
+  <div class="legend-row"><div class="legend-line" style="background:#818cf8"></div> Revealed match</div>
+  <div class="legend-row"><div class="legend-line" style="background:rgba(52,211,153,0.5)"></div> Community member</div>
+  <div class="legend-row"><div class="legend-dot" style="background:#C9A84C"></div> OG member</div>
 </div>
 
-<!-- ══ GEO DRILL-DOWN ══ -->
-<button id="geo-back" onclick="geoZoomOut()">← World</button>
-<div id="geo-city-panel"></div>
-
-<!-- ══ GEO LAYER TOGGLES ══ -->
-<div id="geo-toggles" class="geo-toggle-row">
-  <button class="geo-toggle-btn active" data-layer="users" onclick="toggleGeoLayer(this,'users')">Users</button>
-  <button class="geo-toggle-btn active" data-layer="communities" onclick="toggleGeoLayer(this,'communities')">Communities</button>
-  <button class="geo-toggle-btn active" data-layer="events" onclick="toggleGeoLayer(this,'events')">Events</button>
-</div>
-
-<!-- ══ EMPTY STATE ══ -->
-<div id="emptyState">
-  <h3>No connections yet</h3>
-  <p>Register for events and complete your canister to start building your network graph.</p>
-</div>
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-// ── Token guard ──────────────────────────────────────────────────────────────
+// ─── State ───────────────────────────────────────────────
+var state = {
+  mode: 'graph',
+  layers: { matches: true, communities: false, global: false },
+  filters: { community: '', stakeholder: '' },
+  data: { self: null, myNodes: [], myEdges: [], communityNodes: [], globalStats: null, clusters: [] }
+};
+
 var token = localStorage.getItem('auth_token');
-if (!token) { window.location.href = '/auth.html'; }
+if (!token) window.location.href = '/auth.html';
+var headers = { 'Authorization': 'Bearer ' + token };
 
-// ── Theme palette ─────────────────────────────────────────────────────────────
-var THEME_COLORS = {
-  'AI': '#6366f1',
-  'Connectivity': '#06b6d4',
-  'IoT': '#0ea5e9',
-  'Enterprise SaaS': '#8b5cf6',
-  'Cybersecurity': '#ef4444',
-  'FinTech': '#10b981',
-  'Climate Tech': '#22c55e',
-  'HealthTech': '#f59e0b',
-  'Hardware': '#f97316',
-  'Privacy': '#ec4899',
-  'Regulation': '#a78bfa',
-  'EdTech': '#14b8a6',
-  'Open Source': '#84cc16',
-  'Robotics': '#64748b',
-  'SpaceTech': '#818cf8',
-  'Gaming': '#fb923c'
+// ─── Colours ─────────────────────────────────────────────
+var COLORS = {
+  founder: '#818cf8', investor: '#34d399', researcher: '#60a5fa',
+  corporate: '#f472b6', advisor: '#fb923c', operator: '#a78bfa',
+  default: '#94a3b8'
 };
 
-var STYPE_COLORS = {
-  founder:'#2563eb', investor:'#059669', advisor:'#d97706',
-  researcher:'#7c3aed', corporate:'#64748b', operator:'#ea580c',
-  unknown:'#475569'
-};
+function nodeColor(d) {
+  if (d.node_type === 'self') return '#ffffff';
+  return COLORS[d.stakeholder_type] || COLORS.default;
+}
 
-function themeColor(t) { return THEME_COLORS[t] || '#6366f1'; }
-function stypeColor(t) { return STYPE_COLORS[(t||'unknown').toLowerCase()] || '#475569'; }
+function nodeRadius(d) {
+  if (d.node_type === 'self') return 14;
+  if (d.node_type === 'community') return 6;
+  return d.confirmed ? 10 : 7;
+}
 
-// ── State ─────────────────────────────────────────────────────────────────────
-var mode = 'me';
-var activeFilters = new Set();
-var graphData = null;
+// ─── Data loading ────────────────────────────────────────
+async function loadData() {
+  try {
+    var safe = function(p) { return p.catch(function() { return { json: function() { return Promise.resolve({}); } }; }); };
+    var responses = await Promise.all([
+      safe(fetch('/api/network/my-network', { headers: headers })),
+      safe(fetch('/api/network/communities', { headers: headers })),
+      safe(fetch('/api/network/global-stats', { headers: headers }))
+    ]);
+
+    var myNet = await responses[0].json();
+    var comms = await responses[1].json();
+    var global = await responses[2].json();
+
+    state.data.self = myNet.self || null;
+    state.data.myNodes = myNet.nodes || [];
+    state.data.myEdges = myNet.edges || [];
+    state.data.communityNodes = comms.nodes || [];
+    state.data.globalStats = global.stats || {};
+    state.data.clusters = global.clusters || [];
+
+    populateFilters(comms.communities || []);
+    updateStats();
+    render();
+  } catch (err) {
+    console.error('Network data load error:', err);
+  }
+}
+
+// ─── Node/edge filtering ─────────────────────────────────
+function getVisibleNodes() {
+  var nodes = [];
+  if (state.data.self) {
+    nodes.push(Object.assign({}, state.data.self, { node_type: 'self' }));
+  }
+
+  if (state.layers.matches) {
+    var matchNodes = state.data.myNodes.filter(function(n) {
+      if (n.node_type !== 'match') return false;
+      if (state.filters.stakeholder && n.stakeholder_type !== state.filters.stakeholder) return false;
+      return true;
+    });
+    nodes = nodes.concat(matchNodes);
+  }
+
+  if (state.layers.communities) {
+    var existingIds = {};
+    nodes.forEach(function(n) { existingIds[n.id] = true; });
+    var commNodes = state.data.communityNodes.filter(function(n) {
+      if (existingIds[n.id]) return false;
+      if (state.filters.community && String(n.community_id) !== state.filters.community) return false;
+      if (state.filters.stakeholder && n.stakeholder_type !== state.filters.stakeholder) return false;
+      return true;
+    });
+    nodes = nodes.concat(commNodes);
+  }
+
+  return nodes;
+}
+
+function getVisibleEdges(nodeIds) {
+  var idSet = {};
+  nodeIds.forEach(function(id) { idSet[id] = true; });
+  return state.data.myEdges.filter(function(e) {
+    var sid = typeof e.source === 'object' ? e.source.id : e.source;
+    var tid = typeof e.target === 'object' ? e.target.id : e.target;
+    if (!idSet[sid] || !idSet[tid]) return false;
+    if (!state.layers.matches && (e.type === 'match_confirmed' || e.type === 'match_accepted')) return false;
+    return true;
+  });
+}
+
+// ─── Graph render (D3 force) ─────────────────────────────
 var simulation = null;
 
-// ── SVG setup ─────────────────────────────────────────────────────────────────
-var svg = d3.select('#graph');
-var graphG = d3.select('#graph-g');
-var edgesG = d3.select('#edges-g');
-var nodesG = d3.select('#nodes-g');
+function renderGraph() {
+  var svg = d3.select('#graph-canvas');
+  svg.selectAll('*').remove();
 
-function svgSize() {
-  return { w: window.innerWidth, h: window.innerHeight - 56 };
-}
+  var W = window.innerWidth;
+  var H = window.innerHeight;
 
-// ── Starfield ─────────────────────────────────────────────────────────────────
-(function() {
-  var S = svgSize();
-  var stars = d3.select('#stars');
-  for (var i = 0; i < 200; i++) {
-    var r = Math.random();
-    stars.append('circle')
-      .attr('cx', Math.random() * S.w)
-      .attr('cy', Math.random() * S.h)
-      .attr('r', r < 0.7 ? 0.4 : r < 0.9 ? 0.8 : 1.2)
-      .attr('fill', 'white')
-      .attr('opacity', 0.05 + Math.random() * 0.2);
-  }
-})();
+  var nodes = getVisibleNodes();
+  var nodeIds = nodes.map(function(n) { return n.id; });
+  var edges = getVisibleEdges(nodeIds);
 
-// ── Zoom ──────────────────────────────────────────────────────────────────────
-var zoom = d3.zoom()
-  .scaleExtent([0.15, 12])
-  .on('zoom', function(event) {
-    graphG.attr('transform', event.transform);
-    d3.select('#geo-g').attr('transform', event.transform);
-  });
-svg.call(zoom);
-svg.on('dblclick.zoom', function() {
-  var S = svgSize();
-  svg.transition().duration(750).call(zoom.transform, d3.zoomIdentity.translate(S.w/2, S.h/2));
-});
+  var g = svg.append('g').attr('class', 'graph-root');
 
-// ── Tooltip ───────────────────────────────────────────────────────────────────
-var tip = document.getElementById('tooltip');
+  // Zoom
+  svg.call(d3.zoom().scaleExtent([0.2, 4]).on('zoom', function(e) {
+    g.attr('transform', e.transform);
+  }));
 
-function showTip(evt, html) {
-  tip.innerHTML = html;
-  tip.style.opacity = '1';
-  moveTip(evt);
-}
-
-function moveTip(evt) {
-  var x = evt.clientX + 14, y = evt.clientY - 10;
-  if (x + 230 > window.innerWidth) x = evt.clientX - 230;
-  if (y + 160 > window.innerHeight) y = evt.clientY - 150;
-  tip.style.left = x + 'px';
-  tip.style.top = y + 'px';
-}
-
-function hideTip() { tip.style.opacity = '0'; }
-
-// ── Loading helpers ───────────────────────────────────────────────────────────
-function showLoading() { document.getElementById('loading').style.display = 'flex'; }
-function hideLoading() { document.getElementById('loading').style.display = 'none'; }
-function showEmpty() {
-  var el = document.getElementById('emptyState');
-  el.querySelector('h3').textContent = 'No connections yet';
-  el.querySelector('p').textContent = 'Register for events and complete your canister to start building your network graph.';
-  el.style.display = 'block';
-}
-function hideEmpty() { document.getElementById('emptyState').style.display = 'none'; }
-function showError(msg) {
-  hideLoading();
-  var el = document.getElementById('emptyState');
-  el.querySelector('h3').textContent = 'Unable to load network';
-  el.querySelector('p').textContent = msg;
-  el.style.display = 'block';
-  console.error('[graph]', msg);
-}
-
-// ── Mode switching ────────────────────────────────────────────────────────────
-async function setMode(m) {
-  mode = m;
-  document.querySelectorAll('.mode-pill').forEach(function(p) {
-    p.classList.toggle('active', p.dataset.mode === m);
-  });
-  var cw = document.getElementById('contextWrap');
-  var ticker = document.getElementById('ticker');
-  cw.style.display = (m === 'communities' || m === 'events') ? 'flex' : 'none';
-  ticker.style.display = m === 'global' ? 'flex' : 'none';
-
-  // Toggle geo layer vs force graph layer
-  document.getElementById('geo-g').style.display = m === 'geo' ? null : 'none';
-  document.getElementById('graph-g').style.display = m === 'geo' ? 'none' : null;
-  document.getElementById('legend').style.display = m === 'geo' ? 'none' : null;
-  document.getElementById('filters').style.display = m === 'geo' ? 'none' : null;
-  // Toggle geo layer toggles
-  var geoToggles = document.getElementById('geo-toggles');
-  if (geoToggles) geoToggles.style.display = m === 'geo' ? 'flex' : 'none';
-  // Reset geo drill-down state when leaving geo mode
-  if (m !== 'geo') {
-    _geoCityFocused = null;
-    document.getElementById('geo-back').style.display = 'none';
-    document.getElementById('geo-city-panel').style.display = 'none';
-    svg.call(zoom.transform, d3.zoomIdentity);
-  }
-
-  activeFilters.clear();
-  renderFilters();
-  clearGraph();
-
-  if (m === 'me') {
-    await loadMe();
-  } else if (m === 'communities') {
-    await loadContexts('community');
-  } else if (m === 'events') {
-    await loadContexts('event');
-  } else if (m === 'global') {
-    await loadGlobal();
-  } else if (m === 'geo') {
-    await loadGeo();
-  }
-}
-
-// ── Load: My Network ──────────────────────────────────────────────────────────
-async function loadMe() {
-  showLoading(); hideEmpty();
-  try {
-    var r = await fetch('/api/graph/me', { headers: { Authorization: 'Bearer ' + token } });
-    var data = await r.json();
-    hideLoading();
-    if (!r.ok || data.error) { showError(data.error || 'HTTP ' + r.status); return; }
-    if (!data.nodes || data.nodes.length <= 1) { showEmpty(); return; }
-    graphData = data;
-    renderGraph(data, 'me');
-  } catch(e) { showError('Connection error — ' + e.message); }
-}
-
-// ── Load: Contexts dropdown ───────────────────────────────────────────────────
-async function loadContexts(filterType) {
-  try {
-    var r = await fetch('/api/graph/contexts', { headers: { Authorization: 'Bearer ' + token } });
-    var data = await r.json();
-    if (!r.ok || data.error) { showError(data.error || 'HTTP ' + r.status); return; }
-    var sel = document.getElementById('contextSel');
-    sel.innerHTML = '<option value="">Select ' + (filterType === 'community' ? 'a community' : 'an event') + '…</option>';
-    var filtered = (data.items || []).filter(function(item) {
-      return filterType ? item.type === filterType : true;
-    });
-    filtered.forEach(function(item) {
-      var opt = document.createElement('option');
-      opt.value = item.type + ':' + item.id;
-      opt.textContent = (item.type === 'community' ? '⬡ ' : '◈ ') + item.name;
-      sel.appendChild(opt);
-    });
-    if (!filtered.length) {
-      showEmpty();
-    }
-  } catch(e) { showError('Connection error — ' + e.message); }
-}
-
-async function loadContext() {
-  var val = document.getElementById('contextSel').value;
-  if (!val) return;
-  var parts = val.split(':');
-  var type = parts[0], id = parts[1];
-  showLoading(); hideEmpty(); clearGraph();
-  try {
-    var url = type === 'community' ? '/api/graph/community/' + id : '/api/graph/event/' + id;
-    var r = await fetch(url, { headers: { Authorization: 'Bearer ' + token } });
-    var data = await r.json();
-    hideLoading();
-    if (!r.ok || data.error) { showError(data.error || 'HTTP ' + r.status); return; }
-    if (!data.nodes || !data.nodes.length) { showEmpty(); return; }
-    graphData = data;
-    renderGraph(data, 'context');
-  } catch(e) { showError('Connection error — ' + e.message); }
-}
-
-// ── Load: Global Network ──────────────────────────────────────────────────────
-async function loadGlobal() {
-  showLoading(); hideEmpty();
-  try {
-    var r = await fetch('/api/graph/global', { headers: { Authorization: 'Bearer ' + token } });
-    var data = await r.json();
-    hideLoading();
-    if (!r.ok || data.error) { showError('Unable to load global network — ' + (data.error || 'HTTP ' + r.status)); return; }
-    if (!data.nodes || !data.nodes.length) {
-      showError('Unable to load global network — no theme data yet. Complete canisters to populate the graph.');
-      return;
-    }
-    graphData = data;
-    renderTicker(data.stats || {});
-    renderGraph(data, 'global');
-  } catch(e) { showError('Unable to load global network — ' + e.message); }
-}
-
-// ── Ticker ────────────────────────────────────────────────────────────────────
-function renderTicker(stats) {
-  var text = [
-    '<span>' + (stats.matches_week || 0) + '</span> matches this week',
-    '<span>' + (stats.new_canisters || 0) + '</span> new canisters',
-    '<span>' + (stats.active_events || 0) + '</span> events active'
-  ].map(function(t) { return '<div class="ticker-item">' + t + '</div>'; }).join('');
-  document.getElementById('tickerInner').innerHTML = text + text; // doubled for seamless loop
-}
-
-// ── Clear graph ───────────────────────────────────────────────────────────────
-function clearGraph() {
-  if (simulation) { simulation.stop(); simulation = null; }
-  edgesG.selectAll('*').remove();
-  nodesG.selectAll('*').remove();
-}
-
-// ── Render graph ──────────────────────────────────────────────────────────────
-function renderGraph(data, viewMode) {
-  clearGraph();
-  hideEmpty();
-
-  var S = svgSize();
-  var nodes = data.nodes.map(function(n) { return Object.assign({}, n); });
-  var edges = data.edges.map(function(e) { return Object.assign({}, e); });
-
-  // Apply filters
-  var filtered = applyFilters(nodes, edges);
-  nodes = filtered.nodes; edges = filtered.edges;
-
-  if (!nodes.length) { showEmpty(); return; }
-
-  // Force config per mode
-  var linkDist = viewMode === 'global' ? 140 : 90;
-  var charge = viewMode === 'global' ? -300 : -180;
-
-  simulation = d3.forceSimulation(nodes)
-    .force('link', d3.forceLink(edges).id(function(d) { return d.id; }).distance(function(d) {
-      return linkDist * (1 - (d.strength || 0.5) * 0.4);
-    }).strength(0.5))
-    .force('charge', d3.forceManyBody().strength(charge))
-    .force('collide', d3.forceCollide().radius(function(d) { return (d.size || 10) + 6; }))
-    .force('center', d3.forceCenter(S.w / 2, S.h / 2))
-    .alphaDecay(0.018)
-    .velocityDecay(0.35);
-
-  // ── Edges ──
-  var edgeSel = edgesG.selectAll('line').data(edges).enter().append('line')
-    .attr('class', function(d) { return 'edge-' + d.type; })
-    .attr('stroke', function(d) {
-      if (d.type === 'theme') return themeColor(d.source.theme || d.source.label || '');
-      if (d.type === 'geo') return '#475569';
-      if (d.type === 'co') return themeColor(d.source.theme || d.source.label || '');
-      return '#334155';
-    })
-    .attr('stroke-width', function(d) { return 1 + (d.strength || 0.4) * 1.5; })
-    .attr('stroke-opacity', function(d) { return d.type === 'geo' ? 0.2 : d.type === 'co' ? 0.35 : 0.4; });
-
-  // ── Node groups ──
-  var nodeSel = nodesG.selectAll('.node').data(nodes).enter().append('g')
-    .attr('class', 'node')
-    .call(d3.drag()
-      .on('start', function(event, d) {
-        if (!event.active) simulation.alphaTarget(0.2).restart();
-        d.fx = d.x; d.fy = d.y;
-      })
-      .on('drag', function(event, d) { d.fx = event.x; d.fy = event.y; })
-      .on('end', function(event, d) {
-        if (!event.active) simulation.alphaTarget(0);
-        d.fx = null; d.fy = null;
-      })
-    );
-
-  // Draw shapes per node type
-  nodeSel.each(function(d) {
-    var g = d3.select(this);
-    var r = d.size || 10;
-
-    if (d.type === 'geo') {
-      // Diamond
-      var s = r * 0.9;
-      g.append('rect')
-        .attr('width', s * 1.4)
-        .attr('height', s * 1.4)
-        .attr('x', -s * 0.7)
-        .attr('y', -s * 0.7)
-        .attr('rx', 2)
-        .attr('transform', 'rotate(45)')
-        .attr('fill', 'rgba(100,116,139,0.15)')
-        .attr('stroke', '#64748b')
-        .attr('stroke-width', 1.5);
-    } else if (d.type === 'theme') {
-      var col = themeColor(d.theme);
-      // Outer glow ring (for growing themes)
-      if (d.growth && d.growth > 2) {
-        g.append('circle').attr('r', r + 8)
-          .attr('fill', 'none').attr('stroke', col)
-          .attr('stroke-width', 1).attr('opacity', 0.3)
-          .classed('node-growing', true);
+  // Global ambient layer
+  if (state.layers.global && state.data.clusters.length) {
+    var globalG = g.append('g').attr('class', 'global-layer');
+    state.data.clusters.slice(0, 80).forEach(function(cluster) {
+      var cx = W * 0.1 + Math.random() * W * 0.8;
+      var cy = H * 0.1 + Math.random() * H * 0.8;
+      var count = Math.min(parseInt(cluster.node_count) || 1, 8);
+      for (var i = 0; i < count; i++) {
+        globalG.append('circle')
+          .attr('cx', cx + (Math.random() - 0.5) * 60)
+          .attr('cy', cy + (Math.random() - 0.5) * 60)
+          .attr('r', 3)
+          .attr('fill', 'rgba(255,255,255,0.06)')
+          .attr('stroke', 'rgba(255,255,255,0.04)')
+          .attr('stroke-width', 0.5);
       }
-      g.append('circle').attr('r', r)
-        .attr('fill', col + '22')
-        .attr('stroke', col)
-        .attr('stroke-width', 1.5)
-        .classed('node-theme', true);
-    } else if (d.type === 'me') {
-      // Glowing ring
-      g.append('circle').attr('r', r + 5)
-        .attr('fill', 'none').attr('stroke', '#6366f1').attr('stroke-width', 1.5).attr('opacity', 0.4)
-        .classed('node-me', true);
-      g.append('circle').attr('r', r)
-        .attr('fill', '#1e1b4b').attr('stroke', '#6366f1').attr('stroke-width', 2)
-        .classed('node-me', true);
-    } else if (d.type === 'owner') {
-      g.append('circle').attr('r', r + 3)
-        .attr('fill', 'none').attr('stroke', '#d97706').attr('stroke-width', 1).attr('opacity', 0.4);
-      g.append('circle').attr('r', r)
-        .attr('fill', 'rgba(217,119,6,0.15)').attr('stroke', '#d97706').attr('stroke-width', 1.5);
-    } else {
-      // match / member
-      var col2 = d.themes && d.themes[0] ? themeColor(d.themes[0]) : stypeColor(d.stakeholder_type);
-      g.append('circle').attr('r', r)
-        .attr('fill', col2 + '18').attr('stroke', col2).attr('stroke-width', 1)
-        .attr('opacity', 0.85);
-    }
+    });
+  }
 
-    // Label
-    if (d.type === 'me' || d.type === 'match' || d.type === 'owner') {
-      g.append('text')
-        .attr('text-anchor', 'middle').attr('dominant-baseline', 'central')
-        .attr('font-size', d.type === 'me' ? 11 : 9)
-        .attr('font-weight', '700').attr('fill', '#e2e8f0')
-        .attr('pointer-events', 'none')
-        .text(d.label || '·');
-    } else if (d.type === 'theme') {
-      g.append('text')
-        .attr('text-anchor', 'middle').attr('y', r + 14)
-        .attr('font-size', 10).attr('font-weight', '600')
-        .attr('fill', themeColor(d.theme)).attr('opacity', 0.9)
-        .attr('pointer-events', 'none')
-        .text(d.label || '');
-    } else if (d.type === 'geo') {
-      g.append('text')
-        .attr('text-anchor', 'middle').attr('y', (d.size || 10) + 14)
-        .attr('font-size', 10).attr('font-weight', '500')
-        .attr('fill', '#64748b').attr('pointer-events', 'none')
-        .text(d.label || '');
-    }
-  });
+  // Edge styling
+  function edgeStroke(e) {
+    if (e.type === 'match_confirmed') return '#818cf8';
+    if (e.type === 'match_accepted') return 'rgba(99,102,241,0.45)';
+    if (e.type === 'community') return 'rgba(52,211,153,0.35)';
+    return 'rgba(255,255,255,0.1)';
+  }
+  function edgeDash(e) {
+    if (e.type === 'match_accepted') return '4,3';
+    if (e.type === 'community') return '2,4';
+    return 'none';
+  }
+  function edgeWidth(e) {
+    if (e.type === 'match_confirmed') return 1.5;
+    return 0.8;
+  }
 
-  // Entry animation
-  nodeSel.attr('opacity', 0).transition().duration(600).delay(function(d, i) { return i * 8; }).attr('opacity', 1);
+  // Links
+  var link = g.append('g').selectAll('line').data(edges).enter().append('line')
+    .attr('stroke', edgeStroke)
+    .attr('stroke-width', edgeWidth)
+    .attr('stroke-dasharray', edgeDash)
+    .attr('opacity', 0.8);
 
-  // Hover interactions
-  nodeSel
-    .on('mousemove', function(event, d) { moveTip(event); })
-    .on('mouseenter', function(event, d) {
-      showTip(event, buildTooltip(d, viewMode));
-      d3.select(this).raise();
+  // Node groups
+  var node = g.append('g').selectAll('g').data(nodes).enter().append('g')
+    .attr('class', 'node-group')
+    .style('cursor', 'pointer')
+    .on('mouseover', showTooltip)
+    .on('mouseout', hideTooltip);
+
+  // Node circles
+  node.append('circle')
+    .attr('r', nodeRadius)
+    .attr('fill', nodeColor)
+    .attr('stroke', function(d) {
+      if (d.node_type === 'self') return '#fff';
+      if (d.og_member) return '#C9A84C';
+      return 'transparent';
     })
-    .on('mouseleave', hideTip)
-    .on('click', function(event, d) {
-      event.stopPropagation();
-      if (d.type === 'theme') toggleFilter(d.theme, d.theme);
-      else if (d.type === 'geo') toggleFilter('geo:' + d.label, d.label);
+    .attr('stroke-width', function(d) {
+      if (d.node_type === 'self') return 2;
+      if (d.og_member) return 1;
+      return 0;
     });
 
-  svg.on('click', function() { hideTip(); });
-
-  // Simulation tick
-  simulation.on('tick', function() {
-    edgeSel
-      .attr('x1', function(d) { return d.source.x; })
-      .attr('y1', function(d) { return d.source.y; })
-      .attr('x2', function(d) { return d.target.x; })
-      .attr('y2', function(d) { return d.target.y; });
-    nodeSel.attr('transform', function(d) { return 'translate(' + d.x + ',' + d.y + ')'; });
-  });
-
-  // Slow organic drift: nudge simulation every 6s
-  var driftTimer = setInterval(function() {
-    if (!simulation) { clearInterval(driftTimer); return; }
-    simulation.force('center', d3.forceCenter(
-      S.w / 2 + (Math.random() - 0.5) * 8,
-      S.h / 2 + (Math.random() - 0.5) * 8
-    ));
-    simulation.alpha(0.04).restart();
-  }, 6000);
-
-  // Reset to center on double-click
-  svg.on('dblclick.zoom', function() {
-    svg.transition().duration(750).call(zoom.transform, d3.zoomIdentity.translate(S.w / 2, S.h / 2));
-  });
-}
-
-// ── Tooltip builder ───────────────────────────────────────────────────────────
-function buildTooltip(d, viewMode) {
-  if (d.type === 'me') {
-    return '<div class="tt-title">You</div>' +
-      '<div class="tt-row"><span>Type</span><span class="tt-val">' + (d.stakeholder_type || '—') + '</span></div>' +
-      (d.themes && d.themes.length ? '<div class="tt-row"><span>Themes</span></div>' +
-        '<div style="margin-top:3px">' + d.themes.map(function(t) { return '<span class="tt-chip" style="background:' + themeColor(t) + '30;color:' + themeColor(t) + '">' + t + '</span>'; }).join('') + '</div>' : '');
-  }
-  if (d.type === 'theme') {
-    return '<div class="tt-title" style="color:' + themeColor(d.theme) + '">' + d.label + '</div>' +
-      '<div class="tt-row"><span>Members sharing</span><span class="tt-val">' + (d.count || 0) + '</span></div>' +
-      (d.growth ? '<div class="tt-row"><span>New (30d)</span><span class="tt-val" style="color:#22c55e">+' + d.growth + '</span></div>' : '') +
-      '<div style="margin-top:6px;font-size:10px;color:#475569">Click to filter by this theme</div>';
-  }
-  if (d.type === 'geo') {
-    return '<div class="tt-title">' + d.label + '</div>' +
-      '<div class="tt-row"><span>Activity count</span><span class="tt-val">' + (d.count || 0) + '</span></div>' +
-      '<div style="margin-top:6px;font-size:10px;color:#475569">Click to filter by location</div>';
-  }
-  if (d.type === 'match' || d.type === 'member' || d.type === 'owner') {
-    var html = '<div class="tt-title">' + (d.type === 'owner' ? 'Community Owner' : 'Anonymous') + '</div>';
-    if (d.stakeholder_type) html += '<div class="tt-row"><span>Type</span><span class="tt-val" style="color:' + stypeColor(d.stakeholder_type) + '">' + d.stakeholder_type + '</span></div>';
-    if (d.themes && d.themes.length) {
-      html += '<div style="margin-top:4px">' + d.themes.slice(0,2).map(function(t) { return '<span class="tt-chip" style="background:' + themeColor(t) + '30;color:' + themeColor(t) + '">' + t + '</span>'; }).join('') + '</div>';
-    }
-    if (d.geography) html += '<div class="tt-row" style="margin-top:4px"><span>📍</span><span class="tt-val">' + d.geography + '</span></div>';
-    return html;
-  }
-  return '';
-}
-
-// ── Filters ───────────────────────────────────────────────────────────────────
-function toggleFilter(key, label) {
-  if (activeFilters.has(key)) activeFilters.delete(key);
-  else activeFilters.add(key);
-  renderFilters();
-  if (graphData) renderGraph(graphData, mode);
-}
-
-function renderFilters() {
-  var fc = document.getElementById('filters');
-  if (!activeFilters.size) { fc.innerHTML = ''; return; }
-  fc.innerHTML = Array.from(activeFilters).map(function(k) {
-    var label = k.startsWith('geo:') ? '📍 ' + k.slice(4) : k;
-    var col = k.startsWith('geo:') ? '#64748b' : themeColor(k);
-    return '<div class="filter-chip on" style="background:' + col + '22;border-color:' + col + ';color:' + col + '" onclick="toggleFilter(\'' + k.replace(/'/g, "\\'") + '\',\'\')">' + label + ' ×</div>';
-  }).join('');
-}
-
-function applyFilters(nodes, edges) {
-  if (!activeFilters.size) return { nodes: nodes, edges: edges };
-  var allowed = new Set();
-  nodes.forEach(function(n) {
-    if (n.type === 'theme' && activeFilters.has(n.theme)) { allowed.add(n.id); return; }
-    if (n.type === 'geo' && activeFilters.has('geo:' + n.label)) { allowed.add(n.id); return; }
-    if (n.type === 'me') { allowed.add(n.id); return; }
-    // include member/match if their themes or geography match a filter
-    var themes = n.themes || [];
-    var geo = n.geography ? n.geography.split(',')[0].trim() : '';
-    var match = false;
-    activeFilters.forEach(function(f) {
-      if (!f.startsWith('geo:') && themes.indexOf(f) !== -1) match = true;
-      if (f.startsWith('geo:') && geo === f.slice(4)) match = true;
-    });
-    if (match) allowed.add(n.id);
-  });
-  // Also keep theme/geo nodes connected to included user nodes
-  edges.forEach(function(e) {
-    var sid = typeof e.source === 'object' ? e.source.id : e.source;
-    var tid = typeof e.target === 'object' ? e.target.id : e.target;
-    if (allowed.has(sid) && (e.type === 'theme' || e.type === 'geo')) allowed.add(tid);
-    if (allowed.has(tid) && (e.type === 'theme' || e.type === 'geo')) allowed.add(sid);
-  });
-  var filteredNodes = nodes.filter(function(n) { return allowed.has(n.id); });
-  var filteredEdges = edges.filter(function(e) {
-    var sid = typeof e.source === 'object' ? e.source.id : e.source;
-    var tid = typeof e.target === 'object' ? e.target.id : e.target;
-    return allowed.has(sid) && allowed.has(tid);
-  });
-  return { nodes: filteredNodes, edges: filteredEdges };
-}
-
-// ── Geo layer toggle ─────────────────────────────────────────────────────────
-var geoLayerState = { users: true, communities: true, events: true };
-
-function toggleGeoLayer(btn, layer) {
-  btn.classList.toggle('active');
-  geoLayerState[layer] = btn.classList.contains('active');
-  applyGeoLayerVisibility();
-}
-
-function applyGeoLayerVisibility() {
-  // Users = city circles, halos, labels, corridors, detail dots
-  var userVis = geoLayerState.users ? null : 'none';
-  d3.select('#geo-cities-g').style('display', userVis);
-  d3.select('#geo-halos-g').style('display', userVis);
-  d3.select('#geo-labels-g').style('display', userVis);
-  d3.select('#geo-corridors-g').style('display', userVis);
-  d3.select('#geo-detail-g').style('display', userVis);
-  // Events = event diamond markers
-  d3.select('#geo-events-g').style('display', geoLayerState.events ? null : 'none');
-}
-
-// ── Geo Map ───────────────────────────────────────────────────────────────────
-
-var CITY_LATLON = {
-  'London':[51.51,-0.13],'New York':[40.71,-74.01],'San Francisco':[37.77,-122.42],
-  'Los Angeles':[34.05,-118.24],'Chicago':[41.88,-87.63],'Boston':[42.36,-71.06],
-  'Washington':[38.91,-77.04],'Miami':[25.76,-80.19],'Seattle':[47.61,-122.33],
-  'Austin':[30.27,-97.74],'Toronto':[43.65,-79.38],'Vancouver':[49.28,-123.12],
-  'Montreal':[45.50,-73.57],'Paris':[48.86,2.35],'Berlin':[52.52,13.41],
-  'Amsterdam':[52.37,4.90],'Stockholm':[59.33,18.06],'Oslo':[59.91,10.75],
-  'Copenhagen':[55.68,12.57],'Helsinki':[60.17,24.94],'Zurich':[47.38,8.54],
-  'Geneva':[46.20,6.15],'Vienna':[48.21,16.37],'Prague':[50.08,14.44],
-  'Budapest':[47.50,19.04],'Warsaw':[52.23,21.01],'Dublin':[53.33,-6.25],
-  'Edinburgh':[55.95,-3.19],'Madrid':[40.42,-3.70],'Barcelona':[41.39,2.15],
-  'Lisbon':[38.72,-9.14],'Rome':[41.90,12.50],'Milan':[45.47,9.19],
-  'Athens':[37.98,23.73],'Istanbul':[41.01,28.96],'Kyiv':[50.45,30.52],
-  'Dubai':[25.20,55.27],'Abu Dhabi':[24.47,54.37],'Riyadh':[24.69,46.72],
-  'Tel Aviv':[32.09,34.79],'Cairo':[30.04,31.24],'Lagos':[6.52,3.38],
-  'Nairobi':[1.29,36.82],'Johannesburg':[-26.20,28.04],'Cape Town':[-33.93,18.42],
-  'Casablanca':[33.59,-7.62],'Accra':[5.56,-0.20],
-  'Mumbai':[19.08,72.88],'Delhi':[28.61,77.21],'Bangalore':[12.97,77.59],
-  'Singapore':[1.35,103.82],'Kuala Lumpur':[3.14,101.69],'Bangkok':[13.75,100.52],
-  'Jakarta':[-6.21,106.85],'Manila':[14.60,120.98],'Ho Chi Minh':[10.82,106.63],
-  'Taipei':[25.04,121.56],'Hong Kong':[22.32,114.17],'Shanghai':[31.23,121.47],
-  'Beijing':[39.91,116.39],'Seoul':[37.57,126.98],'Tokyo':[35.68,139.69],
-  'Osaka':[34.69,135.50],'Sydney':[-33.87,151.21],'Melbourne':[-37.81,144.96],
-  'Brisbane':[-27.47,153.02],'Perth':[-31.95,115.86],'Auckland':[-36.85,174.76],
-  'São Paulo':[-23.55,-46.63],'Buenos Aires':[-34.60,-58.38],'Bogotá':[4.71,-74.07],
-  'Mexico City':[19.43,-99.13],'Lima':[-12.05,-77.04],'Santiago':[-33.46,-70.65],
-  'Denver':[39.74,-104.98],'Phoenix':[33.45,-112.07],'Atlanta':[33.75,-84.39],
-  'Dallas':[32.78,-96.80],'Houston':[29.76,-95.37],'Philadelphia':[39.95,-75.17],
-};
-function latlon(name) {
-  if (!name) return null;
-  var t = name.trim();
-  if (CITY_LATLON[t]) return CITY_LATLON[t];
-  var low = t.toLowerCase();
-  for (var k in CITY_LATLON) { if (k.toLowerCase().startsWith(low.split(' ')[0])) return CITY_LATLON[k]; }
-  return null;
-}
-
-var geoProjection = null;
-var geoZoom = null;
-var geoData = null;
-
-async function loadGeo() {
-  showLoading(); hideEmpty();
-
-  // Fetch network data (anonymised global clusters)
-  var data = null;
-  try {
-    var r = await fetch('/api/network/graph');
-    if (r.ok) data = await r.json();
-  } catch(e) {}
-
-  // Build geo_clusters if not returned
-  if (data && (!data.geo_clusters || !data.geo_clusters.length)) {
-    var cm = {};
-    (data.members || []).forEach(function(m) {
-      var c = m.geography; if (!c) return;
-      if (!cm[c]) cm[c] = { city:c, member_count:0, event_count:0, theme_freq:{}, arc_freq:{}, total_matches:0 };
-      cm[c].member_count++; cm[c].total_matches += (m.match_count||0);
-      if (m.stakeholder_type) cm[c].arc_freq[m.stakeholder_type] = (cm[c].arc_freq[m.stakeholder_type]||0)+1;
-      (m.themes||[]).forEach(function(t){ cm[c].theme_freq[t]=(cm[c].theme_freq[t]||0)+1; });
-    });
-    (data.events||[]).forEach(function(e){
-      var c=e.city; if(!c) return;
-      if(!cm[c]) cm[c]={city:c,member_count:0,event_count:0,theme_freq:{},arc_freq:{},total_matches:0};
-      cm[c].event_count++;
-    });
-    data.geo_clusters = Object.values(cm).map(function(c){
-      return { city:c.city, member_count:c.member_count, event_count:c.event_count, total_matches:c.total_matches,
-        top_themes: Object.keys(c.theme_freq).sort(function(a,b){return c.theme_freq[b]-c.theme_freq[a];}).slice(0,3).map(function(t){return{theme:t,count:c.theme_freq[t]};}),
-        archetype_breakdown: Object.keys(c.arc_freq).sort(function(a,b){return c.arc_freq[b]-c.arc_freq[a];}).map(function(t){return{type:t,count:c.arc_freq[t]};}) };
-    }).filter(function(c){ return latlon(c.city); });
-  }
-
-  // Fallback if API unavailable
-  if (!data || !data.geo_clusters || !data.geo_clusters.length) {
-    data = {
-      geo_clusters:[
-        {city:'London',member_count:24,event_count:2,total_matches:31,top_themes:[{theme:'Climate Tech',count:8},{theme:'FinTech',count:6}],archetype_breakdown:[{type:'investor',count:10},{type:'founder',count:9}]},
-        {city:'New York',member_count:19,event_count:2,total_matches:22,top_themes:[{theme:'FinTech',count:9},{theme:'AI',count:5}],archetype_breakdown:[{type:'investor',count:9},{type:'operator',count:6}]},
-        {city:'San Francisco',member_count:17,event_count:1,total_matches:18,top_themes:[{theme:'AI',count:10},{theme:'HealthTech',count:4}],archetype_breakdown:[{type:'founder',count:10},{type:'investor',count:5}]},
-        {city:'Berlin',member_count:13,event_count:1,total_matches:14,top_themes:[{theme:'Climate Tech',count:7},{theme:'Enterprise SaaS',count:4}],archetype_breakdown:[{type:'founder',count:8},{type:'operator',count:4}]},
-        {city:'Singapore',member_count:11,event_count:1,total_matches:15,top_themes:[{theme:'FinTech',count:6},{theme:'AI',count:4}],archetype_breakdown:[{type:'investor',count:6},{type:'founder',count:4}]},
-        {city:'Dubai',member_count:9,event_count:0,total_matches:9,top_themes:[{theme:'FinTech',count:5}],archetype_breakdown:[{type:'investor',count:7}]},
-        {city:'Sydney',member_count:8,event_count:0,total_matches:7,top_themes:[{theme:'Climate Tech',count:4}],archetype_breakdown:[{type:'founder',count:5}]},
-        {city:'Toronto',member_count:7,event_count:0,total_matches:6,top_themes:[{theme:'AI',count:4}],archetype_breakdown:[{type:'researcher',count:4}]},
-        {city:'Paris',member_count:7,event_count:0,total_matches:5,top_themes:[{theme:'Climate Tech',count:4}],archetype_breakdown:[{type:'investor',count:4}]},
-        {city:'Tokyo',member_count:5,event_count:0,total_matches:4,top_themes:[{theme:'Robotics',count:3}],archetype_breakdown:[{type:'corporate',count:3}]},
-        {city:'Amsterdam',member_count:5,event_count:0,total_matches:4,top_themes:[{theme:'Enterprise SaaS',count:3}],archetype_breakdown:[{type:'founder',count:3}]},
-        {city:'Mumbai',member_count:4,event_count:0,total_matches:3,top_themes:[{theme:'FinTech',count:3}],archetype_breakdown:[{type:'founder',count:3}]},
-      ],
-      events:[
-        {id:1,name:'Climate Finance Summit',city:'London',event_date:'2026-04-12',themes:['Climate Tech','Finance'],registered_count:42},
-        {id:2,name:'Deep Tech Forum',city:'Berlin',event_date:'2026-05-08',themes:['DeepTech','AI'],registered_count:38},
-        {id:3,name:'Asia Founders Week',city:'Singapore',event_date:'2026-04-28',themes:['FinTech'],registered_count:61},
-        {id:4,name:'Impact Investors NYC',city:'New York',event_date:'2026-03-22',themes:['Impact'],registered_count:29},
-      ],
-      corridors:[
-        {from:'London',to:'New York',match_count:12,avg_score:.72},
-        {from:'New York',to:'San Francisco',match_count:10,avg_score:.74},
-        {from:'London',to:'Singapore',match_count:8,avg_score:.69},
-        {from:'Berlin',to:'London',match_count:7,avg_score:.67},
-        {from:'Dubai',to:'London',match_count:6,avg_score:.65},
-        {from:'Singapore',to:'Sydney',match_count:5,avg_score:.66},
-        {from:'Toronto',to:'New York',match_count:4,avg_score:.68},
-        {from:'Paris',to:'London',match_count:4,avg_score:.64},
-      ],
-      meta:{total_members:129,total_events:4,total_corridors:8}
-    };
-  }
-
-  geoData = data;
-  hideLoading();
-  renderGeo();
-}
-
-function renderGeo() {
-  var S = svgSize();
-  ['geo-map-g','geo-corridors-g','geo-halos-g','geo-cities-g','geo-events-g','geo-labels-g'].forEach(function(id){
-    d3.select('#'+id).selectAll('*').remove();
-  });
-
-  // Projection — Natural Earth, fitted to viewport
-  geoProjection = d3.geoNaturalEarth1()
-    .fitSize([S.w, S.h], { type: 'Sphere' });
-  var path = d3.geoPath().projection(geoProjection);
-
-  // Ocean background
-  d3.select('#geo-map-g').append('path')
-    .datum({ type: 'Sphere' })
-    .attr('d', path)
-    .attr('fill', 'rgba(255,255,255,0.02)')
-    .attr('stroke', 'rgba(255,255,255,0.05)')
+  // OG gold outer ring
+  node.filter(function(d) { return d.og_member && d.node_type !== 'self'; })
+    .append('circle')
+    .attr('r', function(d) { return nodeRadius(d) + 3; })
+    .attr('fill', 'none')
+    .attr('stroke', 'rgba(201,168,76,0.4)')
     .attr('stroke-width', 0.5);
 
-  // Graticule grid
-  d3.select('#geo-map-g').append('path')
-    .datum(d3.geoGraticule()())
-    .attr('class', 'geo-graticule')
-    .attr('d', path);
+  // Self label
+  node.filter(function(d) { return d.node_type === 'self'; })
+    .append('text')
+    .attr('dy', '0.35em')
+    .attr('text-anchor', 'middle')
+    .attr('font-size', '9px')
+    .attr('font-weight', '500')
+    .attr('fill', '#0a0a0f')
+    .text('you');
 
-  // Country outlines — load or skip gracefully
-  d3.json('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json').then(function(world) {
-    var countries = topojson.feature(world, world.objects.countries);
-    d3.select('#geo-map-g').selectAll('.geo-land')
-      .data(countries.features).enter()
-      .append('path').attr('class', 'geo-land').attr('d', path);
-  }).catch(function() { /* no country outlines, graceful */ });
+  // Force simulation
+  if (simulation) simulation.stop();
+  simulation = d3.forceSimulation(nodes)
+    .force('link', d3.forceLink(edges).id(function(d) { return d.id; }).distance(function(d) {
+      if (d.type === 'match_confirmed') return 80;
+      if (d.type === 'community') return 140;
+      return 120;
+    }))
+    .force('charge', d3.forceManyBody().strength(-120))
+    .force('center', d3.forceCenter(W / 2, H / 2))
+    .force('collision', d3.forceCollide().radius(function(d) { return nodeRadius(d) + 4; }))
+    .on('tick', function() {
+      link
+        .attr('x1', function(d) { return d.source.x; })
+        .attr('y1', function(d) { return d.source.y; })
+        .attr('x2', function(d) { return d.target.x; })
+        .attr('y2', function(d) { return d.target.y; });
+      node.attr('transform', function(d) { return 'translate(' + d.x + ',' + d.y + ')'; });
+    });
 
-  function proj(cityName) {
-    var ll = latlon(cityName);
-    return ll ? geoProjection([ll[1], ll[0]]) : null;
+  // Fix self at centre
+  var selfNode = nodes.find(function(n) { return n.node_type === 'self'; });
+  if (selfNode) { selfNode.fx = W / 2; selfNode.fy = H / 2; }
+}
+
+// ─── Map render (Leaflet) ────────────────────────────────
+var leafletMap = null;
+
+function renderMap() {
+  document.getElementById('graph-canvas').style.display = 'none';
+  document.getElementById('map-canvas').style.display = 'block';
+
+  if (!leafletMap) {
+    leafletMap = L.map('map-canvas', { zoomControl: false }).setView([20, 0], 2);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; CartoDB', maxZoom: 19
+    }).addTo(leafletMap);
   }
 
-  var clusters = geoData.geo_clusters.filter(function(c){ return latlon(c.city); });
-  var maxM = d3.max(clusters, function(c){ return c.member_count; }) || 1;
-  var rScale = d3.scaleSqrt().domain([0, maxM]).range([8, 40]);
-  var maxCorr = d3.max(geoData.corridors, function(c){ return c.match_count; }) || 1;
-
-  // ── Corridors (faint, under halos) ────────────────────────────────────────
-  var visSet = new Set(clusters.map(function(c){ return c.city; }));
-  geoData.corridors.forEach(function(corr) {
-    if (!visSet.has(corr.from) || !visSet.has(corr.to)) return;
-    var a = proj(corr.from), b = proj(corr.to);
-    if (!a || !b) return;
-    var mx = (a[0]+b[0])/2, my = (a[1]+b[1])/2 - Math.hypot(b[0]-a[0],b[1]-a[1]) * 0.18;
-    var strong = corr.avg_score >= 0.65;
-    var sw = 0.6 + (corr.match_count / maxCorr) * 2.5;
-    d3.select('#geo-corridors-g').append('path')
-      .attr('class', 'geo-corridor')
-      .attr('d', 'M'+a[0]+','+a[1]+' Q'+mx+','+my+' '+b[0]+','+b[1])
-      .attr('stroke', strong ? '#6366f1' : 'rgba(255,255,255,0.12)')
-      .attr('stroke-width', sw)
-      .attr('stroke-dasharray', strong ? 'none' : '3 6')
-      .attr('opacity', strong ? 0.45 : 0.25);
+  // Clear non-tile layers
+  leafletMap.eachLayer(function(l) {
+    if (l instanceof L.CircleMarker || l instanceof L.Polyline) leafletMap.removeLayer(l);
   });
 
-  // ── Soft city halos (theme-coloured glow) ─────────────────────────────────
-  clusters.forEach(function(c) {
-    var xy = proj(c.city); if (!xy) return;
-    var r = rScale(c.member_count);
-    var topTheme = c.top_themes && c.top_themes[0] ? c.top_themes[0].theme : null;
-    var col = topTheme ? themeColor(topTheme) : '#6366f1';
-    d3.select('#geo-halos-g').append('circle')
-      .attr('class', 'geo-city-halo')
-      .attr('cx', xy[0]).attr('cy', xy[1])
-      .attr('r', r + 28)
-      .attr('fill', col)
-      .attr('fill-opacity', 0.07)
-      .attr('filter', 'url(#glow)');
-  });
+  // Map mode placeholder — no lat/lng in schema yet
+  var existing = document.getElementById('map-canvas').querySelector('.map-info');
+  if (existing) existing.remove();
+  var mapInfo = document.createElement('div');
+  mapInfo.className = 'map-info';
+  mapInfo.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:500;background:rgba(10,10,15,0.9);border:0.5px solid rgba(255,255,255,0.1);border-radius:10px;padding:20px 28px;text-align:center;color:rgba(255,255,255,0.7);font-size:13px;max-width:320px;line-height:1.5';
+  mapInfo.innerHTML = '<div style="font-size:15px;font-weight:600;color:#fff;margin-bottom:8px">Map mode</div>Geographic mapping will activate when event locations are geocoded. Use Graph mode for the full network view.';
+  document.getElementById('map-canvas').appendChild(mapInfo);
+}
 
-  // ── City circles ──────────────────────────────────────────────────────────
-  clusters.forEach(function(c) {
-    var xy = proj(c.city); if (!xy) return;
-    var r = rScale(c.member_count);
-    var topType = c.archetype_breakdown && c.archetype_breakdown[0] ? c.archetype_breakdown[0].type : 'unknown';
-    var col = stypeColor(topType);
+// ─── Tooltips ────────────────────────────────────────────
+function showTooltip(event, d) {
+  if (d.node_type === 'self') return;
+  var tip = document.getElementById('nodeTooltip');
+  var themes = [];
+  if (d.themes) {
+    try { themes = typeof d.themes === 'string' ? JSON.parse(d.themes) : (d.themes || []); } catch(e) { themes = []; }
+  }
 
-    var g = d3.select('#geo-cities-g').append('g')
-      .attr('class', 'geo-city')
-      .attr('transform', 'translate('+xy[0]+','+xy[1]+')')
-      .on('mouseenter', function(evt) {
-        var topThemes = (c.top_themes||[]).slice(0,3).map(function(t){ return '<span class="tt-chip" style="background:'+themeColor(t.theme)+'30;color:'+themeColor(t.theme)+'">'+t.theme+'</span>'; }).join('');
-        showTip(evt, '<div class="tt-title">'+c.city+'</div>'+
-          '<div class="tt-row"><span>Members</span><span class="tt-val">'+c.member_count+'</span></div>'+
-          (c.event_count ? '<div class="tt-row"><span>Events</span><span class="tt-val">'+c.event_count+'</span></div>' : '')+
-          (c.total_matches ? '<div class="tt-row"><span>Matches</span><span class="tt-val">'+c.total_matches+'</span></div>' : '')+
-          (topThemes ? '<div style="margin-top:5px">'+topThemes+'</div>' : ''));
-      })
-      .on('mousemove', moveTip)
-      .on('mouseleave', hideTip)
-      .on('click', (function(cluster, cityXY) {
-        return function(evt) { evt.stopPropagation(); zoomToCity(cluster, cityXY); };
-      })(c, xy));
+  tip.innerHTML =
+    '<div class="tooltip-type">' + (d.node_type || '').replace('_', ' ') + '</div>' +
+    '<div style="font-size:13px;font-weight:500;color:#fff;margin-bottom:4px">' + (d.stakeholder_type ? d.stakeholder_type.charAt(0).toUpperCase() + d.stakeholder_type.slice(1) : 'Unknown type') + '</div>' +
+    (d.og_member ? '<div style="font-size:10px;color:#C9A84C;margin-bottom:4px">\u2B21 Original Genesis</div>' : '') +
+    (d.emc2_cohort ? '<div class="tooltip-cohort">' + d.emc2_cohort.charAt(0).toUpperCase() + d.emc2_cohort.slice(1) + ' member' + (d.emc2_cohort_number ? ' \u00B7 #' + d.emc2_cohort_number : '') + '</div>' : '') +
+    (d.geography ? '<div style="font-size:11px;color:rgba(255,255,255,0.5);margin-bottom:4px">' + d.geography.split(',')[0].trim() + '</div>' : '') +
+    (themes.length ? '<div style="font-size:10px;color:rgba(255,255,255,0.4);margin-top:4px">' + themes.slice(0, 3).join(', ') + '</div>' : '') +
+    (d.match_score ? '<div style="font-size:10px;color:#818cf8;margin-top:4px">Match score: ' + Math.round((d.match_score || 0) * 100) + '%</div>' : '');
 
-    // Outer pulse ring
-    g.append('circle').attr('r', r + 4)
-      .attr('fill', 'none').attr('stroke', col).attr('stroke-width', 0.8).attr('opacity', 0.3);
+  tip.style.display = 'block';
+  tip.style.left = (event.pageX + 12) + 'px';
+  tip.style.top = (event.pageY - 10) + 'px';
+}
 
-    // Main circle
-    g.append('circle').attr('r', r)
-      .attr('fill', col + '20').attr('stroke', col).attr('stroke-width', 1.2).attr('opacity', 0.85);
+function hideTooltip() {
+  document.getElementById('nodeTooltip').style.display = 'none';
+}
 
-    // Member count (only show if r is big enough)
-    if (r >= 14) {
-      g.append('text').attr('text-anchor', 'middle').attr('dominant-baseline', 'middle')
-        .attr('font-size', Math.min(11, r * 0.38) + 'px').attr('font-weight', '600')
-        .attr('fill', 'rgba(255,255,255,0.7)').attr('pointer-events', 'none')
-        .text(c.member_count);
+// ─── Stats ───────────────────────────────────────────────
+function updateStats() {
+  document.getElementById('statMyCount').textContent = state.data.myNodes.length;
+  var g = state.data.globalStats;
+  if (g) {
+    document.getElementById('statGlobalCount').textContent = (g.total_canisters || 0).toLocaleString();
+    if (g.added_today > 0) {
+      document.getElementById('statToday').textContent = '+' + g.added_today + ' today';
     }
-  });
+  }
+}
 
-  // ── City labels ───────────────────────────────────────────────────────────
-  // Only label top 15 cities by member count to avoid clutter
-  clusters.slice(0, 15).forEach(function(c) {
-    var xy = proj(c.city); if (!xy) return;
-    var r = rScale(c.member_count);
-    d3.select('#geo-labels-g').append('text')
-      .attr('class', 'geo-city-label')
-      .attr('x', xy[0]).attr('y', xy[1] + r + 13)
-      .text(c.city);
-  });
-
-  // ── Event markers ─────────────────────────────────────────────────────────
-  (geoData.events || []).forEach(function(ev) {
-    var cl = clusters.find(function(c){ return c.city === ev.city; });
-    if (!cl) return;
-    var xy = proj(ev.city); if (!xy) return;
-    var r = rScale(cl.member_count);
-    // Small diamond offset from city
-    var ox = xy[0] + (r + 10), oy = xy[1] - (r + 10);
-    var topTheme = ev.themes && ev.themes[0] ? ev.themes[0] : 'AI';
-    var col = themeColor(topTheme);
-    var g = d3.select('#geo-events-g').append('g')
-      .attr('class', 'geo-event')
-      .attr('transform', 'translate('+ox+','+oy+')')
-      .on('mouseenter', function(evt){
-        showTip(evt, '<div class="tt-title">'+ev.name+'</div>'+
-          '<div class="tt-row"><span>City</span><span class="tt-val">'+ev.city+'</span></div>'+
-          (ev.registered_count ? '<div class="tt-row"><span>Registered</span><span class="tt-val">'+ev.registered_count+'</span></div>' : '')+
-          (ev.themes ? '<div style="margin-top:4px">'+ev.themes.slice(0,2).map(function(t){return '<span class="tt-chip" style="background:'+themeColor(t)+'30;color:'+themeColor(t)+'">'+t+'</span>';}).join('')+'</div>' : ''));
-      })
-      .on('mousemove', moveTip).on('mouseleave', hideTip);
-    // Small rotated square (diamond)
-    g.append('rect').attr('width', 8).attr('height', 8)
-      .attr('x', -4).attr('y', -4).attr('transform', 'rotate(45)')
-      .attr('fill', col + '30').attr('stroke', col).attr('stroke-width', 1.2);
+// ─── Filters ─────────────────────────────────────────────
+function populateFilters(communities) {
+  var sel = document.getElementById('filterCommunity');
+  communities.forEach(function(c) {
+    var opt = document.createElement('option');
+    opt.value = c.id;
+    opt.textContent = c.name;
+    sel.appendChild(opt);
   });
 }
 
-// ── Geo: zoom to city ─────────────────────────────────────────────────────────
-var _geoCityFocused = null;
-
-function zoomToCity(cluster, xy) {
-  hideTip();
-  _geoCityFocused = cluster;
-  var S = svgSize();
-  var scale = Math.min(10, Math.max(5, 800 / (geoProjection.scale() * 0.06)));
-  var tx = S.w / 2 - scale * xy[0];
-  var ty = S.h / 2 - scale * xy[1];
-  svg.transition().duration(750).ease(d3.easeCubicInOut)
-    .call(zoom.transform, d3.zoomIdentity.translate(tx, ty).scale(scale))
-    .on('end', function() { renderCityDetail(cluster, xy); });
-
-  document.getElementById('geo-back').style.display = 'flex';
-}
-
-function geoZoomOut() {
-  _geoCityFocused = null;
-  d3.select('#geo-detail-g').selectAll('*').remove();
-  document.getElementById('geo-back').style.display = 'none';
-  document.getElementById('geo-city-panel').style.display = 'none';
-
-  var S = svgSize();
-  svg.transition().duration(650).ease(d3.easeCubicInOut)
-    .call(zoom.transform, d3.zoomIdentity);
-}
-
-function renderCityDetail(cluster, xy) {
-  d3.select('#geo-detail-g').selectAll('*').remove();
-
-  // Scatter anonymous member dots around city center (at projection scale)
-  var n = cluster.member_count;
-  var spread = 4; // pixels at projection scale — becomes ~20–40px after zoom
-  var archs = cluster.archetype_breakdown || [];
-  // Build a flat list of archetype types proportional to count
-  var pool = [];
-  archs.forEach(function(a) { for (var i = 0; i < a.count; i++) pool.push(a.type); });
-  while (pool.length < n) pool.push('unknown');
-
-  for (var i = 0; i < n; i++) {
-    var angle = (i / n) * 2 * Math.PI + Math.random() * 0.4;
-    var r = spread * (0.3 + Math.sqrt(Math.random()) * 0.7);
-    var mx = xy[0] + r * Math.cos(angle);
-    var my = xy[1] + r * Math.sin(angle);
-    var col = stypeColor(pool[i] || 'unknown');
-    d3.select('#geo-detail-g').append('circle')
-      .attr('cx', mx).attr('cy', my).attr('r', 0.6)
-      .attr('fill', col).attr('opacity', 0.75);
-  }
-
-  // Event markers with labels
-  var cityEvents = (geoData.events || []).filter(function(e) { return e.city === cluster.city; });
-  cityEvents.forEach(function(ev, i) {
-    var ex = xy[0] + (i % 2 === 0 ? 6 : -6) + (i * 2);
-    var ey = xy[1] - 5 - i * 3;
-    var col = themeColor(ev.themes && ev.themes[0] ? ev.themes[0] : 'AI');
-    var g = d3.select('#geo-detail-g').append('g');
-    // Connector line to city
-    g.append('line').attr('x1', xy[0]).attr('y1', xy[1])
-      .attr('x2', ex).attr('y2', ey)
-      .attr('stroke', col).attr('stroke-width', 0.2).attr('opacity', 0.4);
-    g.append('circle').attr('cx', ex).attr('cy', ey).attr('r', 0.8)
-      .attr('fill', col).attr('stroke', col).attr('stroke-width', 0.15);
-    g.append('text').attr('x', ex + 1).attr('y', ey)
-      .attr('font-size', '0.9px').attr('font-weight', '600')
-      .attr('fill', col).attr('dominant-baseline', 'middle')
-      .text(ev.name);
-  });
-
-  // Show city info panel
-  showCityPanel(cluster);
-}
-
-function showCityPanel(c) {
-  var panel = document.getElementById('geo-city-panel');
-  var maxArch = c.archetype_breakdown && c.archetype_breakdown.length ? c.archetype_breakdown[0].count : 1;
-  var corridors = (geoData.corridors || []).filter(function(r) { return r.from === c.city || r.to === c.city; }).slice(0, 4);
-  var cityEvents = (geoData.events || []).filter(function(e) { return e.city === c.city; });
-
-  var html =
-    '<div class="gcp-header">' +
-      '<div class="gcp-city">' + c.city + '</div>' +
-      '<div class="gcp-sub">City cluster · ' + (c.total_matches || 0) + ' total matches</div>' +
-    '</div>' +
-    '<div class="gcp-stats">' +
-      '<div class="gcp-stat"><div class="gcp-stat-val">' + c.member_count + '</div><div class="gcp-stat-lbl">Members</div></div>' +
-      '<div class="gcp-stat"><div class="gcp-stat-val">' + c.event_count + '</div><div class="gcp-stat-lbl">Events</div></div>' +
-      '<div class="gcp-stat"><div class="gcp-stat-val">' + corridors.length + '</div><div class="gcp-stat-lbl">Corridors</div></div>' +
-    '</div>';
-
-  // Themes
-  if (c.top_themes && c.top_themes.length) {
-    html += '<div class="gcp-section"><div class="gcp-section-lbl">Themes</div><div class="gcp-themes">' +
-      c.top_themes.map(function(t) {
-        var col = themeColor(t.theme);
-        return '<span class="gcp-theme" style="background:' + col + '22;color:' + col + '">' + t.theme + '</span>';
-      }).join('') + '</div></div>';
-  }
-
-  // Stakeholder mix
-  if (c.archetype_breakdown && c.archetype_breakdown.length) {
-    html += '<div class="gcp-section" style="border-top:1px solid rgba(255,255,255,0.05)"><div class="gcp-section-lbl">Stakeholder Mix</div><div class="gcp-archs">' +
-      c.archetype_breakdown.map(function(a) {
-        var col = stypeColor(a.type);
-        var pct = Math.round((a.count / maxArch) * 100);
-        return '<div class="gcp-arch-row">' +
-          '<div class="gcp-arch-dot" style="background:' + col + '"></div>' +
-          '<div class="gcp-arch-name">' + (a.type.charAt(0).toUpperCase() + a.type.slice(1)) + '</div>' +
-          '<div class="gcp-arch-bar-wrap"><div class="gcp-arch-bar" style="width:' + pct + '%;background:' + col + '"></div></div>' +
-          '<div class="gcp-arch-n">' + a.count + '</div>' +
-          '</div>';
-      }).join('') + '</div></div>';
-  }
-
-  // Corridors
-  if (corridors.length) {
-    var maxC = corridors[0].match_count || 1;
-    html += '<div class="gcp-section" style="border-top:1px solid rgba(255,255,255,0.05)"><div class="gcp-section-lbl">Match Corridors</div><div class="gcp-corr">' +
-      corridors.map(function(corr) {
-        var other = corr.from === c.city ? corr.to : corr.from;
-        var pct = Math.round((corr.match_count / maxC) * 100);
-        return '<div class="gcp-corr-row"><span class="gcp-corr-name">' + other + '</span><div class="gcp-corr-bar-w"><div class="gcp-corr-bar" style="width:' + pct + '%"></div></div><span>' + corr.match_count + '</span></div>';
-      }).join('') + '</div></div>';
-  }
-
-  // Events
-  if (cityEvents.length) {
-    html += '<div class="gcp-section" style="border-top:1px solid rgba(255,255,255,0.05)"><div class="gcp-section-lbl">Events</div><div class="gcp-events">' +
-      cityEvents.map(function(ev) {
-        var col = themeColor(ev.themes && ev.themes[0] ? ev.themes[0] : 'AI');
-        return '<div class="gcp-event-row"><div class="gcp-event-dot" style="background:' + col + '"></div><div><div class="gcp-event-name">' + ev.name + '</div><div class="gcp-event-meta">' + (ev.registered_count || 0) + ' registered</div></div></div>';
-      }).join('') + '</div></div>';
-  }
-
-  panel.innerHTML = html;
-  panel.style.display = 'flex';
-}
-
-// ── Share view ────────────────────────────────────────────────────────────────
-function shareView() {
-  var params = new URLSearchParams();
-  params.set('mode', mode);
-  if (mode === 'communities' || mode === 'events') {
-    var val = document.getElementById('contextSel').value;
-    if (val) params.set('ctx', val);
-  }
-  if (activeFilters.size) params.set('filters', Array.from(activeFilters).join(','));
-  var url = window.location.origin + '/network-graph.html?' + params.toString();
-  navigator.clipboard.writeText(url).then(function() {
-    var btn = document.querySelector('.tb-btn');
-    var orig = btn.textContent;
-    btn.textContent = 'Link copied!';
-    setTimeout(function() { btn.textContent = orig; }, 2000);
-  }).catch(function() { prompt('Copy this link:', url); });
-}
-
-// ── Restore from URL params ───────────────────────────────────────────────────
-(async function init() {
-  var params = new URLSearchParams(window.location.search);
-  var modeParam = params.get('mode') || 'me';
-  var filters = params.get('filters');
-  if (filters) filters.split(',').forEach(function(f) { if (f) activeFilters.add(f); });
-
-  var id = params.get('id');
-  if ((modeParam === 'community' || modeParam === 'event') && id) {
-    var tabMode = modeParam === 'community' ? 'communities' : 'events';
-    await setMode(tabMode);
-    var ctx = modeParam + ':' + id;
-    var sel = document.getElementById('contextSel');
-    if (!sel.querySelector('option[value="' + ctx + '"]')) {
-      var opt = document.createElement('option');
-      opt.value = ctx;
-      opt.textContent = (modeParam === 'community' ? 'Community' : 'Event') + ' #' + id;
-      sel.appendChild(opt);
-    }
-    sel.value = ctx;
-    await loadContext();
-  } else if (modeParam === 'communities') {
-    await setMode('communities');
-    var ctx = params.get('ctx');
-    if (ctx) {
-      document.getElementById('contextSel').value = ctx;
-      await loadContext();
-    }
-  } else if (modeParam === 'events') {
-    await setMode('events');
-    var ctx = params.get('ctx');
-    if (ctx) {
-      document.getElementById('contextSel').value = ctx;
-      await loadContext();
-    }
-  } else if (modeParam === 'context') {
-    // Legacy URL support
-    await setMode('communities');
-    var ctx = params.get('ctx');
-    if (ctx) {
-      var ctxType = ctx.split(':')[0];
-      if (ctxType === 'event') await setMode('events');
-      document.getElementById('contextSel').value = ctx;
-      await loadContext();
-    }
-  } else if (modeParam === 'global') {
-    await setMode('global');
-  } else if (modeParam === 'geo') {
-    await setMode('geo');
+// ─── Render dispatcher ───────────────────────────────────
+function render() {
+  if (state.mode === 'graph') {
+    document.getElementById('graph-canvas').style.display = 'block';
+    document.getElementById('map-canvas').style.display = 'none';
+    renderGraph();
   } else {
-    await setMode('global');
+    renderMap();
   }
-})();
+}
 
-// ── Window resize ─────────────────────────────────────────────────────────────
-window.addEventListener('resize', function() {
-  var S = svgSize();
-  svg.attr('width', S.w).attr('height', S.h);
-  if (simulation) {
-    simulation.force('center', d3.forceCenter(S.w / 2, S.h / 2));
-    simulation.alpha(0.1).restart();
-  }
+// ─── Controls ────────────────────────────────────────────
+document.querySelectorAll('.mode-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.mode-btn').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    state.mode = btn.dataset.mode;
+    render();
+  });
 });
+
+document.querySelectorAll('.layer-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    btn.classList.toggle('active');
+    state.layers[btn.dataset.layer] = btn.classList.contains('active');
+    render();
+  });
+});
+
+document.getElementById('filterToggle').addEventListener('click', function() {
+  document.getElementById('filterPanel').classList.toggle('open');
+});
+
+document.querySelectorAll('.filter-chips').forEach(function(group) {
+  group.addEventListener('click', function(e) {
+    var chip = e.target.closest('.filter-chip');
+    if (!chip) return;
+    group.querySelectorAll('.filter-chip').forEach(function(c) { c.classList.remove('active'); });
+    chip.classList.add('active');
+    if (group.id === 'filterStakeholder') state.filters.stakeholder = chip.dataset.value;
+    render();
+  });
+});
+
+document.getElementById('filterCommunity').addEventListener('change', function(e) {
+  state.filters.community = e.target.value;
+  render();
+});
+
+window.addEventListener('resize', function() {
+  if (state.mode === 'graph') renderGraph();
+  else if (leafletMap) leafletMap.invalidateSize();
+});
+
+// ─── Init ────────────────────────────────────────────────
+loadData();
 </script>
 </body>
 </html>

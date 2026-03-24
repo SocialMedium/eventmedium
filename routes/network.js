@@ -1,5 +1,6 @@
 var express = require('express');
 var { dbAll, dbGet } = require('../db');
+var { authenticateToken } = require('../middleware/auth');
 var router = express.Router();
 
 function safeJson(v) {
@@ -163,6 +164,107 @@ router.get('/graph', async function(req, res) {
   } catch(err) {
     console.error('[Network] Graph error:', err);
     res.status(500).json({ error: 'Failed to load network graph' });
+  }
+});
+
+// ── GET /api/network/my-network ── user-centric graph data ────────────────────
+router.get('/my-network', authenticateToken, async function(req, res) {
+  try {
+    // Self node
+    var self = await dbGet(
+      "SELECT u.id, u.name, u.avatar_url, sp.stakeholder_type, sp.emc2_cohort, sp.emc2_cohort_number, sp.og_member, sp.emc2_lifetime_earned, sp.themes, sp.geography FROM users u JOIN stakeholder_profiles sp ON sp.user_id = u.id WHERE u.id = $1",
+      [req.user.id]
+    );
+    if (!self) return res.json({ success: true, self: null, nodes: [], edges: [] });
+
+    // Match nodes — revealed matches (mutual accept)
+    var matchNodes = await dbAll(
+      "SELECT DISTINCT u.id, sp.stakeholder_type, sp.emc2_cohort, sp.og_member, sp.themes, sp.geography, em.score_total as match_score, CASE WHEN em.status = 'revealed' THEN true ELSE false END as confirmed, em.id as match_id, em.status as match_status, 'match' as node_type FROM event_matches em JOIN users u ON u.id = CASE WHEN em.user_a_id = $1 THEN em.user_b_id ELSE em.user_a_id END JOIN stakeholder_profiles sp ON sp.user_id = u.id WHERE (em.user_a_id = $1 OR em.user_b_id = $1) AND em.status IN ('revealed')",
+      [req.user.id]
+    );
+
+    // Build edges
+    var edges = matchNodes.map(function(n) {
+      return {
+        source: req.user.id,
+        target: n.id,
+        type: n.confirmed ? 'match_confirmed' : 'match_accepted',
+        match_score: n.match_score
+      };
+    });
+
+    res.json({
+      success: true,
+      self: Object.assign({}, self, { node_type: 'self' }),
+      nodes: matchNodes,
+      edges: edges
+    });
+  } catch (err) {
+    console.error('[Network] my-network error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── GET /api/network/communities ── community co-members ──────────────────────
+router.get('/communities', authenticateToken, async function(req, res) {
+  try {
+    // User's communities
+    var userCommunities = [];
+    var coMembers = [];
+    try {
+      userCommunities = await dbAll(
+        "SELECT c.id, c.name, c.slug FROM communities c JOIN community_members cm ON cm.community_id = c.id WHERE cm.user_id = $1",
+        [req.user.id]
+      );
+      coMembers = await dbAll(
+        "SELECT DISTINCT u.id, sp.stakeholder_type, sp.themes, sp.emc2_cohort, sp.geography, cm.community_id, c.name as community_name, 'community' as node_type FROM community_members cm JOIN communities c ON c.id = cm.community_id JOIN users u ON u.id = cm.user_id LEFT JOIN stakeholder_profiles sp ON sp.user_id = u.id WHERE cm.community_id IN (SELECT community_id FROM community_members WHERE user_id = $1) AND cm.user_id != $1 AND sp.stakeholder_type IS NOT NULL",
+        [req.user.id]
+      );
+    } catch(e) {
+      // communities/community_members tables may not exist
+      console.warn('[Network] communities query error:', e.message);
+    }
+
+    res.json({
+      success: true,
+      communities: userCommunities,
+      nodes: coMembers
+    });
+  } catch (err) {
+    console.error('[Network] communities error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── GET /api/network/global-stats ── aggregate network stats ──────────────────
+router.get('/global-stats', authenticateToken, async function(req, res) {
+  try {
+    var stats = await dbGet(
+      "SELECT COUNT(*) as total_canisters, COUNT(*) FILTER (WHERE created_at > NOW() - INTERVAL '24 hours') as added_today, COUNT(*) FILTER (WHERE created_at > NOW() - INTERVAL '7 days') as added_this_week FROM stakeholder_profiles WHERE stakeholder_type IS NOT NULL"
+    );
+
+    // Geography clusters (anonymised aggregate, min 3 nodes)
+    var clusters = [];
+    try {
+      clusters = await dbAll(
+        "SELECT SPLIT_PART(sp.geography, ',', 1) as city, sp.stakeholder_type, COUNT(*) as node_count FROM stakeholder_profiles sp WHERE sp.geography IS NOT NULL AND sp.geography != '' AND sp.stakeholder_type IS NOT NULL GROUP BY SPLIT_PART(sp.geography, ',', 1), sp.stakeholder_type HAVING COUNT(*) >= 3"
+      );
+    } catch(e) {
+      console.warn('[Network] clusters query error:', e.message);
+    }
+
+    res.json({
+      success: true,
+      stats: {
+        total_canisters: parseInt(stats.total_canisters) || 0,
+        added_today: parseInt(stats.added_today) || 0,
+        added_this_week: parseInt(stats.added_this_week) || 0
+      },
+      clusters: clusters
+    });
+  } catch (err) {
+    console.error('[Network] global-stats error:', err);
+    res.status(500).json({ error: err.message });
   }
 });
 
