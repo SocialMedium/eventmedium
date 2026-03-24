@@ -215,6 +215,29 @@ async function runMigrations() {
     await dbRun("ALTER TABLE unified_signals ADD COLUMN IF NOT EXISTS visibility TEXT DEFAULT 'public'").catch(function(){});
     await dbRun('CREATE INDEX IF NOT EXISTS idx_unified_signals_user ON unified_signals(user_id)').catch(function(){});
     await dbRun('CREATE INDEX IF NOT EXISTS idx_unified_signals_doc ON unified_signals(document_id)').catch(function(){});
+    // Communities (may already exist from initial deploy — IF NOT EXISTS is safe)
+    await dbRun("CREATE TABLE IF NOT EXISTS communities (id SERIAL PRIMARY KEY, name TEXT NOT NULL, slug TEXT UNIQUE, description TEXT, owner_user_id INTEGER REFERENCES users(id), access_code VARCHAR(20) UNIQUE, is_active BOOLEAN DEFAULT TRUE, comm_type TEXT DEFAULT 'open', themes JSONB DEFAULT '[]', created_at TIMESTAMPTZ DEFAULT NOW(), updated_at TIMESTAMPTZ DEFAULT NOW())");
+    await dbRun("CREATE TABLE IF NOT EXISTS community_members (id SERIAL PRIMARY KEY, community_id INTEGER NOT NULL REFERENCES communities(id) ON DELETE CASCADE, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, role TEXT DEFAULT 'member', joined_at TIMESTAMPTZ DEFAULT NOW(), UNIQUE(community_id, user_id))");
+    // Match feedback / debrief tables
+    await dbRun('ALTER TABLE event_matches ADD COLUMN IF NOT EXISTS user_a_context TEXT').catch(function(){});
+    await dbRun('ALTER TABLE event_matches ADD COLUMN IF NOT EXISTS user_b_context TEXT').catch(function(){});
+    await dbRun('ALTER TABLE event_matches ADD COLUMN IF NOT EXISTS revealed_at TIMESTAMPTZ').catch(function(){});
+    await dbRun("CREATE TABLE IF NOT EXISTS match_feedback (id SERIAL PRIMARY KEY, match_id INTEGER NOT NULL REFERENCES event_matches(id) ON DELETE CASCADE, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, rating VARCHAR(30), did_meet BOOLEAN, meeting_quality INTEGER, would_meet_again BOOLEAN, outcome_type VARCHAR(50), outcome_notes TEXT, relevance_score INTEGER, theme_accuracy BOOLEAN, intent_accuracy BOOLEAN, stakeholder_fit_accuracy BOOLEAN, what_worked TEXT, what_didnt TEXT, nev_chat_started BOOLEAN DEFAULT false, nev_chat_completed BOOLEAN DEFAULT false, created_at TIMESTAMPTZ DEFAULT NOW(), updated_at TIMESTAMPTZ DEFAULT NOW(), UNIQUE(match_id, user_id))");
+    await dbRun("CREATE TABLE IF NOT EXISTS nev_debrief_messages (id SERIAL PRIMARY KEY, match_feedback_id INTEGER NOT NULL REFERENCES match_feedback(id) ON DELETE CASCADE, role VARCHAR(20) NOT NULL, content TEXT NOT NULL, metadata JSONB, created_at TIMESTAMPTZ DEFAULT NOW())");
+    await dbRun("CREATE TABLE IF NOT EXISTS feedback_insights (id SERIAL PRIMARY KEY, match_feedback_id INTEGER NOT NULL REFERENCES match_feedback(id) ON DELETE CASCADE, user_id INTEGER NOT NULL REFERENCES users(id), insight_type VARCHAR(50) NOT NULL, insight_key VARCHAR(100), insight_value TEXT, confidence REAL DEFAULT 0.5, applied BOOLEAN DEFAULT false, created_at TIMESTAMPTZ DEFAULT NOW())");
+    await dbRun("CREATE TABLE IF NOT EXISTS match_outcomes (id SERIAL PRIMARY KEY, match_id INTEGER NOT NULL REFERENCES event_matches(id) ON DELETE CASCADE, created_at TIMESTAMPTZ DEFAULT NOW(), UNIQUE(match_id))").catch(function(){});
+    // Abuse flags
+    await dbRun("CREATE TABLE IF NOT EXISTS abuse_flags (id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, flag_type TEXT NOT NULL, reason TEXT, score INTEGER DEFAULT 0, reviewed BOOLEAN DEFAULT false, reviewed_by INTEGER, created_at TIMESTAMPTZ DEFAULT NOW())");
+    // Indexes for feedback/debrief/abuse
+    await dbRun('CREATE INDEX IF NOT EXISTS idx_match_feedback_match ON match_feedback(match_id)').catch(function(){});
+    await dbRun('CREATE INDEX IF NOT EXISTS idx_match_feedback_user ON match_feedback(user_id)').catch(function(){});
+    await dbRun('CREATE INDEX IF NOT EXISTS idx_nev_debrief_feedback ON nev_debrief_messages(match_feedback_id)').catch(function(){});
+    await dbRun('CREATE INDEX IF NOT EXISTS idx_feedback_insights_user ON feedback_insights(user_id)').catch(function(){});
+    await dbRun('CREATE INDEX IF NOT EXISTS idx_feedback_insights_type ON feedback_insights(insight_type)').catch(function(){});
+    await dbRun('CREATE INDEX IF NOT EXISTS idx_abuse_flags_user ON abuse_flags(user_id)').catch(function(){});
+    await dbRun('CREATE INDEX IF NOT EXISTS idx_abuse_flags_recent ON abuse_flags(created_at DESC)').catch(function(){});
+    await dbRun('CREATE INDEX IF NOT EXISTS idx_event_matches_status ON event_matches(status)').catch(function(){});
+    await dbRun('CREATE INDEX IF NOT EXISTS idx_event_matches_revealed ON event_matches(revealed_at)').catch(function(){});
     // emc2_ledger indexes
     await dbRun('CREATE INDEX IF NOT EXISTS idx_emc2_ledger_user_id ON emc2_ledger(user_id)');
     await dbRun('CREATE INDEX IF NOT EXISTS idx_emc2_ledger_created_at ON emc2_ledger(created_at)');
