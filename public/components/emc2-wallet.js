@@ -30,15 +30,55 @@ async function renderEMC2Wallet(containerId) {
 
   // Always render — use defaults if API failed or returned null
   if (!wallet) {
-    wallet = { emc2_balance: 0, emc2_lifetime_earned: 0, global_access_active: false, founding_member: false };
+    wallet = { emc2_balance: 0, emc2_lifetime_earned: 0, global_access_active: false, founding_member: false, og_member: false, access_tier: null };
   }
 
-  var accessBadge = wallet.founding_member
-    ? '<span class="emc2-badge founding">\u2B21 Founding Member</span>'
-    : wallet.global_access_active
-      ? '<span class="emc2-badge global">\u25C9 Global Access Active</span>'
-      : '<span class="emc2-badge locked">\u25CE Local Access</span>';
+  var isOG = !!wallet.og_member;
+  var cardClass = isOG ? 'emc2-wallet og-card' : 'emc2-wallet';
 
+  // Access badge
+  var accessBadge = '';
+  if (isOG) {
+    accessBadge = '<span class="emc2-badge og">\u2B21 Original Genesis</span>';
+  } else if (wallet.founding_member) {
+    accessBadge = '<span class="emc2-badge founding">\u2B21 Founding Member</span>';
+  } else if (wallet.global_access_active) {
+    accessBadge = '<span class="emc2-badge global">\u25C9 Global Access Active</span>';
+  } else {
+    accessBadge = '<span class="emc2-badge locked">\u25CE Local Access</span>';
+  }
+
+  // OG tag line under wallet label
+  var ogTagHTML = isOG ? '<div class="emc2-og-tag">\u2B21 Original Genesis</div>' : '';
+
+  // Logo — gold for OG, gradient for standard
+  var logoHTML = '<div class="emc2-logo">EMC\u00B2</div>';
+
+  // Tier progress bar
+  var tierHTML = '';
+  var tier = wallet.access_tier;
+  if (tier) {
+    var pct = tier.next_threshold
+      ? Math.min(100, Math.round((tier.progress / tier.progress_target) * 100))
+      : 100;
+
+    var progressBar = tier.next_threshold
+      ? '<div class="emc2-tier-bar-track"><div class="emc2-tier-bar-fill" style="width:' + pct + '%"></div></div>' +
+        '<div class="emc2-tier-progress-label">' + (tier.progress || 0).toLocaleString() + ' / ' + tier.progress_target.toLocaleString() + ' EMC\u00B2 \u2014 ' + tier.next_name + '</div>'
+      : '<div class="emc2-tier-progress-label">Maximum tier reached</div>';
+
+    var nextHint = tier.next_threshold
+      ? '<div class="emc2-tier-next">Next: ' + tier.next_name + ' at ' + tier.next_threshold.toLocaleString() + ' EMC\u00B2</div>'
+      : '';
+
+    tierHTML = '<div class="emc2-tier-block">' +
+      '<div class="emc2-tier-name">\u25C9 ' + tier.name + '</div>' +
+      progressBar +
+      nextHint +
+    '</div>';
+  }
+
+  // Action labels for history
   var actionLabels = {
     canister_complete:        'Canister completed',
     canister_quality_bonus:   'Quality bonus',
@@ -66,18 +106,18 @@ async function renderEMC2Wallet(containerId) {
     }
   }
 
-  var unlockHTML = '';
-  if (!wallet.global_access_active && !wallet.founding_member) {
-    unlockHTML = '<div class="emc2-unlock">' +
-      '<p>Unlock global network matching</p>' +
-      '<button onclick="unlockGlobalAccess()" class="emc2-unlock-btn">Unlock for 200 EMC\u00B2</button>' +
-      '</div>';
+  // OG footer
+  var footerExtra = '';
+  if (isOG && wallet.emc2_cohort_number) {
+    footerExtra = '<div class="emc2-og-footer">OG Member #' + wallet.emc2_cohort_number + ' of 10,000</div>';
+  } else if (isOG) {
+    footerExtra = '<div class="emc2-og-footer">OG Member \u2014 First 10,000</div>';
   }
 
   container.innerHTML =
-    '<div class="emc2-wallet">' +
+    '<div class="' + cardClass + '">' +
       '<div class="emc2-wallet-header">' +
-        '<div class="emc2-logo">EMC\u00B2</div>' +
+        '<div>' + logoHTML + ogTagHTML + '</div>' +
         '<div class="emc2-wallet-label">Your Wallet</div>' +
       '</div>' +
       '<div class="emc2-balance-row">' +
@@ -91,7 +131,7 @@ async function renderEMC2Wallet(containerId) {
         '</div>' +
       '</div>' +
       '<div class="emc2-access-row">' + accessBadge + '</div>' +
-      unlockHTML +
+      tierHTML +
       '<div class="emc2-history">' +
         '<div class="emc2-history-title">Recent Activity</div>' +
         (historyHTML || '<div class="emc2-empty">No activity yet</div>') +
@@ -101,10 +141,11 @@ async function renderEMC2Wallet(containerId) {
           'EMC\u00B2 credits are earned through your network activity and unlock matching across the global EventMedium ecosystem.' +
           '<br><span class="emc2-asset-note">Early members build a verified position as the ecosystem grows.</span>' +
         '</small>' +
+        footerExtra +
       '</div>' +
     '</div>';
 
-  console.log('[EMC² Wallet] rendered successfully');
+  console.log('[EMC² Wallet] rendered successfully, og:', isOG, 'tier:', tier ? tier.name : 'none');
 }
 
 async function unlockGlobalAccess() {

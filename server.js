@@ -189,6 +189,7 @@ async function runMigrations() {
     await dbRun("ALTER TABLE stakeholder_profiles ADD COLUMN IF NOT EXISTS emc2_cohort VARCHAR(20)");
     await dbRun('ALTER TABLE stakeholder_profiles ADD COLUMN IF NOT EXISTS emc2_cohort_number INTEGER');
     await dbRun('ALTER TABLE stakeholder_profiles ADD COLUMN IF NOT EXISTS emc2_earn_multiplier NUMERIC(3,1) DEFAULT 1.0');
+    await dbRun('ALTER TABLE stakeholder_profiles ADD COLUMN IF NOT EXISTS og_member BOOLEAN DEFAULT FALSE');
     // emc2_ledger indexes
     await dbRun('CREATE INDEX IF NOT EXISTS idx_emc2_ledger_user_id ON emc2_ledger(user_id)');
     await dbRun('CREATE INDEX IF NOT EXISTS idx_emc2_ledger_created_at ON emc2_ledger(created_at)');

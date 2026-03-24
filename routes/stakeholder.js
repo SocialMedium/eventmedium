@@ -195,6 +195,16 @@ router.post('/profile', authenticateToken, async function(req, res) {
           metadata:    { quality_score: qualityScore }
         });
       }
+
+      // OG status: first 10,000 completed canisters
+      try {
+        var ogCount = await dbGet("SELECT COUNT(*) as count FROM stakeholder_profiles WHERE emc2_balance > 0 OR og_member = TRUE");
+        if (ogCount && parseInt(ogCount.count) <= 10000) {
+          await dbRun('UPDATE stakeholder_profiles SET og_member = TRUE WHERE user_id = $1', [req.user.id]);
+        }
+      } catch(ogErr) {
+        console.error('[EMC²] OG status check error:', ogErr.message);
+      }
     } catch(emc2Err) {
       console.error('[EMC²] canister_complete error:', emc2Err.message);
     }

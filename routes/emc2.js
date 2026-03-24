@@ -25,31 +25,16 @@ router.get('/history', authenticateToken, async function(req, res) {
   }
 });
 
-// POST /api/emc2/unlock-global — spend to unlock global matching
+// POST /api/emc2/unlock-global — legacy endpoint, now returns tier info
 router.post('/unlock-global', authenticateToken, async function(req, res) {
   try {
     var wallet = await emc2.getWallet(req.user.id);
-
-    if (wallet && (wallet.founding_member || wallet.global_access_active)) {
-      return res.json({
-        success: true,
-        message: 'Global access already active'
-      });
-    }
-
-    var result = await emc2.recordTransaction({
-      user_id:     req.user.id,
-      action_type: 'global_access_unlock'
+    res.json({
+      success: true,
+      message: 'Access tier is earned automatically through network activity.',
+      access_tier: wallet ? wallet.access_tier : null
     });
-
-    res.json({ success: true, result: result });
   } catch (err) {
-    if (err.message === 'INSUFFICIENT_EMC2_BALANCE') {
-      return res.status(402).json({
-        error: 'Insufficient EMC² balance',
-        required: 200
-      });
-    }
     res.status(500).json({ error: err.message });
   }
 });

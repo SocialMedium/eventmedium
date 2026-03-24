@@ -180,35 +180,49 @@ body{font-family:var(--font);color:var(--txt);background:var(--bg);-webkit-font-
 .rec-feed-name{font-size:13px;font-weight:600;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rec-feed-meta{font-size:11px;color:var(--txtL)}
 .rec-feed-reason{font-size:10px;color:var(--p);font-weight:500;margin-top:1px}
-/* ── EMC² Wallet ── */
-.emc2-wallet{background:linear-gradient(135deg,#1a1d29 0%,#2d1b69 50%,#1a1d29 100%);border-radius:16px;padding:24px;color:#fff;margin-bottom:24px}
+/* ── EMC² Wallet — Standard card ── */
+.emc2-wallet{background:linear-gradient(135deg,#1a0533 0%,#2d1b69 50%,#1a0533 100%);border-radius:16px;padding:24px;color:#fff;margin-bottom:24px}
 .emc2-wallet-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
-.emc2-logo{font-size:22px;font-weight:900;letter-spacing:1px;background:linear-gradient(135deg,#6c63ff,#00d084);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.emc2-wallet-label{font-size:12px;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:1px}
+.emc2-logo{font-size:22px;font-weight:900;letter-spacing:1px;background:linear-gradient(135deg,#6c63ff,#00d084);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.emc2-wallet-label{font-size:12px;color:rgba(255,255,255,0.75);text-transform:uppercase;letter-spacing:1px}
 .emc2-balance-row{display:flex;gap:32px;margin-bottom:16px}
-.emc2-balance-value{font-size:32px;font-weight:800;letter-spacing:-1px}
-.emc2-balance-value.lifetime{font-size:24px;color:rgba(255,255,255,0.6)}
-.emc2-balance-label{font-size:11px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px}
+.emc2-balance-value{font-size:32px;font-weight:800;letter-spacing:-1px;color:#fff}
+.emc2-balance-value.lifetime{font-size:24px;color:rgba(255,255,255,0.8)}
+.emc2-balance-label{font-size:11px;color:rgba(255,255,255,0.65);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px}
 .emc2-access-row{margin-bottom:16px}
 .emc2-badge{display:inline-block;padding:4px 14px;border-radius:20px;font-size:12px;font-weight:600}
 .emc2-badge.founding{background:linear-gradient(135deg,rgba(108,99,255,0.3),rgba(0,208,132,0.3));border:1px solid rgba(108,99,255,0.5);color:#00d084}
 .emc2-badge.global{background:rgba(0,208,132,0.15);border:1px solid rgba(0,208,132,0.3);color:#00d084}
-.emc2-badge.locked{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.5)}
-.emc2-unlock{background:rgba(255,255,255,0.06);border-radius:10px;padding:14px;margin-bottom:16px;text-align:center}
-.emc2-unlock p{font-size:13px;color:rgba(255,255,255,0.6);margin-bottom:8px}
-.emc2-unlock-btn{background:linear-gradient(135deg,#6c63ff,#0066ff);color:#fff;border:none;padding:8px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:opacity 0.2s}
-.emc2-unlock-btn:hover{opacity:0.85}
-.emc2-history{border-top:1px solid rgba(255,255,255,0.08);padding-top:14px}
-.emc2-history-title{font-size:11px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px}
+.emc2-badge.locked{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.65)}
+.emc2-badge.og{background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.4);color:#C9A84C}
+.emc2-history{border-top:1px solid rgba(255,255,255,0.12);padding-top:14px}
+.emc2-history-title{font-size:11px;color:rgba(255,255,255,0.65);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px}
 .emc2-tx{display:flex;justify-content:space-between;align-items:center;padding:6px 0}
-.emc2-tx-label{font-size:13px;color:rgba(255,255,255,0.7)}
+.emc2-tx-label{font-size:13px;color:rgba(255,255,255,0.8)}
 .emc2-tx-amount{font-size:13px;font-weight:700}
 .emc2-tx-amount.earn{color:#00d084}
 .emc2-tx-amount.spend{color:#f59e0b}
-.emc2-empty{font-size:13px;color:rgba(255,255,255,0.3);text-align:center;padding:12px 0}
-.emc2-footer{margin-top:14px;border-top:1px solid rgba(255,255,255,0.06);padding-top:12px}
-.emc2-footer small{font-size:11px;color:rgba(255,255,255,0.3);line-height:1.5}
-.emc2-asset-note{color:rgba(108,99,255,0.6)}
+.emc2-empty{font-size:13px;color:rgba(255,255,255,0.5);text-align:center;padding:12px 0}
+.emc2-footer{margin-top:14px;border-top:1px solid rgba(255,255,255,0.1);padding-top:12px}
+.emc2-footer small{font-size:11px;color:rgba(255,255,255,0.6);line-height:1.5}
+.emc2-asset-note{color:rgba(255,255,255,0.75)}
+/* Tier progress */
+.emc2-tier-block{margin:12px 0}
+.emc2-tier-name{font-size:13px;font-weight:500;color:#fff;margin-bottom:8px}
+.emc2-tier-bar-track{height:3px;background:rgba(255,255,255,0.15);border-radius:2px;margin-bottom:6px}
+.emc2-tier-bar-fill{height:3px;background:#C9A84C;border-radius:2px;transition:width 0.4s ease}
+.emc2-tier-progress-label{font-size:11px;color:rgba(255,255,255,0.6)}
+.emc2-tier-next{font-size:11px;color:rgba(255,255,255,0.5);margin-top:4px}
+/* OG Black Card variant */
+.emc2-wallet.og-card{background:#0a0a0a;border:1px solid rgba(201,168,76,0.3)}
+.emc2-wallet.og-card .emc2-logo{background:none;-webkit-background-clip:unset;-webkit-text-fill-color:#C9A84C;background-clip:unset;color:#C9A84C}
+.emc2-wallet.og-card .emc2-og-tag{font-size:11px;color:#C9A84C;letter-spacing:0.08em;margin-top:2px}
+.emc2-wallet.og-card .emc2-history{border-top-color:rgba(201,168,76,0.2)}
+.emc2-wallet.og-card .emc2-footer{border-top-color:rgba(201,168,76,0.15)}
+.emc2-wallet.og-card .emc2-footer small{color:rgba(255,255,255,0.65)}
+.emc2-wallet.og-card .emc2-og-footer{font-size:11px;color:#C9A84C;margin-top:6px}
+.emc2-wallet.og-card .emc2-tier-bar-fill{background:#C9A84C}
+.emc2-wallet.og-card .emc2-badge.og{background:rgba(201,168,76,0.12);border:1px solid rgba(201,168,76,0.35);color:#C9A84C}
 </style>
 <link rel="stylesheet" href="/css/nav.css"><link rel="icon" type="image/png" href="/images/em-logo.png"></head>
 <body>
