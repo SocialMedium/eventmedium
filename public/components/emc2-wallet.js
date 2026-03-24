@@ -29,7 +29,7 @@ async function renderEMC2Wallet(containerId) {
   var isOG = !!wallet.og_member;
   var cardClass = isOG ? 'emc2-wallet og-card' : 'emc2-wallet';
 
-  // Badge
+  // Badge — single instance, no duplicate in header
   var accessBadge = '';
   if (isOG) {
     accessBadge = '<span class="emc2-badge og">\u2B21 Original Genesis</span>';
@@ -37,16 +37,16 @@ async function renderEMC2Wallet(containerId) {
     accessBadge = '<span class="emc2-badge founding">\u2B21 Founding Member</span>';
   }
 
-  var ogTagHTML = isOG ? '<div class="emc2-og-tag">\u2B21 Original Genesis</div>' : '';
+  // Logo only — no OG tag in header (badge carries it)
   var logoHTML = '<div class="emc2-logo">EMC\u00B2</div>';
 
-  // Canister number display
+  // Canister number — "OG #2" for OG, "#2" for standard, no subtitle
   var cohortNumber = wallet.emc2_cohort_number;
-  var numberColor = isOG ? '#C9A84C' : 'rgba(255,255,255,0.9)';
-  var numberLabelColor = isOG ? 'rgba(201,168,76,0.6)' : 'rgba(255,255,255,0.3)';
-  var numberHTML = cohortNumber
-    ? '<div style="font-size:22px;font-weight:500;color:' + numberColor + ';letter-spacing:0.02em;margin-top:4px;line-height:1">#' + cohortNumber.toLocaleString() + '</div>' +
-      '<div style="font-size:10px;color:' + numberLabelColor + ';letter-spacing:0.06em;text-transform:uppercase;margin-top:3px">' + (isOG ? 'OG canister' : 'Canister') + ' number</div>'
+  var numberDisplay = cohortNumber
+    ? (isOG ? 'OG #' : '#') + cohortNumber.toLocaleString()
+    : '';
+  var numberHTML = numberDisplay
+    ? '<div style="font-size:28px;font-weight:600;color:#C9A84C;letter-spacing:0.04em;line-height:1;margin-bottom:12px">' + numberDisplay + '</div>'
     : '';
 
   // Match cost table
@@ -79,19 +79,21 @@ async function renderEMC2Wallet(containerId) {
     }
   }
 
-  // Footer with canister number
-  var footerColor = isOG ? 'rgba(201,168,76,0.5)' : 'rgba(255,255,255,0.3)';
+  // Footer
   var footerExtra = '';
   if (cohortNumber) {
-    footerExtra = '<div style="font-size:11px;color:' + footerColor + ';text-align:center;margin-top:12px;line-height:1.6">' +
-      'Canister #' + cohortNumber.toLocaleString() + ' of ' + (isOG ? '10,000 OG members' : 'the network') +
-      '<br><span style="font-size:10px;opacity:0.7">This number is permanent and on-chain verifiable</span></div>';
+    var footerNum = isOG ? 'OG #' + cohortNumber.toLocaleString() : '#' + cohortNumber.toLocaleString();
+    footerExtra =
+      '<div style="font-size:11px;color:rgba(201,168,76,0.75);text-align:center;margin-top:10px">' +
+        'Canister ' + footerNum + ' of ' + (isOG ? '10,000 OG members' : 'the network') +
+      '</div>' +
+      '<div style="font-size:10px;color:rgba(255,255,255,0.3);text-align:center;margin-top:3px">This number is permanent and on-chain verifiable</div>';
   }
 
   container.innerHTML =
     '<div class="' + cardClass + '">' +
       '<div class="emc2-wallet-header">' +
-        '<div>' + logoHTML + ogTagHTML + '</div>' +
+        '<div>' + logoHTML + '</div>' +
         '<div class="emc2-wallet-label">Your Wallet</div>' +
       '</div>' +
       '<div class="emc2-balance-row">' +
@@ -107,8 +109,9 @@ async function renderEMC2Wallet(containerId) {
       (accessBadge ? '<div class="emc2-access-row">' + accessBadge + '</div>' : '') +
       numberHTML +
       accessHTML +
+      '<div style="height:0.5px;background:rgba(255,255,255,0.12);margin:12px 0"></div>' +
       '<div class="emc2-history">' +
-        '<div class="emc2-history-title">Recent Activity</div>' +
+        '<div style="font-size:10px;letter-spacing:0.07em;text-transform:uppercase;color:rgba(255,255,255,0.4);margin-bottom:8px">Recent Activity</div>' +
         (historyHTML || '<div class="emc2-empty">No activity yet</div>') +
       '</div>' +
       '<div class="emc2-footer">' +
