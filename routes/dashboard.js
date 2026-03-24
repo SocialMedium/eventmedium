@@ -1106,7 +1106,7 @@ router.post('/send-beta-emails', authenticateToken, adminOnly, async function(re
       var refUrl = 'https://www.eventmedium.ai/onboard.html';
 
       if (dryRun) {
-        results.sent.push({ id: user.id, email: user.email, subject: subject, segment: segment, refCode: refCode, dry_run: true });
+        results.sent.push({ id: user.id, name: user.name, email: user.email, subject: subject, segment: segment, refCode: refCode, dry_run: true });
         continue;
       }
 
@@ -1135,6 +1135,79 @@ router.post('/send-beta-emails', authenticateToken, adminOnly, async function(re
     res.json({ success: true, dry_run: dryRun, results: results });
   } catch(err) {
     console.error('[Beta emails] Error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── POST /api/admin/send-single-beta-email — send to one user with optional segment override ──
+router.post('/send-single-beta-email', authenticateToken, adminOnly, async function(req, res) {
+  try {
+    var userId = req.body.user_id;
+    var segmentOverride = req.body.segment_override;
+    if (!userId) return res.status(400).json({ error: 'user_id required' });
+
+    var user = await dbGet("SELECT u.id, u.name, u.email, u.referral_code, u.city, u.country, sp.user_id, sp.emc2_cohort, sp.emc2_cohort_number, sp.og_member, sp.emc2_balance, sp.emc2_earn_multiplier, sp.stakeholder_type, sp.focus_text, sp.themes FROM users u LEFT JOIN stakeholder_profiles sp ON sp.user_id = u.id WHERE u.id = $1", [userId]);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    var segment = segmentOverride || getSegment(user);
+    var subject = getSubject(segment, user);
+    var firstName = user.name ? user.name.split(' ')[0] : 'there';
+    var refCode = user.referral_code || null;
+    var refUrl = 'https://www.eventmedium.ai/onboard.html';
+    var emailOpts = { user: user, firstName: firstName, refCode: refCode, refUrl: refUrl };
+
+    var html;
+    switch(segment) {
+      case 'complete_no_city': html = buildCompleteNoCityEmail(emailOpts); break;
+      case 'partial': html = buildPartialEmail(emailOpts); break;
+      case 'zero': html = buildZeroEmail(emailOpts); break;
+      case 'complete_with_city': default: html = buildCompleteWithCityEmail(emailOpts); break;
+    }
+
+    if (!process.env.RESEND_API_KEY) return res.status(500).json({ error: 'RESEND_API_KEY not set' });
+    var Resend = require('resend').Resend;
+    var resend = new Resend(process.env.RESEND_API_KEY);
+    await resend.emails.send({
+      from: process.env.FROM_EMAIL || 'nev@eventmedium.ai',
+      to: user.email,
+      subject: subject,
+      html: html
+    });
+
+    res.json({ success: true, email: user.email, segment: segment, subject: subject });
+  } catch(err) {
+    console.error('[Single beta email] Error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── POST /api/admin/preview-beta-email — return HTML without sending ──
+router.post('/preview-beta-email', authenticateToken, adminOnly, async function(req, res) {
+  try {
+    var userId = req.body.user_id;
+    var segmentOverride = req.body.segment_override;
+    if (!userId) return res.status(400).json({ error: 'user_id required' });
+
+    var user = await dbGet("SELECT u.id, u.name, u.email, u.referral_code, u.city, u.country, sp.user_id, sp.emc2_cohort, sp.emc2_cohort_number, sp.og_member, sp.emc2_balance, sp.emc2_earn_multiplier, sp.stakeholder_type, sp.focus_text, sp.themes FROM users u LEFT JOIN stakeholder_profiles sp ON sp.user_id = u.id WHERE u.id = $1", [userId]);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    var segment = segmentOverride || getSegment(user);
+    var subject = getSubject(segment, user);
+    var firstName = user.name ? user.name.split(' ')[0] : 'there';
+    var refCode = user.referral_code || null;
+    var refUrl = 'https://www.eventmedium.ai/onboard.html';
+    var emailOpts = { user: user, firstName: firstName, refCode: refCode, refUrl: refUrl };
+
+    var html;
+    switch(segment) {
+      case 'complete_no_city': html = buildCompleteNoCityEmail(emailOpts); break;
+      case 'partial': html = buildPartialEmail(emailOpts); break;
+      case 'zero': html = buildZeroEmail(emailOpts); break;
+      case 'complete_with_city': default: html = buildCompleteWithCityEmail(emailOpts); break;
+    }
+
+    res.json({ success: true, html: html, subject: subject, segment: segment, name: user.name, email: user.email });
+  } catch(err) {
     res.status(500).json({ error: err.message });
   }
 });

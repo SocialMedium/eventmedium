@@ -168,6 +168,41 @@ body{font-family:var(--sans);background:var(--bg2);color:var(--text);min-height:
 .note-input{width:100%;font-size:12px;padding:5px 8px;border:1px solid var(--border);border-radius:4px;color:var(--text2);background:var(--bg2);font-family:var(--sans)}
 .note-input:focus{outline:none;border-color:var(--accent)}
 
+/* ── Email queue ── */
+.eq-item{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:10px;transition:opacity 0.3s}
+.eq-item.sent{opacity:0.4}
+.eq-header{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px}
+.eq-user{flex:1}
+.eq-name{font-size:14px;font-weight:600;color:var(--heading)}
+.eq-email{font-size:12px;color:var(--text3)}
+.eq-segment{display:inline-block;font-size:10px;font-weight:600;padding:3px 8px;border-radius:10px;margin-top:4px}
+.eq-segment.complete_with_city{background:var(--greenL);color:var(--green)}
+.eq-segment.complete_no_city{background:var(--amberL);color:var(--amber)}
+.eq-segment.partial{background:var(--blueL);color:var(--blue)}
+.eq-segment.zero{background:var(--redL);color:var(--red)}
+.eq-details{font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.5}
+.eq-detail-row{display:flex;gap:16px;flex-wrap:wrap}
+.eq-detail-row span{white-space:nowrap}
+.eq-subject{font-size:13px;color:var(--heading);font-style:italic;padding:8px 12px;background:var(--bg2);border-radius:6px;margin-bottom:10px;border-left:3px solid var(--accent)}
+.eq-actions{display:flex;gap:8px;align-items:center}
+.eq-send-btn{padding:6px 16px;background:var(--heading);color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;font-family:var(--sans);transition:opacity 0.15s}
+.eq-send-btn:hover{opacity:0.8}
+.eq-send-btn:disabled{opacity:0.4;cursor:not-allowed}
+.eq-skip-btn{padding:6px 12px;background:transparent;color:var(--text3);border:1px solid var(--border);border-radius:6px;font-size:12px;cursor:pointer;font-family:var(--sans)}
+.eq-preview-btn{padding:6px 12px;background:transparent;color:var(--accent);border:1px solid rgba(99,102,241,0.3);border-radius:6px;font-size:12px;cursor:pointer;font-family:var(--sans)}
+.eq-status{font-size:11px;font-weight:500;margin-left:8px}
+.eq-status.ok{color:var(--green)}
+.eq-status.err{color:var(--red)}
+.eq-stats{display:flex;gap:20px;padding:12px 16px;background:var(--bg);border:1px solid var(--border);border-radius:8px}
+.eq-stat{text-align:center}
+.eq-stat-val{font-size:20px;font-weight:700;color:var(--heading)}
+.eq-stat-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px}
+.eq-override{font-size:11px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text2);cursor:pointer;font-family:var(--sans)}
+.eq-preview-modal{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:2000;display:flex;align-items:center;justify-content:center;padding:20px}
+.eq-preview-frame{background:#fff;border-radius:12px;width:100%;max-width:620px;max-height:85vh;overflow:hidden;display:flex;flex-direction:column}
+.eq-preview-header{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border)}
+.eq-preview-iframe{flex:1;border:none;width:100%;min-height:500px}
+
 @media(max-width:900px){
   .grid{grid-template-columns:1fr}
   .kpi-row{grid-template-columns:repeat(3,1fr)}
@@ -205,6 +240,7 @@ body{font-family:var(--sans);background:var(--bg2);color:var(--text);min-height:
     <button class="tab" data-tab="live">Live Activity</button>
     <button class="tab" data-tab="abuse">Abuse Flags</button>
     <button class="tab" data-tab="feedback">Feedback</button>
+    <button class="tab" data-tab="emails">Emails</button>
   </div>
   <div id="matching" class="tab-content active"></div>
   <div id="supply" class="tab-content"></div>
@@ -230,6 +266,17 @@ body{font-family:var(--sans);background:var(--bg2);color:var(--text);min-height:
     </div>
     <div id="feedback-list"></div>
   </div>
+  <div id="emails" class="tab-content">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <div>
+        <div style="font-size:16px;font-weight:600;color:var(--heading)">Beta Email Campaign</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:2px">Review each user, confirm segment, send individually</div>
+      </div>
+      <button class="analysis-run-btn" id="email-load-btn" onclick="loadEmailQueue()">Load users</button>
+    </div>
+    <div id="email-queue-stats" style="display:none;margin-bottom:16px"></div>
+    <div id="email-queue"></div>
+  </div>
   <div class="footer">
     <span>EventMedium.ai · Internal · Anonymized</span>
     <span style="font-family:var(--mono)">Signals Guide v1</span>
@@ -247,6 +294,7 @@ document.querySelectorAll('.tab').forEach(function(t) {
     t.classList.add('active');
     document.getElementById(t.dataset.tab).classList.add('active');
     if (t.dataset.tab === 'feedback') activateFeedbackTab();
+    if (t.dataset.tab === 'emails' && !_emailQueueLoaded) loadEmailQueue();
   });
 });
 
@@ -1682,6 +1730,158 @@ function scrollToFeedback(id) {
     el.style.outline = '2px solid #C9A84C';
     setTimeout(function() { el.style.outline = ''; }, 2000);
   }
+}
+
+// ── Email queue ──────────────────────────────────────────────────────────────
+var _emailQueueLoaded = false;
+var _emailUsers = [];
+
+var SEGMENT_LABELS = { complete_with_city: 'Complete + City', complete_no_city: 'Complete — No City', partial: 'Partial Canister', zero: 'No Canister' };
+var SEGMENT_DESCS = { complete_with_city: 'Founding Member confirmation', complete_no_city: 'Missing city — confirm location CTA', partial: 'Finish canister CTA', zero: 'Build canister CTA' };
+
+async function loadEmailQueue() {
+  _emailQueueLoaded = true;
+  var btn = document.getElementById('email-load-btn');
+  btn.disabled = true; btn.textContent = 'Loading...';
+  var queue = document.getElementById('email-queue');
+  queue.innerHTML = '<div class="loading">Loading users...</div>';
+
+  try {
+    var res = await fetch('/api/admin/send-beta-emails', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dry_run: true })
+    }).then(function(r) { return r.json(); });
+
+    _emailUsers = res.results.sent;
+    var counts = { complete_with_city: 0, complete_no_city: 0, partial: 0, zero: 0 };
+    _emailUsers.forEach(function(u) { counts[u.segment] = (counts[u.segment] || 0) + 1; });
+
+    // Stats bar
+    var statsEl = document.getElementById('email-queue-stats');
+    statsEl.style.display = 'flex';
+    statsEl.className = 'eq-stats';
+    statsEl.innerHTML =
+      '<div class="eq-stat"><div class="eq-stat-val">' + _emailUsers.length + '</div><div class="eq-stat-label">Total</div></div>' +
+      '<div class="eq-stat"><div class="eq-stat-val" style="color:var(--green)">' + counts.complete_with_city + '</div><div class="eq-stat-label">Complete + City</div></div>' +
+      '<div class="eq-stat"><div class="eq-stat-val" style="color:var(--amber)">' + counts.complete_no_city + '</div><div class="eq-stat-label">No City</div></div>' +
+      '<div class="eq-stat"><div class="eq-stat-val" style="color:var(--blue)">' + counts.partial + '</div><div class="eq-stat-label">Partial</div></div>' +
+      '<div class="eq-stat"><div class="eq-stat-val" style="color:var(--red)">' + counts.zero + '</div><div class="eq-stat-label">Zero</div></div>';
+
+    renderEmailQueue();
+    btn.textContent = 'Reload'; btn.disabled = false;
+  } catch(e) {
+    queue.innerHTML = '<div class="analysis-error">Failed to load: ' + e.message + '</div>';
+    btn.textContent = 'Retry'; btn.disabled = false;
+  }
+}
+
+function renderEmailQueue() {
+  var queue = document.getElementById('email-queue');
+  if (!_emailUsers.length) { queue.innerHTML = '<div class="empty-section">No users to email.</div>'; return; }
+
+  queue.innerHTML = _emailUsers.map(function(u, idx) {
+    var segLabel = SEGMENT_LABELS[u.segment] || u.segment;
+    var segDesc = SEGMENT_DESCS[u.segment] || '';
+    return '<div class="eq-item" id="eq-' + u.id + '">' +
+      '<div class="eq-header">' +
+        '<div class="eq-user">' +
+          '<div class="eq-name">' + esc(u.name || u.email.split('@')[0]) + ' <span style="font-weight:400;color:var(--text3)">#' + u.id + '</span></div>' +
+          '<div class="eq-email">' + esc(u.email) + '</div>' +
+          '<span class="eq-segment ' + u.segment + '">' + segLabel + '</span>' +
+        '</div>' +
+        '<div class="eq-actions">' +
+          '<select class="eq-override" id="eq-seg-' + u.id + '" onchange="overrideSegment(' + idx + ',this.value)">' +
+            '<option value="complete_with_city"' + (u.segment === 'complete_with_city' ? ' selected' : '') + '>Complete + City</option>' +
+            '<option value="complete_no_city"' + (u.segment === 'complete_no_city' ? ' selected' : '') + '>No City</option>' +
+            '<option value="partial"' + (u.segment === 'partial' ? ' selected' : '') + '>Partial</option>' +
+            '<option value="zero"' + (u.segment === 'zero' ? ' selected' : '') + '>Zero</option>' +
+          '</select>' +
+          '<button class="eq-preview-btn" onclick="previewEmail(' + idx + ')">Preview</button>' +
+          '<button class="eq-send-btn" id="eq-send-' + u.id + '" onclick="sendSingleEmail(' + idx + ')">Send</button>' +
+          '<button class="eq-skip-btn" onclick="skipEmail(' + idx + ')">Skip</button>' +
+          '<span class="eq-status" id="eq-status-' + u.id + '"></span>' +
+        '</div>' +
+      '</div>' +
+      '<div class="eq-subject">' + esc(u.subject) + '</div>' +
+      '<div class="eq-details"><div class="eq-detail-row">' +
+        '<span>Ref: ' + (u.refCode || 'none') + '</span>' +
+        '<span>Type: ' + segDesc + '</span>' +
+      '</div></div>' +
+    '</div>';
+  }).join('');
+}
+
+function overrideSegment(idx, newSegment) {
+  _emailUsers[idx].segment = newSegment;
+  // Recalculate subject with override
+  var u = _emailUsers[idx];
+  var name = u.email.split('@')[0]; // fallback since we only have email in dry_run
+  var segs = { complete_with_city: 'your Founding Member position on EventMedium is confirmed', complete_no_city: 'one thing missing from your Founding Member profile', partial: 'your Founding Member position is still open', zero: 'your Founding Member position is waiting' };
+  _emailUsers[idx].subject = segs[newSegment] || segs.zero;
+  // Re-render just this item's subject
+  var el = document.getElementById('eq-' + u.id);
+  if (el) el.querySelector('.eq-subject').textContent = _emailUsers[idx].subject;
+}
+
+async function sendSingleEmail(idx) {
+  var u = _emailUsers[idx];
+  var btn = document.getElementById('eq-send-' + u.id);
+  var status = document.getElementById('eq-status-' + u.id);
+  btn.disabled = true; btn.textContent = 'Sending...';
+  status.textContent = ''; status.className = 'eq-status';
+
+  try {
+    var res = await fetch('/api/admin/send-single-beta-email', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: u.id, segment_override: u.segment })
+    }).then(function(r) { return r.json(); });
+
+    if (res.success) {
+      status.textContent = '\u2713 Sent'; status.className = 'eq-status ok';
+      btn.textContent = 'Sent'; document.getElementById('eq-' + u.id).classList.add('sent');
+    } else {
+      throw new Error(res.error || 'Send failed');
+    }
+  } catch(e) {
+    status.textContent = e.message; status.className = 'eq-status err';
+    btn.textContent = 'Retry'; btn.disabled = false;
+  }
+}
+
+function skipEmail(idx) {
+  var u = _emailUsers[idx];
+  var el = document.getElementById('eq-' + u.id);
+  if (el) { el.classList.add('sent'); el.querySelector('.eq-status').textContent = 'Skipped'; el.querySelector('.eq-status').className = 'eq-status'; }
+}
+
+function previewEmail(idx) {
+  var u = _emailUsers[idx];
+  var overlay = document.createElement('div');
+  overlay.className = 'eq-preview-modal';
+  overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
+  overlay.innerHTML =
+    '<div class="eq-preview-frame">' +
+      '<div class="eq-preview-header">' +
+        '<div><strong>' + esc(u.email) + '</strong> &mdash; ' + esc(SEGMENT_LABELS[u.segment]) + '<br><span style="font-size:12px;color:var(--text3)">Subject: ' + esc(u.subject) + '</span></div>' +
+        '<button onclick="this.closest(\'.eq-preview-modal\').remove()" style="border:none;background:none;font-size:18px;cursor:pointer;color:var(--text3)">&times;</button>' +
+      '</div>' +
+      '<iframe class="eq-preview-iframe" id="eq-preview-iframe-' + u.id + '"></iframe>' +
+    '</div>';
+  document.body.appendChild(overlay);
+
+  // Fetch preview HTML from backend
+  fetch('/api/admin/preview-beta-email', {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ user_id: u.id, segment_override: u.segment })
+  }).then(function(r) { return r.json(); }).then(function(d) {
+    if (d.html) {
+      var iframe = document.getElementById('eq-preview-iframe-' + u.id);
+      iframe.srcdoc = d.html;
+    }
+  }).catch(function(e) { console.error('Preview error:', e); });
 }
 </script>
 </body>
