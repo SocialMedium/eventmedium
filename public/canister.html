@@ -338,7 +338,6 @@ body{font-family:var(--font);color:var(--txt);background:var(--bg);-webkit-font-
       <div class="invite-share-grid">
         <button class="share-channel-btn" onclick="shareVia('whatsapp')"><span class="share-channel-icon">WA</span>WhatsApp</button>
         <button class="share-channel-btn" onclick="shareVia('linkedin-dm')"><span class="share-channel-icon">in</span>LinkedIn DM</button>
-        <button class="share-channel-btn" onclick="shareVia('twitter-dm')"><span class="share-channel-icon">X</span>X DM</button>
         <button class="share-channel-btn" onclick="shareVia('email')"><span class="share-channel-icon">@</span>Email</button>
         <button class="share-channel-btn wide" onclick="shareVia('copy')"><span class="share-channel-icon">&oplus;</span>Copy link</button>
       </div>
@@ -926,10 +925,6 @@ function shareVia(channel) {
       copyInviteLink(shortMsg);
       setTimeout(function() { window.open('https://www.linkedin.com/messaging/compose/', '_blank'); }, 400);
       showShareHint('Message copied \u2014 paste it into your LinkedIn DM'); break;
-    case 'twitter-dm':
-      copyInviteLink(shortMsg);
-      setTimeout(function() { window.open('https://twitter.com/messages/compose', '_blank'); }, 400);
-      showShareHint('Message copied \u2014 paste it into your X DM'); break;
     case 'email':
       var subj = encodeURIComponent('Founding Member Invitation \u2014 EventMedium.AI');
       var body = encodeURIComponent(_inviteTemplates.long || shortMsg);
