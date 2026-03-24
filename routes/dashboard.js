@@ -995,6 +995,12 @@ function emailWrapper(headerContent, bodyContent, refCode) {
 }
 
 function sectionDiv(content) { return '<div style="margin-bottom:20px">' + content + '</div>'; }
+function personalNoteBlock(note) {
+  if (!note || !note.trim()) return '';
+  // Escape HTML in note
+  var escaped = note.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
+  return sectionDiv('<div style="background:#f0fdf4;border-left:3px solid #059669;border-radius:0 8px 8px 0;padding:14px 16px"><p style="font-size:15px;line-height:1.7;color:#065f46;margin:0">' + escaped + '</p></div>');
+}
 function hookP(text) { return '<p style="font-size:16px;line-height:1.6;color:#1a1d29;font-style:italic;margin:0">' + text + '</p>'; }
 function bodyP(text) { return '<p style="font-size:15px;line-height:1.7;color:#4b5563;margin:0">' + text + '</p>'; }
 function urgencyP(text) { return '<p style="font-size:13px;color:#6b7280;font-style:italic;margin:0">' + text + '</p>'; }
@@ -1010,6 +1016,7 @@ function buildCompleteNoCityEmail(opts) {
   var header = '<div style="font-size:18px;font-weight:500;color:#ffffff;line-height:1.4">Founding Member Invitation</div><div style="font-size:12px;color:rgba(255,255,255,0.4);margin-top:6px;letter-spacing:0.04em;text-transform:uppercase">EventMedium.AI \u00b7 Position confirmed</div>';
   var body =
     sectionDiv(hookP(hookLine)) +
+    personalNoteBlock(opts.personalNote) +
     sectionDiv(bodyP('EventMedium exists to fix that. We match people before events begin \u2014 privately, anonymously, and only when the fit is mutual. So when you walk in, the right conversations are already waiting.')) +
     sectionDiv(bodyP('Your canister is complete and your Founding Member position is confirmed.')) +
     sectionDiv(benefitBlock(
@@ -1030,6 +1037,7 @@ function buildPartialEmail(opts) {
   var header = '<div style="font-size:18px;font-weight:500;color:#ffffff;line-height:1.4">Founding Member Invitation</div><div style="font-size:12px;color:rgba(255,255,255,0.4);margin-top:6px;letter-spacing:0.04em;text-transform:uppercase">EventMedium.AI \u00b7 Position still open</div>';
   var body =
     sectionDiv(hookP(hookLine)) +
+    personalNoteBlock(opts.personalNote) +
     sectionDiv(bodyP('A few things since your last visit: we\'ve tuned Nev to be a little less chatty, and we\'d love you to come back and finish your canister, claim your Founding Member position, and activate your wallet and rewards.')) +
     sectionDiv(bodyP('EventMedium matches people before events begin \u2014 privately, anonymously, and only when the fit is mutual. So when you walk in, the right conversations are already waiting.')) +
     sectionDiv(bodyP('Your Founding Member position is still open. Your member number, 1,000 EMC\u00B2 opening balance, and accelerated rewards for life are all sitting there \u2014 they activate the moment your canister is complete.')) +
@@ -1050,6 +1058,7 @@ function buildZeroEmail(opts) {
   var header = '<div style="font-size:18px;font-weight:500;color:#ffffff;line-height:1.4">Founding Member Invitation</div><div style="font-size:12px;color:rgba(255,255,255,0.4);margin-top:6px;letter-spacing:0.04em;text-transform:uppercase">EventMedium.AI \u00b7 Your position is waiting</div>';
   var body =
     sectionDiv(hookP(hookLine)) +
+    personalNoteBlock(opts.personalNote) +
     sectionDiv(bodyP('A few things since you signed up: we\'ve tuned Nev to be a little less chatty, and we\'d love you to come back, build your canister, claim your Founding Member position, and activate your wallet and rewards.')) +
     sectionDiv(bodyP('EventMedium matches people before events begin \u2014 privately, anonymously, and only when the fit is mutual. So when you walk in, the right conversations are already waiting.')) +
     sectionDiv(bodyP('Your Founding Member position is reserved \u2014 but the network can\'t match you until your profile exists. Your member number, 1,000 EMC\u00B2 opening balance, and accelerated rewards are all on hold.')) +
@@ -1070,6 +1079,7 @@ function buildCompleteWithCityEmail(opts) {
   var header = '<div style="font-size:18px;font-weight:500;color:#ffffff;line-height:1.4">Founding Member Invitation</div><div style="font-size:12px;color:rgba(255,255,255,0.4);margin-top:6px;letter-spacing:0.04em;text-transform:uppercase">EventMedium.AI \u00b7 Everything is active</div>';
   var body =
     sectionDiv(hookP(hookLine)) +
+    personalNoteBlock(opts.personalNote) +
     sectionDiv(bodyP('EventMedium exists to fix that. We match people before events begin \u2014 privately, anonymously, and only when the fit is mutual. So when you walk in, the right conversations are already waiting.')) +
     sectionDiv(bodyP('Your canister is complete, your home city is set, and your Founding Member position is fully active.')) +
     sectionDiv(benefitBlock(
@@ -1144,6 +1154,7 @@ router.post('/send-single-beta-email', authenticateToken, adminOnly, async funct
   try {
     var userId = req.body.user_id;
     var segmentOverride = req.body.segment_override;
+    var personalNote = req.body.personal_note || '';
     if (!userId) return res.status(400).json({ error: 'user_id required' });
 
     var user = await dbGet("SELECT u.id, u.name, u.email, u.referral_code, u.city, u.country, sp.user_id, sp.emc2_cohort, sp.emc2_cohort_number, sp.og_member, sp.emc2_balance, sp.emc2_earn_multiplier, sp.stakeholder_type, sp.focus_text, sp.themes FROM users u LEFT JOIN stakeholder_profiles sp ON sp.user_id = u.id WHERE u.id = $1", [userId]);
@@ -1154,7 +1165,7 @@ router.post('/send-single-beta-email', authenticateToken, adminOnly, async funct
     var firstName = user.name ? user.name.split(' ')[0] : 'there';
     var refCode = user.referral_code || null;
     var refUrl = 'https://www.eventmedium.ai/onboard.html';
-    var emailOpts = { user: user, firstName: firstName, refCode: refCode, refUrl: refUrl };
+    var emailOpts = { user: user, firstName: firstName, refCode: refCode, refUrl: refUrl, personalNote: personalNote };
 
     var html;
     switch(segment) {
@@ -1186,6 +1197,7 @@ router.post('/preview-beta-email', authenticateToken, adminOnly, async function(
   try {
     var userId = req.body.user_id;
     var segmentOverride = req.body.segment_override;
+    var personalNote = req.body.personal_note || '';
     if (!userId) return res.status(400).json({ error: 'user_id required' });
 
     var user = await dbGet("SELECT u.id, u.name, u.email, u.referral_code, u.city, u.country, sp.user_id, sp.emc2_cohort, sp.emc2_cohort_number, sp.og_member, sp.emc2_balance, sp.emc2_earn_multiplier, sp.stakeholder_type, sp.focus_text, sp.themes FROM users u LEFT JOIN stakeholder_profiles sp ON sp.user_id = u.id WHERE u.id = $1", [userId]);
@@ -1196,7 +1208,7 @@ router.post('/preview-beta-email', authenticateToken, adminOnly, async function(
     var firstName = user.name ? user.name.split(' ')[0] : 'there';
     var refCode = user.referral_code || null;
     var refUrl = 'https://www.eventmedium.ai/onboard.html';
-    var emailOpts = { user: user, firstName: firstName, refCode: refCode, refUrl: refUrl };
+    var emailOpts = { user: user, firstName: firstName, refCode: refCode, refUrl: refUrl, personalNote: personalNote };
 
     var html;
     switch(segment) {

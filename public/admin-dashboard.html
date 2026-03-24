@@ -1808,6 +1808,9 @@ function renderEmailQueue() {
         '<span>Ref: ' + (u.refCode || 'none') + '</span>' +
         '<span>Type: ' + segDesc + '</span>' +
       '</div></div>' +
+      '<div style="margin-top:8px">' +
+        '<textarea class="note-input" id="eq-note-' + u.id + '" placeholder="Add a personal note (optional) \u2014 appears at the top of the email, e.g. \'Great meeting you at Web Summit...\'   " rows="2" style="width:100%;resize:vertical;min-height:36px;font-size:13px;line-height:1.5;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-family:var(--sans);color:var(--text);background:var(--bg2)"></textarea>' +
+      '</div>' +
     '</div>';
   }).join('');
 }
@@ -1835,7 +1838,7 @@ async function sendSingleEmail(idx) {
     var res = await fetch('/api/admin/send-single-beta-email', {
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_id: u.id, segment_override: u.segment })
+      body: JSON.stringify({ user_id: u.id, segment_override: u.segment, personal_note: (document.getElementById('eq-note-' + u.id) || {}).value || '' })
     }).then(function(r) { return r.json(); });
 
     if (res.success) {
@@ -1875,7 +1878,7 @@ function previewEmail(idx) {
   fetch('/api/admin/preview-beta-email', {
     method: 'POST',
     headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ user_id: u.id, segment_override: u.segment })
+    body: JSON.stringify({ user_id: u.id, segment_override: u.segment, personal_note: (document.getElementById('eq-note-' + u.id) || {}).value || '' })
   }).then(function(r) { return r.json(); }).then(function(d) {
     if (d.html) {
       var iframe = document.getElementById('eq-preview-iframe-' + u.id);
