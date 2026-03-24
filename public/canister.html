@@ -222,6 +222,61 @@ body{font-family:var(--font);color:var(--txt);background:var(--bg);-webkit-font-
 .emc2-wallet.og-card .emc2-footer small{color:rgba(255,255,255,0.65)}
 .emc2-wallet.og-card .emc2-og-footer{font-size:11px;color:#C9A84C;margin-top:6px}
 .emc2-wallet.og-card .emc2-badge.og{background:rgba(201,168,76,0.12);border:1px solid rgba(201,168,76,0.35);color:#C9A84C}
+/* ── Invite button + modal ── */
+#invite-button-container{margin-top:12px}
+.invite-trigger-btn{width:100%;padding:14px 16px;background:#0a0a0a;border:1px solid rgba(201,168,76,0.4);border-radius:10px;color:#fff;cursor:pointer;display:flex;align-items:center;gap:10px;transition:border-color 0.15s,background 0.15s;text-align:left;font-family:var(--font)}
+.invite-trigger-btn:hover{border-color:#C9A84C;background:#111}
+.invite-btn-icon{color:#C9A84C;font-size:16px;flex-shrink:0}
+.invite-btn-text{font-size:14px;font-weight:500;flex:1}
+.invite-btn-earn{font-size:11px;color:rgba(201,168,76,0.7);white-space:nowrap}
+.invite-trigger-btn.standard{background:#1a1d29;border-color:rgba(99,102,241,0.3)}
+.invite-trigger-btn.standard:hover{border-color:#818cf8}
+.invite-trigger-btn.standard .invite-btn-icon{color:#818cf8}
+.invite-trigger-btn.standard .invite-btn-earn{color:rgba(129,140,248,0.7)}
+.invite-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;display:flex;align-items:flex-end;justify-content:center;padding:0;animation:invOverIn 0.15s ease}
+@keyframes invOverIn{from{opacity:0}to{opacity:1}}
+@media(min-width:600px){.invite-modal-overlay{align-items:center}}
+.invite-modal{background:#fff;border-radius:16px 16px 0 0;padding:20px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;animation:invModalUp 0.2s ease}
+@media(min-width:600px){.invite-modal{border-radius:16px;max-height:85vh}}
+@keyframes invModalUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+.invite-modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.invite-modal-title{font-size:16px;font-weight:500;color:#1a1d29}
+.invite-modal-close{width:28px;height:28px;border-radius:50%;border:1px solid #e5e7eb;background:transparent;color:#9ca3af;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center}
+.invite-code-block{background:#0a0a0a;border-radius:10px;padding:14px 16px;margin-bottom:12px;border:1px solid rgba(201,168,76,0.2)}
+.invite-code-label{font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:6px}
+.invite-code-display{font-size:24px;font-weight:500;letter-spacing:0.1em;color:#C9A84C;margin-bottom:4px}
+.invite-code-url{font-size:11px;color:rgba(255,255,255,0.35);word-break:break-all}
+.invite-og-banner{background:#fffbeb;border:1px solid rgba(201,168,76,0.3);border-radius:8px;padding:10px 14px;font-size:13px;color:#92400e;line-height:1.5;margin-bottom:12px;display:flex;gap:8px;align-items:flex-start}
+.invite-og-icon{color:#C9A84C;flex-shrink:0;margin-top:1px}
+.invite-recipient-benefits,.invite-referrer-earn{background:#f9f9f7;border-radius:8px;padding:12px 14px;margin-bottom:12px}
+.invite-benefits-title,.invite-earn-title{font-size:11px;font-weight:500;color:#9ca3af;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px}
+.invite-benefit-row,.invite-earn-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:13px;color:#4b5563;border-bottom:1px solid #f0efe9}
+.invite-benefit-row:last-child,.invite-earn-row:last-of-type{border-bottom:none}
+.benefit-val{font-weight:500;color:#1a1d29;font-size:12px}
+.benefit-val.og{color:#92700a}.benefit-val.free{color:#059669}
+.earn-val{font-weight:500;color:#059669;font-size:12px}
+.invite-earn-total{display:flex;justify-content:space-between;align-items:center;padding-top:8px;margin-top:4px;border-top:1px solid #e5e7eb;font-size:13px;font-weight:500;color:#1a1d29}
+#earn-total{color:#059669}
+.invite-share-actions{display:flex;gap:8px;margin-bottom:14px}
+.share-btn{flex:1;padding:11px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:none;transition:opacity 0.15s;font-family:var(--font)}
+.share-btn:hover{opacity:0.85}
+.share-btn.primary{background:#1a1d29;color:#fff}
+.share-btn.secondary{background:#f3f4f6;color:#1a1d29;border:1px solid #e5e7eb}
+.invite-templates{background:#f9f9f7;border-radius:8px;padding:12px 14px;margin-bottom:12px}
+.templates-label{font-size:11px;font-weight:500;color:#9ca3af;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px}
+.template-tabs{display:flex;gap:4px;margin-bottom:10px}
+.tmpl-tab{padding:4px 10px;border-radius:4px;font-size:12px;border:1px solid #e5e7eb;background:transparent;color:#6b7280;cursor:pointer;font-family:var(--font);transition:all 0.15s}
+.tmpl-tab.active{background:#1a1d29;color:#fff;border-color:#1a1d29}
+.template-body{font-size:13px;color:#4b5563;line-height:1.65;min-height:60px;margin-bottom:10px;white-space:pre-wrap}
+.copy-template-btn{width:100%;padding:8px;background:#fff;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;color:#6b7280;cursor:pointer;font-family:var(--font);transition:all 0.15s}
+.copy-template-btn:hover{border-color:#1a1d29;color:#1a1d29}
+.invite-conversions{border-top:1px solid #f0efe9;padding-top:12px}
+.conversions-title{font-size:11px;font-weight:500;color:#9ca3af;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px}
+.conversions-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.conversion-stat{background:#f9f9f7;border-radius:6px;padding:8px 10px;text-align:center}
+.conversion-stat-value{font-size:18px;font-weight:500;color:#1a1d29;line-height:1;margin-bottom:3px}
+.conversion-stat-label{font-size:10px;color:#9ca3af;line-height:1.3}
+.conversion-emc2{font-size:11px;font-weight:500;color:#059669;margin-top:2px}
 </style>
 <link rel="stylesheet" href="/css/nav.css"><link rel="icon" type="image/png" href="/images/em-logo.png">
 <style>.beta-banner{background:#1a1d29;color:rgba(255,255,255,0.7);font-size:12px;text-align:center;padding:7px 16px;line-height:1}.beta-banner a{color:#C9A84C;text-decoration:none;margin-left:8px}.beta-banner a:hover{text-decoration:underline}</style>
@@ -247,6 +302,55 @@ body{font-family:var(--font);color:var(--txt);background:var(--bg);-webkit-font-
 
 <div class="page" id="page"><div class="loading">Loading your canister...</div></div>
 <div class="toast" id="toast"></div>
+
+<div class="invite-modal-overlay" id="invite-modal-overlay" onclick="closeInviteModal(event)" style="display:none">
+  <div class="invite-modal" id="invite-modal">
+    <div class="invite-modal-header">
+      <div class="invite-modal-title">Invite a member</div>
+      <button class="invite-modal-close" onclick="closeInviteModal()">&times;</button>
+    </div>
+    <div class="invite-code-block">
+      <div class="invite-code-label">Your invite code</div>
+      <div class="invite-code-display" id="modal-invite-code">&mdash;</div>
+      <div class="invite-code-url" id="modal-invite-url">&mdash;</div>
+    </div>
+    <div class="invite-og-banner" id="invite-og-banner" style="display:none">
+      <span class="invite-og-icon">&hexmark;</span>
+      We're still in the first 10,000 &mdash; your invitee gets OG status, 1,000 EMC&sup2;, and accelerated earnings for life if they complete their canister now.
+    </div>
+    <div class="invite-recipient-benefits">
+      <div class="invite-benefits-title">What they get by joining</div>
+      <div class="invite-benefit-row"><span>OG status (while first 10K open)</span><span class="benefit-val og">Permanent</span></div>
+      <div class="invite-benefit-row"><span>Opening EMC&sup2; balance</span><span class="benefit-val">1,000 EMC&sup2;</span></div>
+      <div class="invite-benefit-row"><span>Community matches</span><span class="benefit-val free">Free</span></div>
+      <div class="invite-benefit-row"><span>Private canister &mdash; anonymous matching</span><span class="benefit-val">&check;</span></div>
+    </div>
+    <div class="invite-referrer-earn">
+      <div class="invite-earn-title">What you earn</div>
+      <div class="invite-earn-row"><span>They complete their canister</span><span class="earn-val" id="earn-tier1">+200 EMC&sup2;</span></div>
+      <div class="invite-earn-row"><span>They accept first match</span><span class="earn-val" id="earn-tier2">+100 EMC&sup2;</span></div>
+      <div class="invite-earn-row"><span>They confirm first meeting</span><span class="earn-val" id="earn-tier3">+50 EMC&sup2;</span></div>
+      <div class="invite-earn-total"><span>Total per activated member</span><span id="earn-total">350 EMC&sup2;</span></div>
+    </div>
+    <div class="invite-share-actions">
+      <button class="share-btn primary" onclick="shareInvite('native')">Share invite link</button>
+      <button class="share-btn secondary" onclick="shareInvite('copy-link')">Copy link</button>
+    </div>
+    <div class="invite-templates">
+      <div class="templates-label">Copy a message</div>
+      <div class="template-tabs">
+        <button class="tmpl-tab active" onclick="switchTemplate('short',this)">Short</button>
+        <button class="tmpl-tab" onclick="switchTemplate('long',this)">Email</button>
+      </div>
+      <div class="template-body" id="template-body"></div>
+      <button class="copy-template-btn" onclick="copyActiveTemplate()">Copy message</button>
+    </div>
+    <div class="invite-conversions" id="invite-conversions" style="display:none">
+      <div class="conversions-title">Your referral activity</div>
+      <div class="conversions-grid" id="conversions-grid"></div>
+    </div>
+  </div>
+</div>
 
 <script src="/components/emc2-wallet.js"></script>
 <script>
@@ -419,6 +523,15 @@ async function loadCanister() {
     // EMC² Wallet (rendered async after page load)
     html += '<div id="emc2-wallet-container"></div>';
 
+    // Invite button (shown after wallet loads if user has referral code)
+    html += '<div id="invite-button-container" style="display:none">' +
+      '<button class="invite-trigger-btn" id="invite-trigger-btn" onclick="openInviteModal()">' +
+        '<span class="invite-btn-icon">\u2B21</span>' +
+        '<span class="invite-btn-text">Invite to EventMedium</span>' +
+        '<span class="invite-btn-earn">Earn up to 350 EMC\u00B2 per member</span>' +
+      '</button>' +
+    '</div>';
+
     // Stats card
     html += '<div class="card"><div class="card-header"><h2>Stats</h2></div>' +
       '<div class="stats-grid">' +
@@ -482,9 +595,15 @@ async function loadCanister() {
     setupDropZone();
     loadDocumentList();
     loadRecommendedFeed();
-    // Render EMC² wallet into sidebar
+    // Render EMC² wallet into sidebar, then init invite button
     if (typeof renderEMC2Wallet === 'function') {
-      renderEMC2Wallet('emc2-wallet-container').catch(function(e) {
+      renderEMC2Wallet('emc2-wallet-container').then(function() {
+        // Fetch wallet data to init invite button
+        fetch('/api/emc2/wallet', { headers: { 'Authorization': 'Bearer ' + token } })
+          .then(function(r) { return r.json(); })
+          .then(function(d) { if (d.success && d.wallet) initInviteButton(d.wallet); })
+          .catch(function() {});
+      }).catch(function(e) {
         console.error('[canister] renderEMC2Wallet failed:', e);
       });
     }
@@ -707,6 +826,121 @@ function showDocProcessing(show) {
   if (proc) proc.style.display = show ? 'flex' : 'none';
   if (dz) dz.style.display = show ? 'none' : 'flex';
 }
+
+// ─── Invite modal ────────────────────────────────────────
+var _inviteData = null;
+var _activeTemplate = 'short';
+var _inviteTemplates = {};
+
+function initInviteButton(wallet) {
+  if (!wallet || !wallet.referral_code) return;
+  _inviteData = wallet;
+  var container = document.getElementById('invite-button-container');
+  var btn = document.getElementById('invite-trigger-btn');
+  if (!container || !btn) return;
+  if (!wallet.og_member) btn.classList.add('standard');
+  var earnEl = btn.querySelector('.invite-btn-earn');
+  if (wallet.emc2_earn_multiplier >= 3) {
+    document.getElementById('earn-tier1').innerHTML = '+600 EMC&sup2; (3&times;)';
+    document.getElementById('earn-tier2').innerHTML = '+300 EMC&sup2; (3&times;)';
+    document.getElementById('earn-tier3').innerHTML = '+150 EMC&sup2; (3&times;)';
+    document.getElementById('earn-total').innerHTML = '1,050 EMC&sup2;';
+    if (earnEl) earnEl.textContent = 'Earn up to 1,050 EMC\u00B2 per member';
+  } else if (wallet.emc2_earn_multiplier >= 2) {
+    document.getElementById('earn-tier1').innerHTML = '+400 EMC&sup2; (2&times;)';
+    document.getElementById('earn-tier2').innerHTML = '+200 EMC&sup2; (2&times;)';
+    document.getElementById('earn-tier3').innerHTML = '+100 EMC&sup2; (2&times;)';
+    document.getElementById('earn-total').innerHTML = '700 EMC&sup2;';
+    if (earnEl) earnEl.textContent = 'Earn up to 700 EMC\u00B2 per member';
+  }
+  container.style.display = 'block';
+}
+
+function openInviteModal() {
+  if (!_inviteData) return;
+  var code = _inviteData.referral_code;
+  var url = 'https://www.eventmedium.ai/join?ref=' + code;
+  document.getElementById('modal-invite-code').textContent = code;
+  document.getElementById('modal-invite-url').textContent = url;
+  if (_inviteData.og_member) document.getElementById('invite-og-banner').style.display = 'flex';
+  buildInviteTemplates(code, url);
+  loadConversionStats();
+  document.getElementById('invite-modal-overlay').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeInviteModal(event) {
+  if (event && event.target !== document.getElementById('invite-modal-overlay')) return;
+  document.getElementById('invite-modal-overlay').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+function buildInviteTemplates(code, url) {
+  var isOG = _inviteData && _inviteData.og_member;
+  _inviteTemplates = {
+    short: isOG
+      ? "I'm on EventMedium \u2014 AI-powered professional matching at events. We're still in the first 10,000 so OG status and 1,000 EMC\u00B2 opening balance are still available. Worth building your canister now: " + url
+      : "I'm on EventMedium \u2014 signal-based professional matching at events. Takes 10 minutes to build your canister. Join here: " + url,
+    long: isOG
+      ? "I wanted to flag EventMedium to you specifically.\n\nIt's a signal-based professional matching platform for events \u2014 builds a private profile of your actual intent and matches you with people who are structurally aligned. Anonymous until you both say yes. No public directory, no cold outreach.\n\nWe're still in the first 10,000 members. If you complete your canister now you get OG status permanently \u2014 comes with a 1,000 EMC\u00B2 opening balance, an accelerated earn rate on the network, and a canister number that's yours forever.\n\nUse my code " + code + " to join: " + url
+      : "I wanted to flag EventMedium \u2014 it's a signal-based professional matching platform for events.\n\nRather than the usual badge-swap networking, it builds a private profile of your actual focus and intent, then matches you with people who are genuinely aligned. Anonymous until you both say yes.\n\nTakes about 10 minutes to set up your canister. Join here: " + url
+  };
+  switchTemplate('short', document.querySelector('.tmpl-tab.active'));
+}
+
+function switchTemplate(type, btn) {
+  _activeTemplate = type;
+  document.querySelectorAll('.tmpl-tab').forEach(function(t) { t.classList.remove('active'); });
+  if (btn) btn.classList.add('active');
+  var body = document.getElementById('template-body');
+  if (body) body.textContent = _inviteTemplates[type] || '';
+}
+
+async function copyActiveTemplate() {
+  var text = _inviteTemplates[_activeTemplate];
+  if (!text) return;
+  var btn = document.querySelector('.copy-template-btn');
+  try {
+    await navigator.clipboard.writeText(text);
+    btn.textContent = 'Copied!';
+    setTimeout(function() { btn.textContent = 'Copy message'; }, 2000);
+  } catch(e) { console.error('Copy failed:', e); }
+}
+
+async function shareInvite(type) {
+  var code = _inviteData ? _inviteData.referral_code : '';
+  var url = 'https://www.eventmedium.ai/join?ref=' + code;
+  if (type === 'native' && navigator.share) {
+    try { await navigator.share({ title: 'Join EventMedium', text: _inviteTemplates.short || url, url: url }); return; } catch(e) { if (e.name === 'AbortError') return; }
+  }
+  try {
+    await navigator.clipboard.writeText(url);
+    var btn = document.querySelector(type === 'native' ? '.share-btn.primary' : '.share-btn.secondary');
+    if (btn) { btn.textContent = 'Link copied!'; setTimeout(function() { btn.textContent = type === 'native' ? 'Share invite link' : 'Copy link'; }, 2000); }
+  } catch(e) { console.error('Share failed:', e); }
+}
+
+async function loadConversionStats() {
+  try {
+    var res = await fetch('/api/emc2/wallet', { headers: { 'Authorization': 'Bearer ' + token } }).then(function(r) { return r.json(); });
+    var stats = res.wallet ? res.wallet.referral_stats : null;
+    if (!stats || !stats.total) return;
+    var mult = (_inviteData && _inviteData.emc2_earn_multiplier) || 1;
+    var emc2Earned = (stats.completed * 200 * mult) + ((stats.meetings || 0) * 50 * mult);
+    document.getElementById('conversions-grid').innerHTML =
+      '<div class="conversion-stat"><div class="conversion-stat-value">' + stats.total + '</div><div class="conversion-stat-label">Invited</div></div>' +
+      '<div class="conversion-stat"><div class="conversion-stat-value">' + stats.completed + '</div><div class="conversion-stat-label">Completed canister</div><div class="conversion-emc2">+' + (stats.completed * 200 * mult).toLocaleString() + ' EMC\u00B2</div></div>' +
+      '<div class="conversion-stat"><div class="conversion-stat-value">' + Math.round(emc2Earned).toLocaleString() + '</div><div class="conversion-stat-label">EMC\u00B2 earned</div></div>';
+    document.getElementById('invite-conversions').style.display = 'block';
+  } catch(e) { console.error('Conversion stats error:', e); }
+}
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    var overlay = document.getElementById('invite-modal-overlay');
+    if (overlay && overlay.style.display !== 'none') closeInviteModal();
+  }
+});
 
 loadCanister();
 </script>
