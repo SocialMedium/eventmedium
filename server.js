@@ -196,6 +196,8 @@ async function runMigrations() {
     await dbRun('ALTER TABLE users ADD COLUMN IF NOT EXISTS city_lat NUMERIC(9,6)');
     await dbRun('ALTER TABLE users ADD COLUMN IF NOT EXISTS city_lng NUMERIC(9,6)');
     await dbRun('ALTER TABLE users ADD COLUMN IF NOT EXISTS location_set BOOLEAN DEFAULT FALSE');
+    await dbRun('ALTER TABLE users ADD COLUMN IF NOT EXISTS referral_code VARCHAR(20) UNIQUE');
+    await dbRun("CREATE TABLE IF NOT EXISTS reserved_codes (id SERIAL PRIMARY KEY, code VARCHAR(20) UNIQUE NOT NULL, reason VARCHAR(100), assigned_to INTEGER REFERENCES users(id), assigned_at TIMESTAMP, reserved_at TIMESTAMP DEFAULT NOW())");
     // emc2_ledger indexes
     await dbRun('CREATE INDEX IF NOT EXISTS idx_emc2_ledger_user_id ON emc2_ledger(user_id)');
     await dbRun('CREATE INDEX IF NOT EXISTS idx_emc2_ledger_created_at ON emc2_ledger(created_at)');
@@ -257,9 +259,31 @@ async function geocodeUsers() {
   }
 }
 
+async function backfillReferralCodes() {
+  try {
+    var { backfillReferralCodes: backfill } = require('./lib/referrals.js');
+    await backfill();
+  } catch(err) {
+    console.error('[Referrals] Backfill error:', err.message);
+  }
+}
+
+async function reserveOG0001() {
+  try {
+    var exists = await dbGet("SELECT id FROM reserved_codes WHERE code = 'OG-0001'");
+    if (exists) return;
+    await dbRun("INSERT INTO reserved_codes (code, reason, reserved_at) VALUES ('OG-0001', 'platform_genesis_collectible', NOW())");
+    console.log('[OG-0001] Reserved as platform collectible');
+  } catch(err) {
+    console.error('[OG-0001] Reservation error:', err.message);
+  }
+}
+
 runMigrations().then(function() {
   backfillEMC2Corrections();
   geocodeUsers();
+  backfillReferralCodes();
+  reserveOG0001();
 });
 
 // ── Scheduled matching: 3x daily (8am, 1pm, 6pm UTC) ──────────────────────────
