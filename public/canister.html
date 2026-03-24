@@ -223,16 +223,15 @@ body{font-family:var(--font);color:var(--txt);background:var(--bg);-webkit-font-
 .emc2-wallet.og-card .emc2-og-footer{font-size:11px;color:#C9A84C;margin-top:6px}
 .emc2-wallet.og-card .emc2-badge.og{background:rgba(201,168,76,0.12);border:1px solid rgba(201,168,76,0.35);color:#C9A84C}
 /* ── Invite button + modal ── */
-#invite-button-container{margin-top:12px}
-.invite-trigger-btn{width:100%;padding:14px 16px;background:#0a0a0a;border:1px solid rgba(201,168,76,0.4);border-radius:10px;color:#fff;cursor:pointer;display:flex;align-items:center;gap:10px;transition:border-color 0.15s,background 0.15s;text-align:left;font-family:var(--font)}
-.invite-trigger-btn:hover{border-color:#C9A84C;background:#111}
-.invite-btn-icon{color:#C9A84C;font-size:16px;flex-shrink:0}
-.invite-btn-text{font-size:14px;font-weight:500;flex:1}
-.invite-btn-earn{font-size:11px;color:rgba(201,168,76,0.7);white-space:nowrap}
-.invite-trigger-btn.standard{background:#1a1d29;border-color:rgba(99,102,241,0.3)}
-.invite-trigger-btn.standard:hover{border-color:#818cf8}
-.invite-trigger-btn.standard .invite-btn-icon{color:#818cf8}
-.invite-trigger-btn.standard .invite-btn-earn{color:rgba(129,140,248,0.7)}
+#invite-button-container{margin-top:12px;margin-bottom:20px}
+.invite-trigger-btn{width:100%;padding:14px 16px;background:#f0fdf4;border:1.5px solid #6ee7b7;border-radius:10px;color:#065f46;cursor:pointer;display:flex;align-items:center;gap:10px;transition:border-color 0.15s,background 0.15s;text-align:left;font-family:var(--font)}
+.invite-trigger-btn:hover{background:#ecfdf5;border-color:#34d399}
+.invite-btn-icon{color:#059669;font-size:16px;flex-shrink:0}
+.invite-btn-text{font-size:14px;font-weight:500;color:#065f46;flex:1}
+.invite-btn-earn{font-size:11px;color:#059669;white-space:nowrap}
+.invite-trigger-btn.standard{background:#f0fdf4;border-color:#6ee7b7}
+.invite-trigger-btn.standard .invite-btn-icon{color:#059669}
+.invite-trigger-btn.standard .invite-btn-earn{color:#059669}
 .invite-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;display:flex;align-items:flex-end;justify-content:center;padding:0;animation:invOverIn 0.15s ease}
 @keyframes invOverIn{from{opacity:0}to{opacity:1}}
 @media(min-width:600px){.invite-modal-overlay{align-items:center}}
