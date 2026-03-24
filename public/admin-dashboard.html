@@ -115,6 +115,59 @@ body{font-family:var(--sans);background:var(--bg2);color:var(--text);min-height:
 .matrix th,.matrix td{padding:5px 6px;text-align:center}
 .matrix th{font-weight:700}
 
+/* ── Feedback triage ── */
+.analysis-panel{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px 20px;margin-bottom:20px}
+.analysis-header{display:flex;align-items:center;justify-content:space-between}
+.analysis-title{font-size:14px;font-weight:500;color:var(--heading)}
+.analysis-meta{font-size:12px;color:var(--text3);font-weight:400}
+.analysis-run-btn{padding:6px 14px;background:var(--heading);color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;font-family:var(--sans);transition:opacity 0.15s}
+.analysis-run-btn:hover{opacity:0.8}
+.analysis-run-btn:disabled{opacity:0.5;cursor:not-allowed}
+.analysis-headline{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:500;color:var(--heading);padding:12px 0 8px}
+.health-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.analysis-count{font-size:12px;color:var(--text3);font-weight:400;margin-left:auto}
+.analysis-section{margin-top:14px;padding-top:14px;border-top:1px solid var(--border)}
+.analysis-section-title{font-size:12px;font-weight:500;color:var(--text2);margin-bottom:8px;letter-spacing:0.02em}
+.analysis-item{padding:8px 10px;border-radius:6px;margin-bottom:6px;font-size:13px;line-height:1.5}
+.analysis-item.critical{background:var(--redL);border-left:3px solid var(--red)}
+.analysis-item.bug{background:var(--amberL);border-left:3px solid var(--amber)}
+.analysis-item.improvement{background:var(--greenL);border-left:3px solid var(--green)}
+.item-summary{color:var(--heading)}
+.item-action{color:var(--red);font-size:12px;margin-top:3px}
+.item-meta{color:var(--text3);font-size:11px;margin-top:3px}
+.item-link-btn{margin-top:4px;font-size:11px;color:var(--text2);background:none;border:none;cursor:pointer;text-decoration:underline;padding:0;font-family:var(--sans)}
+.priority-badge{display:inline-block;font-size:10px;padding:2px 6px;border-radius:20px;margin-right:6px;font-weight:500}
+.priority-badge.high{background:var(--redL);color:var(--red)}
+.priority-badge.medium{background:var(--amberL);color:var(--amber)}
+.priority-badge.low{background:var(--bg3);color:var(--text3)}
+.analysis-list{padding-left:16px;font-size:13px;color:var(--text2);line-height:1.7}
+.schedule-block{margin-bottom:10px}
+.schedule-label{font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:4px}
+.analysis-loading,.analysis-empty{font-size:13px;color:var(--text3);padding:12px 0}
+.analysis-error{font-size:13px;color:var(--red);padding:12px 0}
+.feedback-subnav{display:flex;gap:4px;margin-bottom:16px}
+.feedback-subnav-btn{padding:5px 12px;border-radius:6px;font-size:12px;border:1px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer;font-family:var(--sans);transition:all 0.15s}
+.feedback-subnav-btn.active{background:var(--heading);color:#fff;border-color:var(--heading)}
+.feedback-item{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:10px;transition:outline 0.2s}
+.feedback-item-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:8px}
+.feedback-item-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px}
+.category-tag{display:inline-block;font-size:10px;padding:2px 8px;border-radius:10px;font-weight:500}
+.category-tag.bug{background:var(--redL);color:var(--red)}
+.category-tag.improvement{background:var(--blueL);color:var(--blue)}
+.category-tag.general{background:var(--bg3);color:var(--text3)}
+.category-tag.praise{background:var(--greenL);color:var(--green)}
+.category-tag.matching{background:rgba(124,58,237,0.08);color:var(--purple)}
+.category-tag.canister{background:var(--amberL);color:var(--amber)}
+.feedback-user{color:var(--text2)}
+.feedback-date{color:var(--text3)}
+.feedback-item-actions{display:flex;gap:6px;flex-shrink:0}
+.status-select,.severity-select{font-size:11px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text2);cursor:pointer;font-family:var(--sans)}
+.feedback-message{font-size:14px;color:var(--heading);line-height:1.6;margin-bottom:8px}
+.feedback-context{font-size:11px;color:var(--text3);margin-bottom:6px}
+.feedback-notes{font-size:12px;color:var(--text2);background:var(--bg2);padding:6px 10px;border-radius:4px;margin-bottom:6px}
+.note-input{width:100%;font-size:12px;padding:5px 8px;border:1px solid var(--border);border-radius:4px;color:var(--text2);background:var(--bg2);font-family:var(--sans)}
+.note-input:focus{outline:none;border-color:var(--accent)}
+
 @media(max-width:900px){
   .grid{grid-template-columns:1fr}
   .kpi-row{grid-template-columns:repeat(3,1fr)}
@@ -151,6 +204,7 @@ body{font-family:var(--sans);background:var(--bg2);color:var(--text);min-height:
     <button class="tab" data-tab="people">People</button>
     <button class="tab" data-tab="live">Live Activity</button>
     <button class="tab" data-tab="abuse">Abuse Flags</button>
+    <button class="tab" data-tab="feedback">Feedback</button>
   </div>
   <div id="matching" class="tab-content active"></div>
   <div id="supply" class="tab-content"></div>
@@ -160,6 +214,22 @@ body{font-family:var(--sans);background:var(--bg2);color:var(--text);min-height:
   <div id="people" class="tab-content"></div>
   <div id="live" class="tab-content"></div>
   <div id="abuse" class="tab-content"></div>
+  <div id="feedback" class="tab-content">
+    <div class="analysis-panel" id="analysis-panel">
+      <div class="analysis-header">
+        <div class="analysis-title">AI Feedback Briefing <span class="analysis-meta" id="analysis-meta">&mdash; click to run</span></div>
+        <button class="analysis-run-btn" id="analysis-btn" onclick="runFeedbackAnalysis()">Run analysis</button>
+      </div>
+      <div class="analysis-output" id="analysis-output" style="display:none"></div>
+    </div>
+    <div class="feedback-subnav">
+      <button class="feedback-subnav-btn active" onclick="switchFeedbackView('')">All</button>
+      <button class="feedback-subnav-btn" onclick="switchFeedbackView('open')">Inbox</button>
+      <button class="feedback-subnav-btn" onclick="switchFeedbackView('in_progress')">In Progress</button>
+      <button class="feedback-subnav-btn" onclick="switchFeedbackView('resolved')">Resolved</button>
+    </div>
+    <div id="feedback-list"></div>
+  </div>
   <div class="footer">
     <span>EventMedium.ai · Internal · Anonymized</span>
     <span style="font-family:var(--mono)">Signals Guide v1</span>
@@ -176,6 +246,7 @@ document.querySelectorAll('.tab').forEach(function(t) {
     document.querySelectorAll('.tab-content').forEach(function(x) { x.classList.remove('active'); });
     t.classList.add('active');
     document.getElementById(t.dataset.tab).classList.add('active');
+    if (t.dataset.tab === 'feedback') activateFeedbackTab();
   });
 });
 
@@ -1461,6 +1532,169 @@ loadDashboard();
     return Math.floor(hrs / 24) + 'd ago';
   }
 })();
+
+// ── Feedback triage ──────────────────────────────────────────────────────────
+var _feedbackLoaded = false;
+
+function switchFeedbackView(status) {
+  document.querySelectorAll('.feedback-subnav-btn').forEach(function(b) { b.classList.remove('active'); });
+  event.target.classList.add('active');
+  loadFeedback(status);
+}
+
+async function activateFeedbackTab() {
+  if (!_feedbackLoaded) {
+    _feedbackLoaded = true;
+    await loadFeedback('');
+    // Auto-run analysis if there are unreviewed items
+    var check = await fetch('/api/admin/feedback?limit=1&status=open', { headers: { 'Authorization': 'Bearer ' + token } }).then(function(r) { return r.json(); });
+    if (check.feedback && check.feedback.length > 0 && document.getElementById('analysis-output').style.display === 'none') {
+      runFeedbackAnalysis();
+    }
+  }
+}
+
+async function loadFeedback(statusFilter) {
+  var list = document.getElementById('feedback-list');
+  list.innerHTML = '<div class="loading">Loading...</div>';
+  try {
+    var url = '/api/admin/feedback?limit=100' + (statusFilter ? '&status=' + statusFilter : '');
+    var res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } }).then(function(r) { return r.json(); });
+    if (!res.feedback || !res.feedback.length) { list.innerHTML = '<div class="empty-section">No feedback yet.</div>'; return; }
+    list.innerHTML = res.feedback.map(function(f) {
+      return '<div class="feedback-item" id="feedback-item-' + f.id + '">' +
+        '<div class="feedback-item-header">' +
+          '<div class="feedback-item-meta">' +
+            '<span class="category-tag ' + (f.category || 'general') + '">' + (f.category || 'general') + '</span>' +
+            '<span class="feedback-user">' + esc(f.user_name || 'Anonymous') + (f.user_email ? ' &middot; ' + esc(f.user_email) : '') + '</span>' +
+            '<span class="feedback-date">' + new Date(f.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) + '</span>' +
+          '</div>' +
+          '<div class="feedback-item-actions">' +
+            '<select class="status-select" onchange="updateFeedbackField(' + f.id + ',\'status\',this.value)">' +
+              '<option value="open"' + (f.status === 'open' ? ' selected' : '') + '>Open</option>' +
+              '<option value="in_progress"' + (f.status === 'in_progress' ? ' selected' : '') + '>In progress</option>' +
+              '<option value="resolved"' + (f.status === 'resolved' ? ' selected' : '') + '>Resolved</option>' +
+              '<option value="wont_fix"' + (f.status === 'wont_fix' ? ' selected' : '') + '>Won\'t fix</option>' +
+            '</select>' +
+            '<select class="severity-select" onchange="updateFeedbackField(' + f.id + ',\'severity\',this.value)">' +
+              '<option value="unreviewed"' + (f.severity === 'unreviewed' ? ' selected' : '') + '>Unreviewed</option>' +
+              '<option value="critical"' + (f.severity === 'critical' ? ' selected' : '') + '>Critical</option>' +
+              '<option value="high"' + (f.severity === 'high' ? ' selected' : '') + '>High</option>' +
+              '<option value="medium"' + (f.severity === 'medium' ? ' selected' : '') + '>Medium</option>' +
+              '<option value="low"' + (f.severity === 'low' ? ' selected' : '') + '>Low</option>' +
+            '</select>' +
+          '</div>' +
+        '</div>' +
+        '<div class="feedback-message">' + esc(f.message) + '</div>' +
+        (f.page_context ? '<div class="feedback-context">Page: ' + esc(f.page_context) + '</div>' : '') +
+        '<div style="margin-top:6px"><input type="text" class="note-input" placeholder="Add a note..." id="note-' + f.id + '" value="' + esc(f.admin_notes || '') + '" onblur="saveNote(' + f.id + ')" onkeydown="if(event.key===\'Enter\')saveNote(' + f.id + ')"></div>' +
+      '</div>';
+    }).join('');
+  } catch(e) { list.innerHTML = '<div class="analysis-error">Failed to load feedback: ' + e.message + '</div>'; }
+}
+
+async function updateFeedbackField(id, field, value) {
+  var body = {};
+  body[field] = value;
+  await fetch('/api/admin/feedback/' + id, {
+    method: 'PATCH',
+    headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+}
+
+async function saveNote(id) {
+  var note = document.getElementById('note-' + id).value;
+  await fetch('/api/admin/feedback/' + id, {
+    method: 'PATCH',
+    headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ admin_notes: note })
+  });
+}
+
+async function runFeedbackAnalysis() {
+  var btn = document.getElementById('analysis-btn');
+  var output = document.getElementById('analysis-output');
+  var meta = document.getElementById('analysis-meta');
+  btn.disabled = true;
+  btn.textContent = 'Analysing...';
+  output.style.display = 'block';
+  output.innerHTML = '<div class="analysis-loading">Reading feedback and identifying patterns...</div>';
+
+  try {
+    var feedbackRes = await fetch('/api/admin/feedback?limit=100', { headers: { 'Authorization': 'Bearer ' + token } }).then(function(r) { return r.json(); });
+    if (!feedbackRes.success || !feedbackRes.feedback || !feedbackRes.feedback.length) {
+      output.innerHTML = '<div class="analysis-empty">No feedback submitted yet.</div>';
+      btn.disabled = false; btn.textContent = 'Run analysis'; return;
+    }
+    var items = feedbackRes.feedback;
+    var feedbackText = items.map(function(f, i) {
+      return '[' + (i + 1) + '] Category: ' + f.category + ' | User: ' + (f.user_name || 'Anonymous') + ' | Date: ' + new Date(f.created_at).toLocaleDateString() + ' | Status: ' + f.status + '\nMessage: ' + f.message;
+    }).join('\n\n');
+
+    var claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: 'You are reviewing beta feedback for EventMedium.ai \u2014 a professional networking platform that matches people at events using AI-built profiles called canisters. Users earn EMC\u00B2 credits through network activity.\n\nAnalyse the feedback batch and produce a structured briefing in this exact JSON format:\n{"critical":[{"id":0,"summary":"","action":""}],"bugs":[{"id":0,"summary":"","priority":"high"}],"improvements":[{"summary":"","frequency":1,"impact":"high"}],"patterns":[""],"praise":[""],"schedule":{"this_week":[""],"next_sprint":[""],"backlog":[""]},"overall_health":"good","headline":""}\n\nBe direct. Flag anything breaking core flows (matching, canister save, auth, EMC\u00B2) as critical. Tone: senior product manager briefing a founder. Return only valid JSON, no preamble.',
+        messages: [{ role: 'user', content: 'Analyse this feedback batch (' + items.length + ' items):\n\n' + feedbackText }]
+      })
+    }).then(function(r) { return r.json(); });
+
+    var raw = (claudeRes.content && claudeRes.content[0] && claudeRes.content[0].text) || '{}';
+    var analysis;
+    try { analysis = JSON.parse(raw); } catch(e) {
+      var clean = raw.replace(/```json/g, '').replace(/```/g, '').trim();
+      analysis = JSON.parse(clean);
+    }
+    renderAnalysis(analysis, items.length);
+    meta.textContent = '\u2014 last run ' + new Date().toLocaleTimeString();
+  } catch(err) {
+    output.innerHTML = '<div class="analysis-error">Analysis failed: ' + err.message + '</div>';
+    console.error('Analysis error:', err);
+  }
+  btn.disabled = false; btn.textContent = 'Re-run';
+}
+
+function renderAnalysis(a, totalCount) {
+  var healthColor = { critical: 'var(--red)', needs_attention: 'var(--amber)', good: 'var(--green)', excellent: 'var(--green)' }[a.overall_health] || 'var(--text3)';
+
+  function section(title, items, renderFn) {
+    if (!items || !items.length) return '';
+    return '<div class="analysis-section"><div class="analysis-section-title">' + title + '</div>' + items.map(renderFn).join('') + '</div>';
+  }
+
+  var output = document.getElementById('analysis-output');
+  output.innerHTML =
+    '<div class="analysis-headline"><span class="health-dot" style="background:' + healthColor + '"></span>' + esc(a.headline || 'Analysis complete') + '<span class="analysis-count">' + totalCount + ' items reviewed</span></div>' +
+    section('\ud83d\udd34 Critical \u2014 action required', a.critical, function(item) {
+      return '<div class="analysis-item critical"><div class="item-summary">' + esc(item.summary) + '</div><div class="item-action">\u2192 ' + esc(item.action) + '</div>' + (item.id ? '<button class="item-link-btn" onclick="scrollToFeedback(' + item.id + ')">View item</button>' : '') + '</div>';
+    }) +
+    section('\ud83d\udc1b Bugs', a.bugs, function(item) {
+      return '<div class="analysis-item bug"><span class="priority-badge ' + item.priority + '">' + item.priority + '</span>' + esc(item.summary) + (item.id ? ' <button class="item-link-btn" onclick="scrollToFeedback(' + item.id + ')">View</button>' : '') + '</div>';
+    }) +
+    section('\ud83d\udca1 Top improvements', a.improvements, function(item) {
+      return '<div class="analysis-item improvement"><div class="item-summary">' + esc(item.summary) + '</div><div class="item-meta">Impact: ' + item.impact + (item.frequency > 1 ? ' \u00b7 mentioned ' + item.frequency + '\u00d7' : '') + '</div></div>';
+    }) +
+    (a.patterns && a.patterns.length ? '<div class="analysis-section"><div class="analysis-section-title">\ud83d\udcca Patterns</div><ul class="analysis-list">' + a.patterns.map(function(p) { return '<li>' + esc(p) + '</li>'; }).join('') + '</ul></div>' : '') +
+    (a.praise && a.praise.length ? '<div class="analysis-section"><div class="analysis-section-title">\u2713 What\'s working</div><ul class="analysis-list">' + a.praise.map(function(p) { return '<li>' + esc(p) + '</li>'; }).join('') + '</ul></div>' : '') +
+    (a.schedule ? '<div class="analysis-section"><div class="analysis-section-title">\ud83d\udcc5 Recommended schedule</div>' +
+      (a.schedule.this_week && a.schedule.this_week.length ? '<div class="schedule-block"><div class="schedule-label">This week</div><ul class="analysis-list">' + a.schedule.this_week.map(function(i) { return '<li>' + esc(i) + '</li>'; }).join('') + '</ul></div>' : '') +
+      (a.schedule.next_sprint && a.schedule.next_sprint.length ? '<div class="schedule-block"><div class="schedule-label">Next sprint</div><ul class="analysis-list">' + a.schedule.next_sprint.map(function(i) { return '<li>' + esc(i) + '</li>'; }).join('') + '</ul></div>' : '') +
+      (a.schedule.backlog && a.schedule.backlog.length ? '<div class="schedule-block"><div class="schedule-label">Backlog</div><ul class="analysis-list">' + a.schedule.backlog.map(function(i) { return '<li>' + esc(i) + '</li>'; }).join('') + '</ul></div>' : '') +
+    '</div>' : '');
+}
+
+function scrollToFeedback(id) {
+  var el = document.getElementById('feedback-item-' + id);
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth' });
+    el.style.outline = '2px solid #C9A84C';
+    setTimeout(function() { el.style.outline = ''; }, 2000);
+  }
+}
 </script>
 </body>
 </html>
