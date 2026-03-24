@@ -230,6 +230,12 @@ body{font-family:var(--font);color:var(--txt);background:var(--bg);-webkit-font-
 .signal-ready-title{font-size:13px;font-weight:700;color:#065f46}
 .signal-ready-sub{font-size:11px;color:#047857;margin-top:1px}
 
+/* Save & Exit button */
+.save-exit-bar{display:none;padding:0 24px 8px;flex-shrink:0;animation:msgIn 0.3s ease-out}
+.save-exit-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px 20px;background:linear-gradient(135deg,#059669,#047857);color:white;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--font);transition:all 0.2s;box-shadow:0 2px 8px rgba(5,150,105,0.3)}
+.save-exit-btn:hover{background:linear-gradient(135deg,#047857,#065f46);transform:translateY(-1px);box-shadow:0 4px 12px rgba(5,150,105,0.4)}
+.save-exit-btn i{width:16px;height:16px}
+
 /* ── Completion overlay ── */
 .completion-overlay{position:fixed;inset:0;height:100dvh;background:white;display:none;align-items:center;justify-content:center;z-index:200;opacity:0;transition:opacity 0.4s ease;padding:24px}
 .completion-overlay.visible{opacity:1}
@@ -318,6 +324,12 @@ body{font-family:var(--font);color:var(--txt);background:var(--bg);-webkit-font-
 
     <div class="voice-status" id="voiceStatus"></div>
 
+    <div class="save-exit-bar" id="saveExitBar">
+      <button class="save-exit-btn" onclick="saveAndExit()">
+        <i data-lucide="check-circle"></i> Done — Activate Matching
+      </button>
+    </div>
+
     <div class="input-wrap" id="inputWrap">
       <button class="mic-btn" id="micBtn" title="Hold to speak">
         <i data-lucide="mic" id="micIcon"></i>
@@ -383,6 +395,14 @@ body{font-family:var(--font);color:var(--txt);background:var(--bg);-webkit-font-
         </div>
       </div>
 
+      <div class="signal-ready" id="signalReady" style="display:none">
+        <div class="signal-ready-icon"><i data-lucide="zap" style="width:16px;height:16px"></i></div>
+        <div>
+          <div class="signal-ready-title">Base signal reached</div>
+          <div class="signal-ready-sub">Matching is active. Keep going to improve quality.</div>
+        </div>
+      </div>
+
       <div class="cp-section" id="cpType">
         <div class="cp-label">Stakeholder Type</div>
         <div class="cp-empty" id="cpTypeVal">Waiting for Nev...</div>
@@ -421,7 +441,7 @@ body{font-family:var(--font);color:var(--txt);background:var(--bg);-webkit-font-
         <div class="cp-deal-grid" id="cpDealVal"></div>
       </div>
 
-      <div class="signal-ready" id="signalReady" style="display:none"><div class="signal-ready-icon"><i data-lucide="zap" style="width:16px;height:16px"></i></div><div><div class="signal-ready-title">Base signal reached</div><div class="signal-ready-sub">Matching is active. Keep going to improve quality.</div></div></div><div class="canister-saved" id="canisterSaved">
+      <div class="canister-saved" id="canisterSaved">
         <h4>Canister saved!</h4>
         <p>Matching is now active. Register for events to see who's aligned with you.</p>
         <a href="/events.html" class="saved-primary"><i data-lucide="calendar"></i> Find my people</a>
@@ -656,8 +676,15 @@ async function sendMessage() {
       updateLiveCanister(data.canister_data);
     }
 
+    // After signals are complete and canister has been saved, ensure exit is prominent
+    var allBaseComplete = liveCanister.stakeholder_type && liveCanister.themes.length > 0 && liveCanister.intent.length > 0 && liveCanister.offering.length > 0 && !!liveCanister.geography;
+    if (canisterSaved && allBaseComplete) {
+      var exitBar = document.getElementById('saveExitBar');
+      if (exitBar) { exitBar.style.display = 'block'; lucide.createIcons(); }
+    }
+
     // Auto-save whenever we have any canister field — use accumulated liveCanister
-    if (data.canister_data && (data.canister_data.stakeholder_type || (data.canister_data.themes || []).length > 0 || (data.canister_data.intent || []).length > 0 || (data.canister_data.offering || []).length > 0 || data.canister_data.geography)) {
+    if (data.canister_data && (data.canister_data.stakeholder_type || (data.canister_data.themes || []).length > 0 || (data.canister_data.intent || []).length > 0 || (data.canister_data.offering || []).length > 0 || data.canister_data.geography || (data.canister_data.deal_details && Object.keys(data.canister_data.deal_details).length > 0))) {
       saveCanister(liveCanister);
     }
   } catch (err) {
@@ -792,6 +819,21 @@ function updateCompleteness() {
   var hasBase = liveCanister.stakeholder_type && liveCanister.themes.length > 0 && liveCanister.intent.length > 0 && !!liveCanister.geography;
   var readyEl = document.getElementById('signalReady');
   if (readyEl && hasBase && readyEl.style.display === 'none') { readyEl.style.display = 'flex'; lucide.createIcons(); }
+
+  // Show Save & Exit button when base signal reached OR 5+ signals complete
+  var signalCount = fields.filter(function(f) { return f.v; }).length;
+  var saveExitEl = document.getElementById('saveExitBar');
+  if (saveExitEl && (hasBase || signalCount >= 5)) {
+    saveExitEl.style.display = 'block';
+    lucide.createIcons();
+  }
+}
+
+async function saveAndExit() {
+  var btn = document.querySelector('.save-exit-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving...'; }
+  await saveCanister(liveCanister);
+  window.location.href = '/canister.html';
 }
 
 // ── Save canister ──

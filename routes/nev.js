@@ -97,7 +97,19 @@ async function loadUserCanister(userId) {
   }
   var stakeholderType = profile ? (profile.stakeholder_type || '') : '';
   if (!dealDetails || Object.keys(dealDetails).length === 0) {
-    gaps.push('timing and priorities — ask: "What is your most pressing priority in the next 90 days — raising, hiring, launching, partnering, or something else?"');
+    var timingQuestion;
+    if (stakeholderType.indexOf('investor') !== -1) {
+      timingQuestion = 'timing and priorities — ask: "What\'s your current investment focus and decision horizon — are you actively deploying, or evaluating for a future fund cycle?"';
+    } else if (stakeholderType.indexOf('advisor') !== -1) {
+      timingQuestion = 'timing and priorities — ask: "What\'s your current capacity — are you taking on new advisory roles, and what kind of engagement timeline works for you?"';
+    } else if (stakeholderType.indexOf('corporate') !== -1) {
+      timingQuestion = 'timing and priorities — ask: "What\'s the timeline on your current priorities — any key decisions, partnerships, or initiatives in the next 90 days?"';
+    } else if (stakeholderType.indexOf('researcher') !== -1) {
+      timingQuestion = 'timing and priorities — ask: "What\'s your timeline right now — are you in a specific research phase, grant cycle, or looking to collaborate on something near-term?"';
+    } else {
+      timingQuestion = 'timing and priorities — ask: "What\'s your timeline and top priority for the next 90 days — raising, hiring, launching, scaling, partnering, or something else?"';
+    }
+    gaps.push(timingQuestion);
   }
 
   // 4. Load message history (nev_messages table)
@@ -179,10 +191,10 @@ function buildNevSystemPromptStable(canisterData) {
   if (gaps.length > 0) {
     sectionC = 'GAPS TO FILL — address these one at a time, never as a list of questions:\n' +
       gaps.map(function(g) { return '- ' + g; }).join('\n') + '\n\nAsk about the highest-priority gap first. One question per response.';
-  } else if (priorMessageCount < 8) {
-    sectionC = 'CANISTER IS WELL POPULATED. Do not re-ask basics.\nAsk ONE more deepening question from this list (pick the most relevant one you haven\'t covered):\n- What would make a meeting feel like a waste of time?\n- What does a perfect introduction look like to them?\n- Who specifically is NOT a fit, and why?\n\nAfter this question, you should be ready to wrap up.';
+  } else if (priorMessageCount < 6) {
+    sectionC = 'CANISTER IS WELL POPULATED. Do not re-ask basics.\nAsk ONE short sharpening question — pick the single most useful from this list that you have NOT already covered:\n- What would make a meeting feel like a waste of time?\n- Who specifically is NOT a fit?\n\nAfter this ONE question, wrap up. Do NOT ask follow-up questions after their answer.';
   } else {
-    sectionC = 'CANISTER IS COMPLETE. You have enough signal for strong matching.\n\nWRAP UP NOW. Thank them warmly, confirm their canister is saved and matching is active. Tell them they can come back anytime to refine. Do NOT ask another question. End the conversation.\n\nKeep it brief — two or three sentences maximum.';
+    sectionC = 'CANISTER IS COMPLETE. You have enough signal for strong matching.\n\nWRAP UP NOW. Do NOT ask any more questions — not even "is there anything else". Give a brief closing summary of what you captured (2-3 bullet points of their key matching signals), confirm their canister is saved and matching is active, and tell them they can come back anytime to refine.\n\nKeep it to three or four sentences maximum. End the conversation cleanly.';
   }
 
   // Section D: Extraction targets
@@ -196,7 +208,7 @@ function buildNevSystemPromptStable(canisterData) {
 
   // Section G: Canister output
   var themeList = getCanonicalThemes().join(', ');
-  var sectionG = 'CANISTER OUTPUT — CRITICAL:\n\nAfter EVERY response, append a [CANISTER_READY] block containing the CUMULATIVE canister state based on everything you know so far. This is how the system saves profile data.\n\nFormat:\n[CANISTER_READY]\n{"stakeholder_type":"founder","themes":["AI","Fintech"],"intent":["fundraising","strategic partnerships"],"offering":["product expertise","market knowledge"],"context":"Building an AI-powered fintech platform","geography":"UK, US"}\n[/CANISTER_READY]\n\nRules:\n- Include ALL fields you have data for, not just what was mentioned in the latest message\n- stakeholder_type must be one of: founder, investor, researcher, corporate, advisor, operator (or compound like "founder/advisor")\n- themes MUST use ONLY these canonical values: ' + themeList + '\n- Map what the user describes to the closest canonical theme(s). For example: "workforce technology" → "Enterprise SaaS", "video production platform" → "Media & Entertainment", "GTM consultancy" → "Enterprise SaaS". If someone works across multiple domains, include all relevant themes.\n- If their work does not fit any canonical theme, pick the closest match — never leave themes empty if they have described what they do\n- Use empty string or empty array for fields with genuinely no data yet — never omit fields\n- This block is stripped from the visible reply — the user never sees it\n- Even after the first message, output whatever you can extract';
+  var sectionG = 'CANISTER OUTPUT — CRITICAL:\n\nAfter EVERY response, append a [CANISTER_READY] block containing the CUMULATIVE canister state based on everything you know so far. This is how the system saves profile data.\n\nFormat:\n[CANISTER_READY]\n{"stakeholder_type":"founder","themes":["AI","Fintech"],"intent":["fundraising","strategic partnerships"],"offering":["product expertise","market knowledge"],"context":"Building an AI-powered fintech platform","geography":"UK, US","deal_details":{"priority":"launching MVP","timeline":"next 90 days","capacity":"full-time"}}\n[/CANISTER_READY]\n\nRules:\n- Include ALL fields you have data for, not just what was mentioned in the latest message\n- stakeholder_type must be one of: founder, investor, researcher, corporate, advisor, operator (or compound like "founder/advisor")\n- themes MUST use ONLY these canonical values: ' + themeList + '\n- Map what the user describes to the closest canonical theme(s). For example: "workforce technology" → "Enterprise SaaS", "video production platform" → "Media & Entertainment", "GTM consultancy" → "Enterprise SaaS". If someone works across multiple domains, include all relevant themes.\n- If their work does not fit any canonical theme, pick the closest match — never leave themes empty if they have described what they do\n- deal_details captures timing and priorities — this field applies to ALL stakeholder types, not just founders. Use keys like "priority" (their current focus), "timeline" (when/how soon), "capacity" (availability/bandwidth), "stage" (where they are in their process). Examples by type: founder → {"priority":"fundraising","timeline":"next 90 days","stage":"pre-seed"}, investor → {"priority":"deploying Fund II","timeline":"Q2 2026","capacity":"3-4 new deals"}, advisor → {"priority":"open to new boards","timeline":"immediate","capacity":"2 days/month"}, job seeker → {"priority":"new role","timeline":"available now","capacity":"full-time"}. Use empty object {} if not yet captured.\n- Use empty string or empty array for fields with genuinely no data yet — never omit fields\n- This block is stripped from the visible reply — the user never sees it\n- Even after the first message, output whatever you can extract';
 
   return [sectionA, sectionB, sectionC, sectionD, sectionE, sectionF, sectionG].join('\n\n---\n\n');
 }
@@ -205,7 +217,7 @@ function buildNevSystemPromptStable(canisterData) {
 async function extractAndSaveCanisterUpdates(userId, nevResponse, userMessage) {
   try {
     var themeList = getCanonicalThemes().join(', ');
-    var extractionPrompt = 'Given this Nev response and the user message that preceded it, extract any of the following if they were clearly confirmed or updated in the conversation:\n\n- geography (string)\n- stakeholder_type (one of: founder, investor, researcher, corporate, advisor, operator — or compound like "founder/advisor")\n- themes (array — MUST use only these canonical values: ' + themeList + '. Map what the user describes to the closest theme(s). Never leave empty if they described their work.)\n- focus_text (string — their focus in their own words)\n- intent (object — what they are actively seeking)\n- offering (object — what they bring to others)\n- deal_details (object — timing and priorities: what they are focused on in the next 90 days, e.g. raising, hiring, launching, scaling, partnering, attending events, exploring new markets)\n\nReturn ONLY a JSON object with the fields that were clearly confirmed. If nothing was confirmed, return {}.\nDo not invent or infer — only extract what was explicitly stated.\n\nUser message: ' + userMessage + '\nNev response: ' + nevResponse;
+    var extractionPrompt = 'Given this Nev response and the user message that preceded it, extract any of the following if they were clearly confirmed or updated in the conversation:\n\n- geography (string)\n- stakeholder_type (one of: founder, investor, researcher, corporate, advisor, operator — or compound like "founder/advisor")\n- themes (array — MUST use only these canonical values: ' + themeList + '. Map what the user describes to the closest theme(s). Never leave empty if they described their work.)\n- focus_text (string — their focus in their own words)\n- intent (object — what they are actively seeking)\n- offering (object — what they bring to others)\n- deal_details (object — timing and priorities for ANY stakeholder type. Use keys like "priority", "timeline", "capacity", "stage". E.g. founder: raising/hiring/launching, investor: deploying/evaluating, advisor: capacity/engagement, corporate: partnering/piloting, researcher: grant cycle/collaboration)\n\nReturn ONLY a JSON object with the fields that were clearly confirmed. If nothing was confirmed, return {}.\nDo not invent or infer — only extract what was explicitly stated.\n\nUser message: ' + userMessage + '\nNev response: ' + nevResponse;
 
     var extractResp = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -439,7 +451,7 @@ router.post('/chat', authenticateToken, nevChatLimiter, nevBehaviourCheck, async
           body: JSON.stringify({
             model: MODEL,
             max_tokens: 400,
-            system: 'Extract profile data from this conversation. Respond ONLY with valid JSON, nothing else. No markdown, no explanation.\nJSON format: {"stakeholder_type":"","themes":[],"intent":[],"offering":[],"context":"","geography":""}\nstakeholder_type must be one of: founder/investor/researcher/corporate/advisor/operator (or compound like "founder/advisor")\nthemes MUST use only these canonical values: ' + getCanonicalThemes().join(', ') + '. Map what the user describes to the closest theme(s). Never leave themes empty if the user described what they do.\nUse empty string or empty array if genuinely unknown. Never use "...".',
+            system: 'Extract profile data from this conversation. Respond ONLY with valid JSON, nothing else. No markdown, no explanation.\nJSON format: {"stakeholder_type":"","themes":[],"intent":[],"offering":[],"context":"","geography":"","deal_details":{}}\nstakeholder_type must be one of: founder/investor/researcher/corporate/advisor/operator (or compound like "founder/advisor")\nthemes MUST use only these canonical values: ' + getCanonicalThemes().join(', ') + '. Map what the user describes to the closest theme(s). Never leave themes empty if the user described what they do.\ndeal_details captures timing and priorities for ALL stakeholder types — not just founders. Use keys like "priority" (current focus), "timeline" (when), "capacity" (availability), "stage" (where in process). Use empty object {} if not discussed.\nUse empty string or empty array if genuinely unknown. Never use "...".',
             messages: [{ role: 'user', content: 'Conversation:\n' + convText }]
           })
         });
@@ -447,7 +459,7 @@ router.post('/chat', authenticateToken, nevChatLimiter, nevBehaviourCheck, async
         if (extData.content && extData.content[0] && extData.content[0].text) {
           var extText = extData.content[0].text.trim();
           var extClean = extText.replace(/```json/g,"").replace(/```/g,"").trim(); var parsed = JSON.parse(extClean);
-          if (parsed.stakeholder_type || (parsed.themes && parsed.themes.length) || (parsed.intent && parsed.intent.length) || (parsed.offering && parsed.offering.length) || parsed.geography || parsed.context) {
+          if (parsed.stakeholder_type || (parsed.themes && parsed.themes.length) || (parsed.intent && parsed.intent.length) || (parsed.offering && parsed.offering.length) || parsed.geography || parsed.context || (parsed.deal_details && Object.keys(parsed.deal_details).length > 0)) {
             canisterReply = parsed;
             console.log('[Nev] Extraction succeeded:', JSON.stringify(canisterReply));
           }

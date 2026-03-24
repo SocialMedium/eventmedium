@@ -3,6 +3,7 @@ var { dbGet, dbRun, dbAll } = require('../db');
 var { authenticateToken } = require('../middleware/auth');
 var { normalizeThemes } = require('../lib/theme_taxonomy');
 var { embedProfile, embedIntentOffering } = require('../lib/vector_search');
+var emc2 = require('../lib/emc2.js');
 
 var router = express.Router();
 
@@ -14,6 +15,25 @@ router.get('/profile', authenticateToken, async function(req, res) {
       [req.user.id]
     );
     if (!profile) return res.json({ profile: null });
+
+    // EMC² backfill: if profile has base fields and user has no canister_complete credit, award it now
+    // recordTransaction is idempotent (once: true) so this is safe to call on every load
+    if (profile.stakeholder_type && profile.geography && profile.themes) {
+      var themes = profile.themes;
+      if (typeof themes === 'string') try { themes = JSON.parse(themes); } catch(e) { themes = []; }
+      if (themes.length > 0) {
+        emc2.recordTransaction({
+          user_id: req.user.id,
+          action_type: 'canister_complete'
+        }).catch(function(e) {
+          // Swallow errors — EMC² tables may not exist yet
+          if (e.message !== 'INSUFFICIENT_EMC2_BALANCE') {
+            console.warn('[EMC² backfill] canister_complete error:', e.message);
+          }
+        });
+      }
+    }
+
     res.json({ profile: profile });
   } catch (err) {
     console.error('Get profile error:', err);
@@ -153,6 +173,32 @@ router.post('/profile', authenticateToken, async function(req, res) {
         console.error('Auto-match after canister save error:', err);
       }
     })();
+
+    // EMC² — award canister_complete credits
+    try {
+      await emc2.recordTransaction({
+        user_id:     req.user.id,
+        action_type: 'canister_complete'
+      });
+
+      // Quality bonus: score canister completeness (each key field = 20 points)
+      var qualityScore = 0;
+      if (profile.stakeholder_type) qualityScore += 20;
+      if (profile.themes && JSON.parse(profile.themes || '[]').length > 0) qualityScore += 20;
+      if (profile.focus_text && profile.focus_text.length > 20) qualityScore += 20;
+      if (profile.intent && JSON.parse(profile.intent || '[]').length > 0) qualityScore += 20;
+      if (profile.geography) qualityScore += 20;
+      if (qualityScore >= 80) {
+        await emc2.recordTransaction({
+          user_id:     req.user.id,
+          action_type: 'canister_quality_bonus',
+          metadata:    { quality_score: qualityScore }
+        });
+      }
+    } catch(emc2Err) {
+      console.error('[EMC²] canister_complete error:', emc2Err.message);
+    }
+
     res.json({ profile: profile, embedded: true });
   } catch (err) {
     console.error('Save profile error:', err);

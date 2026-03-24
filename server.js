@@ -74,6 +74,9 @@ app.use('/api/messages', require('./routes/messages').router);
 // Notifications
 app.use('/api/notifications', require('./routes/notifications').router);
 
+// EMC² (EventMedium Community Credit)
+app.use('/api/emc2', require('./routes/emc2'));
+
 app.use('/api/graph', require('./routes/graph').router);
 app.use('/api/network', require('./routes/network'));
 app.use('/api/admin', require('./routes/dashboard'));
@@ -144,6 +147,52 @@ async function runMigrations() {
       fake_user_id INTEGER, persona_brief TEXT, career_stage VARCHAR(50),
       canister_completeness FLOAT, is_event_subset BOOLEAN DEFAULT FALSE
     )`);
+    // EMC² system tables
+    await dbRun("DO $$ BEGIN CREATE TYPE emc2_action AS ENUM ('canister_complete','canister_quality_bonus','community_join','event_attend','match_accepted','match_confirmed','match_debrief','referral_complete','global_access_unlock','network_query_spend','founding_member_grant','community_owner_award','community_multiplier_bonus','admin_adjustment'); EXCEPTION WHEN duplicate_object THEN NULL; END $$");
+    await dbRun(`CREATE TABLE IF NOT EXISTS emc2_ledger (
+      id SERIAL PRIMARY KEY, tx_id UUID DEFAULT gen_random_uuid() NOT NULL UNIQUE,
+      user_id INTEGER REFERENCES users(id) NOT NULL, wallet_address VARCHAR(255),
+      amount INTEGER NOT NULL, action_type emc2_action NOT NULL,
+      entity_id INTEGER, entity_type VARCHAR(50), balance_after INTEGER NOT NULL,
+      metadata JSONB DEFAULT '{}', prev_tx_hash VARCHAR(64), tx_hash VARCHAR(64) UNIQUE,
+      created_at TIMESTAMP DEFAULT NOW(), CONSTRAINT no_zero_amount CHECK (amount != 0)
+    )`);
+    await dbRun(`CREATE TABLE IF NOT EXISTS emc2_wallets (
+      id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id) UNIQUE,
+      wallet_address VARCHAR(255), chain_id VARCHAR(50), connected_at TIMESTAMP,
+      verified BOOLEAN DEFAULT FALSE, founding_member BOOLEAN DEFAULT FALSE,
+      founding_member_granted_at TIMESTAMP, created_at TIMESTAMP DEFAULT NOW()
+    )`);
+    await dbRun(`CREATE TABLE IF NOT EXISTS community_emc2_config (
+      id SERIAL PRIMARY KEY, community_id INTEGER REFERENCES communities(id) UNIQUE,
+      owner_award_pool INTEGER DEFAULT 0, multiplier_active BOOLEAN DEFAULT FALSE,
+      multiplier_value NUMERIC(3,1) DEFAULT 1.0, multiplier_action emc2_action,
+      multiplier_starts TIMESTAMP, multiplier_ends TIMESTAMP,
+      founding_threshold INTEGER DEFAULT 50,
+      created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW()
+    )`);
+    await dbRun(`CREATE TABLE IF NOT EXISTS network_milestones (
+      id SERIAL PRIMARY KEY, milestone INTEGER NOT NULL UNIQUE,
+      reached_at TIMESTAMP, canister_count INTEGER,
+      cascade_processed BOOLEAN DEFAULT FALSE
+    )`);
+    await dbRun("INSERT INTO network_milestones (milestone) VALUES (1000),(10000),(100000),(1000000),(10000000) ON CONFLICT (milestone) DO NOTHING");
+    // emc2_ledger columns for chain anchoring
+    await dbRun('ALTER TABLE emc2_ledger ADD COLUMN IF NOT EXISTS anchored_at TIMESTAMP');
+    await dbRun('ALTER TABLE emc2_ledger ADD COLUMN IF NOT EXISTS anchor_tx_hash VARCHAR(64)');
+    // stakeholder_profiles EMC² columns
+    await dbRun('ALTER TABLE stakeholder_profiles ADD COLUMN IF NOT EXISTS emc2_balance INTEGER DEFAULT 0');
+    await dbRun('ALTER TABLE stakeholder_profiles ADD COLUMN IF NOT EXISTS emc2_lifetime_earned INTEGER DEFAULT 0');
+    await dbRun('ALTER TABLE stakeholder_profiles ADD COLUMN IF NOT EXISTS global_access_active BOOLEAN DEFAULT FALSE');
+    await dbRun('ALTER TABLE stakeholder_profiles ADD COLUMN IF NOT EXISTS founding_member BOOLEAN DEFAULT FALSE');
+    await dbRun('ALTER TABLE stakeholder_profiles ADD COLUMN IF NOT EXISTS founding_member_granted_at TIMESTAMP');
+    await dbRun("ALTER TABLE stakeholder_profiles ADD COLUMN IF NOT EXISTS emc2_cohort VARCHAR(20)");
+    await dbRun('ALTER TABLE stakeholder_profiles ADD COLUMN IF NOT EXISTS emc2_cohort_number INTEGER');
+    await dbRun('ALTER TABLE stakeholder_profiles ADD COLUMN IF NOT EXISTS emc2_earn_multiplier NUMERIC(3,1) DEFAULT 1.0');
+    // emc2_ledger indexes
+    await dbRun('CREATE INDEX IF NOT EXISTS idx_emc2_ledger_user_id ON emc2_ledger(user_id)');
+    await dbRun('CREATE INDEX IF NOT EXISTS idx_emc2_ledger_created_at ON emc2_ledger(created_at)');
+    await dbRun('CREATE INDEX IF NOT EXISTS idx_emc2_ledger_action_type ON emc2_ledger(action_type)');
     console.log('[Migrations] Schema up to date');
   } catch(err) {
     console.error('[Migrations] Error:', err);

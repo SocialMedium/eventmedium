@@ -239,6 +239,7 @@ body{font-family:var(--sans);background:var(--bg2);color:var(--text);min-height:
     <button class="tab" data-tab="gaps">Gaps &amp; Opportunities</button>
     <button class="tab" data-tab="members">Members</button>
     <button class="tab" data-tab="events">Events</button>
+    <button class="tab" data-tab="emc2">EMC&sup2;</button>
   </div>
 
   <!-- ─── TAB 1: OVERVIEW ─── -->
@@ -304,6 +305,80 @@ body{font-family:var(--sans);background:var(--bg2);color:var(--text);min-height:
   <div id="events" class="tab-content">
     <div class="card">
       <div id="eventsVis"><div class="skel" style="height:280px;border-radius:8px"></div></div>
+    </div>
+  </div>
+
+  <!-- ─── TAB 6: EMC² ─── -->
+  <div id="emc2" class="tab-content">
+    <!-- Health tier summary -->
+    <div class="stat-row" id="emc2TierRow">
+      <div class="stat-card"><div class="skel" style="height:28px;margin-bottom:8px"></div><div class="skel" style="height:10px;width:55%"></div></div>
+      <div class="stat-card"><div class="skel" style="height:28px;margin-bottom:8px"></div><div class="skel" style="height:10px;width:55%"></div></div>
+      <div class="stat-card"><div class="skel" style="height:28px;margin-bottom:8px"></div><div class="skel" style="height:10px;width:55%"></div></div>
+      <div class="stat-card"><div class="skel" style="height:28px;margin-bottom:8px"></div><div class="skel" style="height:10px;width:55%"></div></div>
+    </div>
+
+    <!-- Node health ranked list -->
+    <div class="card" style="margin-bottom:20px">
+      <h3 style="margin-bottom:14px">Community Node Health</h3>
+      <div id="emc2NodeList"><div class="skel" style="height:200px;border-radius:8px"></div></div>
+    </div>
+
+    <!-- Award form -->
+    <div class="card" style="margin-bottom:20px">
+      <h3 style="margin-bottom:14px">Award EMC&sup2; to Member</h3>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
+        <div style="flex:1;min-width:160px">
+          <label style="display:block;font-size:12px;color:var(--text3);margin-bottom:4px">Node (anonymised ID)</label>
+          <select id="emc2AwardNode" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:8px;font-size:13px;font-family:var(--sans)">
+            <option value="">Select node...</option>
+          </select>
+        </div>
+        <div style="min-width:100px">
+          <label style="display:block;font-size:12px;color:var(--text3);margin-bottom:4px">Amount</label>
+          <input type="number" id="emc2AwardAmount" min="1" max="500" placeholder="50" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:8px;font-size:13px;font-family:var(--sans)">
+        </div>
+        <div style="flex:2;min-width:200px">
+          <label style="display:block;font-size:12px;color:var(--text3);margin-bottom:4px">Reason</label>
+          <input type="text" id="emc2AwardReason" placeholder="e.g. Outstanding contribution" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:8px;font-size:13px;font-family:var(--sans)">
+        </div>
+        <button class="btn btn-pri" onclick="submitEmc2Award()" style="white-space:nowrap">Award EMC&sup2;</button>
+      </div>
+      <div id="emc2AwardMsg" style="margin-top:8px;font-size:13px"></div>
+    </div>
+
+    <!-- Multiplier config -->
+    <div class="card">
+      <h3 style="margin-bottom:14px">Earn Multiplier</h3>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
+        <div style="min-width:160px">
+          <label style="display:block;font-size:12px;color:var(--text3);margin-bottom:4px">Action Type</label>
+          <select id="emc2MultAction" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:8px;font-size:13px;font-family:var(--sans)">
+            <option value="event_attend">Event Attend</option>
+            <option value="match_accepted">Match Accepted</option>
+            <option value="match_confirmed">Match Confirmed</option>
+            <option value="match_debrief">Match Debrief</option>
+            <option value="community_join">Community Join</option>
+          </select>
+        </div>
+        <div style="min-width:100px">
+          <label style="display:block;font-size:12px;color:var(--text3);margin-bottom:4px">Multiplier</label>
+          <select id="emc2MultValue" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:8px;font-size:13px;font-family:var(--sans)">
+            <option value="1.5">1.5x</option>
+            <option value="2.0">2x</option>
+          </select>
+        </div>
+        <div style="min-width:140px">
+          <label style="display:block;font-size:12px;color:var(--text3);margin-bottom:4px">Start Date</label>
+          <input type="date" id="emc2MultStart" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:8px;font-size:13px;font-family:var(--sans)">
+        </div>
+        <div style="min-width:140px">
+          <label style="display:block;font-size:12px;color:var(--text3);margin-bottom:4px">End Date</label>
+          <input type="date" id="emc2MultEnd" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:8px;font-size:13px;font-family:var(--sans)">
+        </div>
+        <button class="btn btn-pri" onclick="submitEmc2Multiplier()" style="white-space:nowrap">Set Multiplier</button>
+      </div>
+      <div id="emc2MultMsg" style="margin-top:8px;font-size:13px"></div>
     </div>
   </div>
 
@@ -529,6 +604,7 @@ document.querySelectorAll('.tab').forEach(function(t) {
       if (id === 'gaps') { renderGauges(); renderInsights(); }
       if (id === 'members') { renderMembersTab(); }
       if (id === 'events') { renderEventsTab(); }
+      if (id === 'emc2') { renderEmc2Tab(); }
     }
   });
 });
@@ -1347,6 +1423,110 @@ document.getElementById('delComm1Modal').addEventListener('click', function(e){ 
 document.getElementById('delComm2Modal').addEventListener('click', function(e){ if(e.target===this) closeDelComm2(); });
 document.getElementById('delEvt1Modal').addEventListener('click', function(e){ if(e.target===this) closeDelEvt1(); });
 document.getElementById('delEvt2Modal').addEventListener('click', function(e){ if(e.target===this) closeDelEvt2(); });
+
+// ── EMC² Tab ──────────────────────────────────────────────────────────────────
+var _emc2Nodes = null;
+
+async function renderEmc2Tab() {
+  if (_emc2Nodes) return;
+  try {
+    var r = await fetch('/api/emc2/community/' + D.community.id + '/nodes', {
+      headers: { Authorization: 'Bearer ' + token }
+    });
+    var data = await r.json();
+    if (!data.success) { document.getElementById('emc2NodeList').innerHTML = '<p style="color:var(--text3)">Could not load node data.</p>'; return; }
+    _emc2Nodes = data.nodes || [];
+
+    // Tier counts
+    var tiers = { anchor: 0, active: 0, engaged: 0, passive: 0 };
+    var tierColors = { anchor: 'var(--green)', active: 'var(--blue)', engaged: 'var(--amber)', passive: 'var(--text3)' };
+    var tierBg = { anchor: 'var(--greenL)', active: 'var(--blueL)', engaged: 'var(--amberL)', passive: 'var(--bg3)' };
+    for (var i = 0; i < _emc2Nodes.length; i++) tiers[_emc2Nodes[i].node_health] = (tiers[_emc2Nodes[i].node_health] || 0) + 1;
+
+    var tierRow = document.getElementById('emc2TierRow');
+    tierRow.innerHTML = '';
+    ['anchor', 'active', 'engaged', 'passive'].forEach(function(t) {
+      tierRow.innerHTML += '<div class="stat-card"><div style="font-size:28px;font-weight:800;color:' + tierColors[t] + '">' + (tiers[t] || 0) + '</div><div style="font-size:12px;color:var(--text3);text-transform:capitalize">' + t + ' Nodes</div></div>';
+    });
+
+    // Node list (anonymised)
+    var html = '<table style="width:100%;border-collapse:collapse;font-size:13px">';
+    html += '<tr style="text-align:left;border-bottom:2px solid var(--border)"><th style="padding:8px 6px">Node</th><th style="padding:8px 6px">Type</th><th style="padding:8px 6px">Health</th><th style="padding:8px 6px;text-align:right">Lifetime EMC&sup2;</th><th style="padding:8px 6px;text-align:right">Balance</th><th style="padding:8px 6px;text-align:right">Matches</th><th style="padding:8px 6px;text-align:center">Founding</th></tr>';
+    for (var j = 0; j < _emc2Nodes.length; j++) {
+      var n = _emc2Nodes[j];
+      var healthColor = tierColors[n.node_health] || 'var(--text3)';
+      html += '<tr style="border-bottom:1px solid var(--border)">' +
+        '<td style="padding:8px 6px;font-family:var(--mono);font-size:12px">N-' + String(n.user_id).padStart(4, '0') + '</td>' +
+        '<td style="padding:8px 6px;text-transform:capitalize">' + (n.stakeholder_type || '-') + '</td>' +
+        '<td style="padding:8px 6px"><span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600;background:' + tierBg[n.node_health] + ';color:' + healthColor + '">' + n.node_health + '</span></td>' +
+        '<td style="padding:8px 6px;text-align:right;font-weight:600">' + (n.emc2_lifetime_earned || 0).toLocaleString() + '</td>' +
+        '<td style="padding:8px 6px;text-align:right">' + (n.emc2_balance || 0).toLocaleString() + '</td>' +
+        '<td style="padding:8px 6px;text-align:right">' + (n.match_count || 0) + ' / ' + (n.confirmed_matches || 0) + '</td>' +
+        '<td style="padding:8px 6px;text-align:center">' + (n.founding_member ? '\u2B21' : '-') + '</td>' +
+        '</tr>';
+    }
+    html += '</table>';
+    document.getElementById('emc2NodeList').innerHTML = html;
+
+    // Populate award dropdown
+    var sel = document.getElementById('emc2AwardNode');
+    sel.innerHTML = '<option value="">Select node...</option>';
+    for (var k = 0; k < _emc2Nodes.length; k++) {
+      var nd = _emc2Nodes[k];
+      sel.innerHTML += '<option value="' + nd.user_id + '">N-' + String(nd.user_id).padStart(4, '0') + ' (' + (nd.stakeholder_type || 'unknown') + ', ' + nd.node_health + ')</option>';
+    }
+  } catch(e) {
+    document.getElementById('emc2NodeList').innerHTML = '<p style="color:var(--red)">Error loading EMC&sup2; data.</p>';
+  }
+}
+
+async function submitEmc2Award() {
+  var userId = document.getElementById('emc2AwardNode').value;
+  var amount = parseInt(document.getElementById('emc2AwardAmount').value);
+  var reason = document.getElementById('emc2AwardReason').value;
+  var msg = document.getElementById('emc2AwardMsg');
+  if (!userId || !amount || amount < 1) { msg.innerHTML = '<span style="color:var(--red)">Select a node and enter a valid amount.</span>'; return; }
+  try {
+    var r = await fetch('/api/emc2/community/' + D.community.id + '/award', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ recipient_user_id: parseInt(userId), amount: amount, reason: reason })
+    });
+    var data = await r.json();
+    if (data.success) {
+      msg.innerHTML = '<span style="color:var(--green)">Awarded ' + amount + ' EMC&sup2; to N-' + String(userId).padStart(4, '0') + '</span>';
+      _emc2Nodes = null; renderEmc2Tab();
+    } else {
+      msg.innerHTML = '<span style="color:var(--red)">' + (data.error || 'Award failed') + '</span>';
+    }
+  } catch(e) {
+    msg.innerHTML = '<span style="color:var(--red)">Connection error.</span>';
+  }
+}
+
+async function submitEmc2Multiplier() {
+  var action = document.getElementById('emc2MultAction').value;
+  var value = parseFloat(document.getElementById('emc2MultValue').value);
+  var starts = document.getElementById('emc2MultStart').value;
+  var ends = document.getElementById('emc2MultEnd').value;
+  var msg = document.getElementById('emc2MultMsg');
+  if (!starts || !ends) { msg.innerHTML = '<span style="color:var(--red)">Please set start and end dates.</span>'; return; }
+  try {
+    var r = await fetch('/api/emc2/community/' + D.community.id + '/multiplier', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action_type: action, multiplier_value: value, starts: starts, ends: ends })
+    });
+    var data = await r.json();
+    if (data.success) {
+      msg.innerHTML = '<span style="color:var(--green)">Multiplier set: ' + value + 'x on ' + action + ' from ' + starts + ' to ' + ends + '</span>';
+    } else {
+      msg.innerHTML = '<span style="color:var(--red)">' + (data.error || 'Failed to set multiplier') + '</span>';
+    }
+  } catch(e) {
+    msg.innerHTML = '<span style="color:var(--red)">Connection error.</span>';
+  }
+}
 
 load();
 </script>

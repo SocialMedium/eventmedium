@@ -3,6 +3,7 @@ var { dbGet, dbRun, dbAll } = require('../db');
 var { authenticateToken } = require('../middleware/auth');
 var { normalizeThemes, normalizeTheme } = require('../lib/theme_taxonomy');
 var { getEmbedding, getEmbeddings, getPointVector, getPointVectors, findCandidates, searchByVector, buildProfileText, COLLECTIONS } = require('../lib/vector_search');
+var emc2 = require('../lib/emc2.js');
 var router = express.Router();
 
 // ══════════════════════════════════════════════════════
@@ -1164,6 +1165,20 @@ router.post('/:matchId/decide', authenticateToken, async function(req, res) {
         console.error('Match reveal email error:', err);
       });
 
+      // EMC² — award match_accepted to both users
+      try {
+        await emc2.recordTransaction({
+          user_id: match.user_a_id, action_type: 'match_accepted',
+          entity_id: matchId, entity_type: 'match'
+        });
+        await emc2.recordTransaction({
+          user_id: match.user_b_id, action_type: 'match_accepted',
+          entity_id: matchId, entity_type: 'match'
+        });
+      } catch(emc2Err) {
+        console.error('[EMC²] match_accepted error:', emc2Err.message);
+      }
+
       match.status = 'revealed';
     } else if (decision === 'declined') {
       await dbRun("UPDATE event_matches SET status = 'declined' WHERE id = $1", [matchId]);
@@ -1483,6 +1498,18 @@ router.post('/:matchId/debrief', authenticateToken, async function(req, res) {
     // Extract tuning insights from structured feedback
     await extractDebriefInsights(matchId, req.user.id, req.body, match);
 
+    // EMC² — award match_confirmed if they met
+    if (did_meet === true || did_meet === 'true') {
+      try {
+        await emc2.recordTransaction({
+          user_id: req.user.id, action_type: 'match_confirmed',
+          entity_id: matchId, entity_type: 'match'
+        });
+      } catch(emc2Err) {
+        console.error('[EMC²] match_confirmed error:', emc2Err.message);
+      }
+    }
+
     res.json({ success: true });
   } catch (err) {
     console.error('Debrief error:', err);
@@ -1631,6 +1658,16 @@ router.post('/:matchId/debrief/chat', authenticateToken, async function(req, res
     // Check if debrief feels complete
     if (nevReply.extracted && nevReply.extracted.debrief_complete) {
       await dbRun('UPDATE match_feedback SET nev_chat_completed = true, updated_at = NOW() WHERE id = $1', [feedback.id]);
+
+      // EMC² — award match_debrief on completion
+      try {
+        await emc2.recordTransaction({
+          user_id: req.user.id, action_type: 'match_debrief',
+          entity_id: matchId, entity_type: 'match'
+        });
+      } catch(emc2Err) {
+        console.error('[EMC²] match_debrief error:', emc2Err.message);
+      }
     }
 
     res.json({

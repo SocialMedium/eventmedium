@@ -4,6 +4,7 @@ var { dbGet, dbRun, dbAll } = require('../db');
 var { authenticateToken, optionalAuth } = require('../middleware/auth');
 var { normalizeThemes } = require('../lib/theme_taxonomy');
 var { embedEvent } = require('../lib/vector_search');
+var emc2 = require('../lib/emc2.js');
 
 var router = express.Router();
 
@@ -855,6 +856,16 @@ router.post('/:id/register', authenticateToken, async function(req, res) {
       [eventId, req.user.id, profile ? profile.stakeholder_type : null,
        profile ? JSON.stringify(profile.themes) : '[]', 'active']
     );
+
+    // EMC² — award event_attend credits
+    try {
+      await emc2.recordTransaction({
+        user_id: req.user.id, action_type: 'event_attend',
+        entity_id: eventId, entity_type: 'event'
+      });
+    } catch(emc2Err) {
+      console.error('[EMC²] event_attend error:', emc2Err.message);
+    }
 
     res.json({ registered: true });
     // Async: generate matches for this user at this event
