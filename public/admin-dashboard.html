@@ -1628,27 +1628,15 @@ async function runFeedbackAnalysis() {
       btn.disabled = false; btn.textContent = 'Run analysis'; return;
     }
     var items = feedbackRes.feedback;
-    var feedbackText = items.map(function(f, i) {
-      return '[' + (i + 1) + '] Category: ' + f.category + ' | User: ' + (f.user_name || 'Anonymous') + ' | Date: ' + new Date(f.created_at).toLocaleDateString() + ' | Status: ' + f.status + '\nMessage: ' + f.message;
-    }).join('\n\n');
 
-    var claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
+    var analysisRes = await fetch('/api/admin/analyse-feedback', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        system: 'You are reviewing beta feedback for EventMedium.ai \u2014 a professional networking platform that matches people at events using AI-built profiles called canisters. Users earn EMC\u00B2 credits through network activity.\n\nAnalyse the feedback batch and produce a structured briefing in this exact JSON format:\n{"critical":[{"id":0,"summary":"","action":""}],"bugs":[{"id":0,"summary":"","priority":"high"}],"improvements":[{"summary":"","frequency":1,"impact":"high"}],"patterns":[""],"praise":[""],"schedule":{"this_week":[""],"next_sprint":[""],"backlog":[""]},"overall_health":"good","headline":""}\n\nBe direct. Flag anything breaking core flows (matching, canister save, auth, EMC\u00B2) as critical. Tone: senior product manager briefing a founder. Return only valid JSON, no preamble.',
-        messages: [{ role: 'user', content: 'Analyse this feedback batch (' + items.length + ' items):\n\n' + feedbackText }]
-      })
+      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ feedback: items })
     }).then(function(r) { return r.json(); });
 
-    var raw = (claudeRes.content && claudeRes.content[0] && claudeRes.content[0].text) || '{}';
-    var analysis;
-    try { analysis = JSON.parse(raw); } catch(e) {
-      var clean = raw.replace(/```json/g, '').replace(/```/g, '').trim();
-      analysis = JSON.parse(clean);
-    }
+    if (!analysisRes.success) throw new Error(analysisRes.error || 'Analysis failed');
+    var analysis = analysisRes.analysis;
     renderAnalysis(analysis, items.length);
     meta.textContent = '\u2014 last run ' + new Date().toLocaleTimeString();
   } catch(err) {

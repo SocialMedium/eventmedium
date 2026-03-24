@@ -833,4 +833,44 @@ router.get('/nev-diagnostic', authenticateToken, adminOnly, async function(req, 
   }
 });
 
+// ── POST /api/admin/analyse-feedback — Claude-powered feedback triage ──
+router.post('/analyse-feedback', authenticateToken, adminOnly, async function(req, res) {
+  try {
+    var feedback = req.body.feedback;
+    if (!feedback || !feedback.length) return res.status(400).json({ error: 'No feedback provided' });
+
+    var feedbackText = feedback.map(function(f, i) {
+      return '[' + (i + 1) + '] Category: ' + f.category + ' | User: ' + (f.user_name || 'Anonymous') + ' | Date: ' + new Date(f.created_at).toLocaleDateString() + ' | Status: ' + f.status + '\nMessage: ' + f.message;
+    }).join('\n\n');
+
+    var response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': process.env.ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: 'You are reviewing beta feedback for EventMedium.ai \u2014 a professional networking platform that matches people at events using AI-built profiles called canisters. Users earn EMC\u00B2 credits through network activity.\n\nAnalyse the feedback batch and produce a structured briefing in this exact JSON format:\n{"critical":[{"id":0,"summary":"","action":""}],"bugs":[{"id":0,"summary":"","priority":"high"}],"improvements":[{"summary":"","frequency":1,"impact":"high"}],"patterns":[""],"praise":[""],"schedule":{"this_week":[""],"next_sprint":[""],"backlog":[""]},"overall_health":"good","headline":""}\n\nBe direct. Flag anything breaking core flows (matching, canister save, auth, EMC\u00B2) as critical. Tone: senior product manager briefing a founder. Return only valid JSON, no preamble.',
+        messages: [{ role: 'user', content: 'Analyse this feedback batch (' + feedback.length + ' items):\n\n' + feedbackText }]
+      })
+    });
+
+    var data = await response.json();
+    var raw = (data.content && data.content[0] && data.content[0].text) || '{}';
+    var analysis;
+    try { analysis = JSON.parse(raw); } catch(e) {
+      var clean = raw.replace(/```json/g, '').replace(/```/g, '').trim();
+      analysis = JSON.parse(clean);
+    }
+
+    res.json({ success: true, analysis: analysis });
+  } catch(err) {
+    console.error('[Feedback Analysis] Error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
