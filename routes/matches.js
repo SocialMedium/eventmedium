@@ -1165,7 +1165,7 @@ router.post('/:matchId/decide', authenticateToken, async function(req, res) {
         console.error('Match reveal email error:', err);
       });
 
-      // EMC² — award match_accepted to both users
+      // EC³ — award match_accepted to both users
       try {
         await emc2.recordTransaction({
           user_id: match.user_a_id, action_type: 'match_accepted',
@@ -1176,7 +1176,7 @@ router.post('/:matchId/decide', authenticateToken, async function(req, res) {
           entity_id: matchId, entity_type: 'match'
         });
       } catch(emc2Err) {
-        console.error('[EMC²] match_accepted error:', emc2Err.message);
+        console.error('[EC³] match_accepted error:', emc2Err.message);
       }
 
       match.status = 'revealed';
@@ -1498,7 +1498,7 @@ router.post('/:matchId/debrief', authenticateToken, async function(req, res) {
     // Extract tuning insights from structured feedback
     await extractDebriefInsights(matchId, req.user.id, req.body, match);
 
-    // EMC² — award match_confirmed if they met
+    // EC³ — award match_confirmed if they met
     if (did_meet === true || did_meet === 'true') {
       try {
         await emc2.recordTransaction({
@@ -1506,7 +1506,7 @@ router.post('/:matchId/debrief', authenticateToken, async function(req, res) {
           entity_id: matchId, entity_type: 'match'
         });
       } catch(emc2Err) {
-        console.error('[EMC²] match_confirmed error:', emc2Err.message);
+        console.error('[EC³] match_confirmed error:', emc2Err.message);
       }
     }
 
@@ -1659,14 +1659,14 @@ router.post('/:matchId/debrief/chat', authenticateToken, async function(req, res
     if (nevReply.extracted && nevReply.extracted.debrief_complete) {
       await dbRun('UPDATE match_feedback SET nev_chat_completed = true, updated_at = NOW() WHERE id = $1', [feedback.id]);
 
-      // EMC² — award match_debrief on completion
+      // EC³ — award match_debrief on completion
       try {
         await emc2.recordTransaction({
           user_id: req.user.id, action_type: 'match_debrief',
           entity_id: matchId, entity_type: 'match'
         });
       } catch(emc2Err) {
-        console.error('[EMC²] match_debrief error:', emc2Err.message);
+        console.error('[EC³] match_debrief error:', emc2Err.message);
       }
     }
 

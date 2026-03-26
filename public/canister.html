@@ -180,7 +180,7 @@ body{font-family:var(--font);color:var(--txt);background:var(--bg);-webkit-font-
 .rec-feed-name{font-size:13px;font-weight:600;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rec-feed-meta{font-size:11px;color:var(--txtL)}
 .rec-feed-reason{font-size:10px;color:var(--p);font-weight:500;margin-top:1px}
-/* ── EMC² Wallet — Standard card ── */
+/* ── EC³ Wallet — Standard card ── */
 .emc2-wallet{background:linear-gradient(135deg,#1a0533 0%,#2d1b69 50%,#1a0533 100%);border-radius:16px;padding:24px;color:#fff;margin-bottom:24px}
 .emc2-wallet-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
 .emc2-logo{font-size:22px;font-weight:900;letter-spacing:1px;background:linear-gradient(135deg,#6c63ff,#00d084);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
@@ -322,16 +322,16 @@ body{font-family:var(--font);color:var(--txt);background:var(--bg);-webkit-font-
     <div class="invite-recipient-benefits">
       <div class="invite-benefits-title">What they get by joining</div>
       <div class="invite-benefit-row"><span>OG status (while first 10K open)</span><span class="benefit-val og">Permanent</span></div>
-      <div class="invite-benefit-row"><span>Opening EMC&sup2; balance</span><span class="benefit-val">1,000 EMC&sup2;</span></div>
+      <div class="invite-benefit-row"><span>Opening EC&sup3; balance</span><span class="benefit-val">1,000 EC&sup3;</span></div>
       <div class="invite-benefit-row"><span>Community matches</span><span class="benefit-val free">Free</span></div>
       <div class="invite-benefit-row"><span>Private canister &mdash; anonymous matching</span><span class="benefit-val">&check;</span></div>
     </div>
     <div class="invite-referrer-earn">
       <div class="invite-earn-title">What you earn</div>
-      <div class="invite-earn-row"><span>They complete their canister</span><span class="earn-val" id="earn-tier1">+200 EMC&sup2;</span></div>
-      <div class="invite-earn-row"><span>They accept first match</span><span class="earn-val" id="earn-tier2">+100 EMC&sup2;</span></div>
-      <div class="invite-earn-row"><span>They confirm first meeting</span><span class="earn-val" id="earn-tier3">+50 EMC&sup2;</span></div>
-      <div class="invite-earn-total"><span>Total per activated member</span><span id="earn-total">350 EMC&sup2;</span></div>
+      <div class="invite-earn-row"><span>They complete their canister</span><span class="earn-val" id="earn-tier1">+200 EC&sup3;</span></div>
+      <div class="invite-earn-row"><span>They accept first match</span><span class="earn-val" id="earn-tier2">+100 EC&sup3;</span></div>
+      <div class="invite-earn-row"><span>They confirm first meeting</span><span class="earn-val" id="earn-tier3">+50 EC&sup3;</span></div>
+      <div class="invite-earn-total"><span>Total per activated member</span><span id="earn-total">350 EC&sup3;</span></div>
     </div>
     <div class="invite-share-section">
       <div class="invite-share-label">Share via</div>
@@ -527,7 +527,7 @@ async function loadCanister() {
 
     html += '</div><div class="side-col">';
 
-    // EMC² Wallet (rendered async after page load)
+    // EC³ Wallet (rendered async after page load)
     html += '<div id="emc2-wallet-container"></div>';
 
     // Invite button (shown after wallet loads if user has referral code)
@@ -535,7 +535,7 @@ async function loadCanister() {
       '<button class="invite-trigger-btn" id="invite-trigger-btn" onclick="openInviteModal()">' +
         '<span class="invite-btn-icon">\u2B21</span>' +
         '<span class="invite-btn-text">Invite to EventMedium</span>' +
-        '<span class="invite-btn-earn">Earn up to 350 EMC\u00B2 per member</span>' +
+        '<span class="invite-btn-earn">Earn up to 350 EC\u00B3 per member</span>' +
       '</button>' +
     '</div>';
 
@@ -602,7 +602,7 @@ async function loadCanister() {
     setupDropZone();
     loadDocumentList();
     loadRecommendedFeed();
-    // Render EMC² wallet into sidebar, then init invite button
+    // Render EC³ wallet into sidebar, then init invite button
     if (typeof renderEMC2Wallet === 'function') {
       renderEMC2Wallet('emc2-wallet-container').then(function() {
         // Fetch wallet data to init invite button
@@ -848,17 +848,17 @@ function initInviteButton(wallet) {
   if (!wallet.og_member) btn.classList.add('standard');
   var earnEl = btn.querySelector('.invite-btn-earn');
   if (wallet.emc2_earn_multiplier >= 3) {
-    document.getElementById('earn-tier1').innerHTML = '+600 EMC&sup2; (3&times;)';
-    document.getElementById('earn-tier2').innerHTML = '+300 EMC&sup2; (3&times;)';
-    document.getElementById('earn-tier3').innerHTML = '+150 EMC&sup2; (3&times;)';
-    document.getElementById('earn-total').innerHTML = '1,050 EMC&sup2;';
-    if (earnEl) earnEl.textContent = 'Earn up to 1,050 EMC\u00B2 per member';
+    document.getElementById('earn-tier1').innerHTML = '+600 EC&sup3; (3&times;)';
+    document.getElementById('earn-tier2').innerHTML = '+300 EC&sup3; (3&times;)';
+    document.getElementById('earn-tier3').innerHTML = '+150 EC&sup3; (3&times;)';
+    document.getElementById('earn-total').innerHTML = '1,050 EC&sup3;';
+    if (earnEl) earnEl.textContent = 'Earn up to 1,050 EC\u00B3 per member';
   } else if (wallet.emc2_earn_multiplier >= 2) {
-    document.getElementById('earn-tier1').innerHTML = '+400 EMC&sup2; (2&times;)';
-    document.getElementById('earn-tier2').innerHTML = '+200 EMC&sup2; (2&times;)';
-    document.getElementById('earn-tier3').innerHTML = '+100 EMC&sup2; (2&times;)';
-    document.getElementById('earn-total').innerHTML = '700 EMC&sup2;';
-    if (earnEl) earnEl.textContent = 'Earn up to 700 EMC\u00B2 per member';
+    document.getElementById('earn-tier1').innerHTML = '+400 EC&sup3; (2&times;)';
+    document.getElementById('earn-tier2').innerHTML = '+200 EC&sup3; (2&times;)';
+    document.getElementById('earn-tier3').innerHTML = '+100 EC&sup3; (2&times;)';
+    document.getElementById('earn-total').innerHTML = '700 EC&sup3;';
+    if (earnEl) earnEl.textContent = 'Earn up to 700 EC\u00B3 per member';
   }
   container.style.display = 'block';
 }
@@ -871,7 +871,7 @@ function openInviteModal() {
   document.getElementById('modal-invite-url').textContent = url;
   if (_inviteData.og_member) {
     var ogEl = document.getElementById('invite-og-banner');
-    ogEl.innerHTML = '<span style="color:#C9A84C;flex-shrink:0;margin-top:1px;font-size:14px">\u2B21</span><span>We are still in the first 10,000 founding members. Your invitee gets a permanent member number, 1,000 EMC\u00B2 opening balance, and accelerated rewards for life \u2014 if they complete their canister now.</span>';
+    ogEl.innerHTML = '<span style="color:#C9A84C;flex-shrink:0;margin-top:1px;font-size:14px">\u2B21</span><span>We are still in the first 10,000 founding members. Your invitee gets a permanent member number, 1,000 EC\u00B3 opening balance, and accelerated rewards for life \u2014 if they complete their canister now.</span>';
     ogEl.style.display = 'flex';
   }
   buildInviteTemplates(code, url);
@@ -889,7 +889,7 @@ function closeInviteModal(event) {
 function buildInviteTemplates(code, url) {
   _inviteTemplates = {
     short: "Thought of you for this \u2014 EventMedium is a private matching network for events and communities. No spam, no cold approaches, no advertising. It finds the people already looking for what you bring before you walk in the room.\n\nFirst 10,000 founding members get a large opening allocation of matching credits and lifetime accelerated benefits. Still open: " + url,
-    long: "This is an invitation to join me as a founding member of EventMedium.\n\nThe connection that could have changed everything\u2026 was probably in the room.\nBut you didn\u2019t meet. And neither did they.\n\nEventMedium exists to fix that. We match people before events begin \u2014 privately, anonymously, and only when the fit is mutual. So when you walk in, the right conversations are already waiting.\n\nAs a Founding Member, you get a permanent position on the network: your own member number, 1,000 EMC\u00B2 opening balance, accelerated community rewards for life, and free matching within every community you join.\n\nWe are still in the first 10,000. The live beta window closes soon.\n\nTakes 5 minutes. Talk to Nev and share your mission, then let the network work for you:\n" + url
+    long: "This is an invitation to join me as a founding member of EventMedium.\n\nThe connection that could have changed everything\u2026 was probably in the room.\nBut you didn\u2019t meet. And neither did they.\n\nEventMedium exists to fix that. We match people before events begin \u2014 privately, anonymously, and only when the fit is mutual. So when you walk in, the right conversations are already waiting.\n\nAs a Founding Member, you get a permanent position on the network: your own member number, 1,000 EC\u00B3 opening balance, accelerated community rewards for life, and free matching within every community you join.\n\nWe are still in the first 10,000. The live beta window closes soon.\n\nTakes 5 minutes. Talk to Nev and share your mission, then let the network work for you:\n" + url
   };
   switchTemplate('short', document.querySelector('.tmpl-tab.active'));
 }
@@ -964,8 +964,8 @@ async function loadConversionStats() {
     var emc2Earned = (stats.completed * 200 * mult) + ((stats.meetings || 0) * 50 * mult);
     document.getElementById('conversions-grid').innerHTML =
       '<div class="conversion-stat"><div class="conversion-stat-value">' + stats.total + '</div><div class="conversion-stat-label">Invited</div></div>' +
-      '<div class="conversion-stat"><div class="conversion-stat-value">' + stats.completed + '</div><div class="conversion-stat-label">Completed canister</div><div class="conversion-emc2">+' + (stats.completed * 200 * mult).toLocaleString() + ' EMC\u00B2</div></div>' +
-      '<div class="conversion-stat"><div class="conversion-stat-value">' + Math.round(emc2Earned).toLocaleString() + '</div><div class="conversion-stat-label">EMC\u00B2 earned</div></div>';
+      '<div class="conversion-stat"><div class="conversion-stat-value">' + stats.completed + '</div><div class="conversion-stat-label">Completed canister</div><div class="conversion-emc2">+' + (stats.completed * 200 * mult).toLocaleString() + ' EC\u00B3</div></div>' +
+      '<div class="conversion-stat"><div class="conversion-stat-value">' + Math.round(emc2Earned).toLocaleString() + '</div><div class="conversion-stat-label">EC\u00B3 earned</div></div>';
     document.getElementById('invite-conversions').style.display = 'block';
   } catch(e) { console.error('Conversion stats error:', e); }
 }

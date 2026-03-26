@@ -74,7 +74,7 @@ app.use('/api/messages', require('./routes/messages').router);
 // Notifications
 app.use('/api/notifications', require('./routes/notifications').router);
 
-// EMC² (EventMedium Community Credit)
+// EC³ (EventMedium Community Credit)
 app.use('/api/emc2', require('./routes/emc2'));
 
 app.use('/api/graph', require('./routes/graph').router);
@@ -148,7 +148,7 @@ async function runMigrations() {
       fake_user_id INTEGER, persona_brief TEXT, career_stage VARCHAR(50),
       canister_completeness FLOAT, is_event_subset BOOLEAN DEFAULT FALSE
     )`);
-    // EMC² system tables
+    // EC³ system tables
     await dbRun("DO $$ BEGIN CREATE TYPE emc2_action AS ENUM ('canister_complete','canister_quality_bonus','community_join','event_attend','match_accepted','match_confirmed','match_debrief','referral_complete','global_access_unlock','network_query_spend','founding_member_grant','community_owner_award','community_multiplier_bonus','admin_adjustment'); EXCEPTION WHEN duplicate_object THEN NULL; END $$");
     await dbRun(`CREATE TABLE IF NOT EXISTS emc2_ledger (
       id SERIAL PRIMARY KEY, tx_id UUID DEFAULT gen_random_uuid() NOT NULL UNIQUE,
@@ -181,7 +181,7 @@ async function runMigrations() {
     // emc2_ledger columns for chain anchoring
     await dbRun('ALTER TABLE emc2_ledger ADD COLUMN IF NOT EXISTS anchored_at TIMESTAMP');
     await dbRun('ALTER TABLE emc2_ledger ADD COLUMN IF NOT EXISTS anchor_tx_hash VARCHAR(64)');
-    // stakeholder_profiles EMC² columns
+    // stakeholder_profiles EC³ columns
     await dbRun('ALTER TABLE stakeholder_profiles ADD COLUMN IF NOT EXISTS emc2_balance INTEGER DEFAULT 0');
     await dbRun('ALTER TABLE stakeholder_profiles ADD COLUMN IF NOT EXISTS emc2_lifetime_earned INTEGER DEFAULT 0');
     await dbRun('ALTER TABLE stakeholder_profiles ADD COLUMN IF NOT EXISTS global_access_active BOOLEAN DEFAULT FALSE');
@@ -265,15 +265,15 @@ async function backfillEMC2Corrections() {
       entity_type: 'correction',
       metadata: { reason: 'canister_complete_correction', original_tx_id: original.tx_id }
     });
-    console.log('[EMC² backfill] Correction applied for user 2: +900');
+    console.log('[EC³ backfill] Correction applied for user 2: +900');
     // Confirm OG status for user 2
     var profile = await dbGet('SELECT og_member FROM stakeholder_profiles WHERE user_id = 2');
     if (profile && !profile.og_member) {
       await dbRun('UPDATE stakeholder_profiles SET og_member = TRUE WHERE user_id = 2');
-      console.log('[EMC² backfill] OG status granted to user 2');
+      console.log('[EC³ backfill] OG status granted to user 2');
     }
   } catch(err) {
-    console.error('[EMC² backfill] Error:', err.message);
+    console.error('[EC³ backfill] Error:', err.message);
   }
 }
 

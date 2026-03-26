@@ -239,7 +239,7 @@ body{font-family:var(--sans);background:var(--bg2);color:var(--text);min-height:
     <button class="tab" data-tab="gaps">Gaps &amp; Opportunities</button>
     <button class="tab" data-tab="members">Members</button>
     <button class="tab" data-tab="events">Events</button>
-    <button class="tab" data-tab="emc2">EMC&sup2;</button>
+    <button class="tab" data-tab="emc2">EC&sup3;</button>
   </div>
 
   <!-- ─── TAB 1: OVERVIEW ─── -->
@@ -308,7 +308,7 @@ body{font-family:var(--sans);background:var(--bg2);color:var(--text);min-height:
     </div>
   </div>
 
-  <!-- ─── TAB 6: EMC² ─── -->
+  <!-- ─── TAB 6: EC³ ─── -->
   <div id="emc2" class="tab-content">
     <!-- Health tier summary -->
     <div class="stat-row" id="emc2TierRow">
@@ -326,7 +326,7 @@ body{font-family:var(--sans);background:var(--bg2);color:var(--text);min-height:
 
     <!-- Award form -->
     <div class="card" style="margin-bottom:20px">
-      <h3 style="margin-bottom:14px">Award EMC&sup2; to Member</h3>
+      <h3 style="margin-bottom:14px">Award EC&sup3; to Member</h3>
       <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
         <div style="flex:1;min-width:160px">
           <label style="display:block;font-size:12px;color:var(--text3);margin-bottom:4px">Node (anonymised ID)</label>
@@ -342,7 +342,7 @@ body{font-family:var(--sans);background:var(--bg2);color:var(--text);min-height:
           <label style="display:block;font-size:12px;color:var(--text3);margin-bottom:4px">Reason</label>
           <input type="text" id="emc2AwardReason" placeholder="e.g. Outstanding contribution" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:8px;font-size:13px;font-family:var(--sans)">
         </div>
-        <button class="btn btn-pri" onclick="submitEmc2Award()" style="white-space:nowrap">Award EMC&sup2;</button>
+        <button class="btn btn-pri" onclick="submitEmc2Award()" style="white-space:nowrap">Award EC&sup3;</button>
       </div>
       <div id="emc2AwardMsg" style="margin-top:8px;font-size:13px"></div>
     </div>
@@ -1424,7 +1424,7 @@ document.getElementById('delComm2Modal').addEventListener('click', function(e){ 
 document.getElementById('delEvt1Modal').addEventListener('click', function(e){ if(e.target===this) closeDelEvt1(); });
 document.getElementById('delEvt2Modal').addEventListener('click', function(e){ if(e.target===this) closeDelEvt2(); });
 
-// ── EMC² Tab ──────────────────────────────────────────────────────────────────
+// ── EC³ Tab ──────────────────────────────────────────────────────────────────
 var _emc2Nodes = null;
 
 async function renderEmc2Tab() {
@@ -1451,7 +1451,7 @@ async function renderEmc2Tab() {
 
     // Node list (anonymised)
     var html = '<table style="width:100%;border-collapse:collapse;font-size:13px">';
-    html += '<tr style="text-align:left;border-bottom:2px solid var(--border)"><th style="padding:8px 6px">Node</th><th style="padding:8px 6px">Type</th><th style="padding:8px 6px">Health</th><th style="padding:8px 6px;text-align:right">Lifetime EMC&sup2;</th><th style="padding:8px 6px;text-align:right">Balance</th><th style="padding:8px 6px;text-align:right">Matches</th><th style="padding:8px 6px;text-align:center">Founding</th></tr>';
+    html += '<tr style="text-align:left;border-bottom:2px solid var(--border)"><th style="padding:8px 6px">Node</th><th style="padding:8px 6px">Type</th><th style="padding:8px 6px">Health</th><th style="padding:8px 6px;text-align:right">Lifetime EC&sup3;</th><th style="padding:8px 6px;text-align:right">Balance</th><th style="padding:8px 6px;text-align:right">Matches</th><th style="padding:8px 6px;text-align:center">Founding</th></tr>';
     for (var j = 0; j < _emc2Nodes.length; j++) {
       var n = _emc2Nodes[j];
       var healthColor = tierColors[n.node_health] || 'var(--text3)';
@@ -1476,7 +1476,7 @@ async function renderEmc2Tab() {
       sel.innerHTML += '<option value="' + nd.user_id + '">N-' + String(nd.user_id).padStart(4, '0') + ' (' + (nd.stakeholder_type || 'unknown') + ', ' + nd.node_health + ')</option>';
     }
   } catch(e) {
-    document.getElementById('emc2NodeList').innerHTML = '<p style="color:var(--red)">Error loading EMC&sup2; data.</p>';
+    document.getElementById('emc2NodeList').innerHTML = '<p style="color:var(--red)">Error loading EC&sup3; data.</p>';
   }
 }
 
@@ -1494,7 +1494,7 @@ async function submitEmc2Award() {
     });
     var data = await r.json();
     if (data.success) {
-      msg.innerHTML = '<span style="color:var(--green)">Awarded ' + amount + ' EMC&sup2; to N-' + String(userId).padStart(4, '0') + '</span>';
+      msg.innerHTML = '<span style="color:var(--green)">Awarded ' + amount + ' EC&sup3; to N-' + String(userId).padStart(4, '0') + '</span>';
       _emc2Nodes = null; renderEmc2Tab();
     } else {
       msg.innerHTML = '<span style="color:var(--red)">' + (data.error || 'Award failed') + '</span>';

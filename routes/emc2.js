@@ -29,7 +29,7 @@ router.get('/history', authenticateToken, async function(req, res) {
 router.post('/unlock-global', authenticateToken, async function(req, res) {
   res.json({
     success: true,
-    message: 'Access is universal. EMC\u00B2 is spent per accepted match based on context: community matches are free, event and location matches cost 5 EMC\u00B2, global network matches cost 10 EMC\u00B2.'
+    message: 'Access is universal. EC\u00B3 is spent per accepted match based on context: community matches are free, event and location matches cost 5 EC\u00B3, global network matches cost 10 EC\u00B3.'
   });
 });
 

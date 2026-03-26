@@ -857,14 +857,14 @@ router.post('/:id/register', authenticateToken, async function(req, res) {
        profile ? JSON.stringify(profile.themes) : '[]', 'active']
     );
 
-    // EMC² — award event_attend credits
+    // EC³ — award event_attend credits
     try {
       await emc2.recordTransaction({
         user_id: req.user.id, action_type: 'event_attend',
         entity_id: eventId, entity_type: 'event'
       });
     } catch(emc2Err) {
-      console.error('[EMC²] event_attend error:', emc2Err.message);
+      console.error('[EC³] event_attend error:', emc2Err.message);
     }
 
     res.json({ registered: true });

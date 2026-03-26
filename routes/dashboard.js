@@ -853,7 +853,7 @@ router.post('/analyse-feedback', authenticateToken, adminOnly, async function(re
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 1000,
-        system: 'You are reviewing beta feedback for EventMedium.ai \u2014 a professional networking platform that matches people at events using AI-built profiles called canisters. Users earn EMC\u00B2 credits through network activity.\n\nAnalyse the feedback batch and produce a structured briefing in this exact JSON format:\n{"critical":[{"id":0,"summary":"","action":""}],"bugs":[{"id":0,"summary":"","priority":"high"}],"improvements":[{"summary":"","frequency":1,"impact":"high"}],"patterns":[""],"praise":[""],"schedule":{"this_week":[""],"next_sprint":[""],"backlog":[""]},"overall_health":"good","headline":""}\n\nBe direct. Flag anything breaking core flows (matching, canister save, auth, EMC\u00B2) as critical. Tone: senior product manager briefing a founder. Return only valid JSON, no preamble.',
+        system: 'You are reviewing beta feedback for EventMedium.ai \u2014 a professional networking platform that matches people at events using AI-built profiles called canisters. Users earn EC\u00B3 credits through network activity.\n\nAnalyse the feedback batch and produce a structured briefing in this exact JSON format:\n{"critical":[{"id":0,"summary":"","action":""}],"bugs":[{"id":0,"summary":"","priority":"high"}],"improvements":[{"summary":"","frequency":1,"impact":"high"}],"patterns":[""],"praise":[""],"schedule":{"this_week":[""],"next_sprint":[""],"backlog":[""]},"overall_health":"good","headline":""}\n\nBe direct. Flag anything breaking core flows (matching, canister save, auth, EC\u00B3) as critical. Tone: senior product manager briefing a founder. Return only valid JSON, no preamble.',
         messages: [{ role: 'user', content: 'Analyse this feedback batch (' + feedback.length + ' items):\n\n' + feedbackText }]
       })
     });
@@ -873,7 +873,7 @@ router.post('/analyse-feedback', authenticateToken, adminOnly, async function(re
   }
 });
 
-// ── POST /api/admin/fix-emc2-now — one-shot EMC² state fix for user 2 ──
+// ── POST /api/admin/fix-emc2-now — one-shot EC³ state fix for user 2 ──
 router.post('/fix-emc2-now', authenticateToken, adminOnly, async function(req, res) {
   var results = [];
   try {
@@ -977,7 +977,7 @@ function emailWrapper(headerContent, bodyContent, refCode) {
   '<body style="margin:0;padding:0;background:#f4f4f0;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',sans-serif">' +
   '<div style="max-width:560px;margin:32px auto;background:#ffffff;border-radius:12px;overflow:hidden">' +
     '<div style="background:#0a0a0a;padding:28px 32px 24px;border-bottom:2px solid #C9A84C">' +
-      '<div style="font-size:13px;font-weight:500;letter-spacing:0.08em;color:#C9A84C;margin-bottom:8px">EMC\u00B2 \u00b7 EventMedium</div>' +
+      '<div style="font-size:13px;font-weight:500;letter-spacing:0.08em;color:#C9A84C;margin-bottom:8px">EC\u00B3 \u00b7 EventMedium</div>' +
       headerContent +
     '</div>' +
     '<div style="padding:28px 32px">' + bodyContent + '</div>' +
@@ -986,7 +986,7 @@ function emailWrapper(headerContent, bodyContent, refCode) {
       (refCode ? '<div style="background:#0a0a0a;border-radius:8px;padding:16px 20px;margin-bottom:16px">' +
         '<div style="font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:8px">Your referral code</div>' +
         '<div style="font-size:22px;font-weight:500;letter-spacing:0.1em;color:#C9A84C;margin-bottom:6px">' + refCode + '</div>' +
-        '<div style="font-size:12px;color:rgba(255,255,255,0.45);line-height:1.6">Earn 200 EMC\u00B2 when someone you invite completes their profile, 100 more when they get their first match, and 50 when they confirm a meeting.<br><br>eventmedium.ai/join?ref=' + refCode + '</div>' +
+        '<div style="font-size:12px;color:rgba(255,255,255,0.45);line-height:1.6">Earn 200 EC\u00B3 when someone you invite completes their profile, 100 more when they get their first match, and 50 when they confirm a meeting.<br><br>eventmedium.ai/join?ref=' + refCode + '</div>' +
       '</div>' : '') +
       'EventMedium is in live beta \u2014 we\'re actively improving the platform. If anything doesn\'t work as expected, <a href="https://www.eventmedium.ai/feedback.html" style="color:#1a1d29;text-decoration:none">share your feedback here</a>.<br><br>' +
       'EventMedium \u00b7 eventmedium.ai \u00b7 <a href="https://www.eventmedium.ai/canister.html" style="color:#1a1d29;text-decoration:none">Open my canister</a>' +
@@ -1022,7 +1022,7 @@ function buildCompleteNoCityEmail(opts) {
     sectionDiv(benefitBlock(
       benefitRow('Status', 'Founding Member', 'gold') +
       benefitRow('Member number', '#' + (user.emc2_cohort_number || '\u2014') + ' \u00b7 permanent', 'gold') +
-      benefitRow('EMC\u00B2 opening balance', '1,000 EMC\u00B2', 'gold') +
+      benefitRow('EC\u00B3 opening balance', '1,000 EC\u00B3', 'gold') +
       benefitRow('Earn multiplier', (user.emc2_earn_multiplier || 2) + '\u00d7 for life', 'gold') +
       benefitRow('Community matching', 'Free', 'green')
     )) +
@@ -1040,9 +1040,9 @@ function buildPartialEmail(opts) {
     personalNoteBlock(opts.personalNote) +
     sectionDiv(bodyP('A few things since your last visit: we\'ve tuned Nev to be a little less chatty, and we\'d love you to come back and finish your canister, claim your Founding Member position, and activate your wallet and rewards.')) +
     sectionDiv(bodyP('EventMedium matches people before events begin \u2014 privately, anonymously, and only when the fit is mutual. So when you walk in, the right conversations are already waiting.')) +
-    sectionDiv(bodyP('Your Founding Member position is still open. Your member number, 1,000 EMC\u00B2 opening balance, and accelerated rewards for life are all sitting there \u2014 they activate the moment your canister is complete.')) +
+    sectionDiv(bodyP('Your Founding Member position is still open. Your member number, 1,000 EC\u00B3 opening balance, and accelerated rewards for life are all sitting there \u2014 they activate the moment your canister is complete.')) +
     sectionDiv(benefitBlock(
-      benefitRow('EMC\u00B2 opening balance', '1,000 EMC\u00B2', 'gold') +
+      benefitRow('EC\u00B3 opening balance', '1,000 EC\u00B3', 'gold') +
       benefitRow('Earn multiplier', 'Accelerated \u00b7 for life', 'gold') +
       benefitRow('Community matching', 'Free', 'green') +
       benefitRow('Member number', 'Permanent \u00b7 yours on completion', 'gold')
@@ -1061,9 +1061,9 @@ function buildZeroEmail(opts) {
     personalNoteBlock(opts.personalNote) +
     sectionDiv(bodyP('A few things since you signed up: we\'ve tuned Nev to be a little less chatty, and we\'d love you to come back, build your canister, claim your Founding Member position, and activate your wallet and rewards.')) +
     sectionDiv(bodyP('EventMedium matches people before events begin \u2014 privately, anonymously, and only when the fit is mutual. So when you walk in, the right conversations are already waiting.')) +
-    sectionDiv(bodyP('Your Founding Member position is reserved \u2014 but the network can\'t match you until your profile exists. Your member number, 1,000 EMC\u00B2 opening balance, and accelerated rewards are all on hold.')) +
+    sectionDiv(bodyP('Your Founding Member position is reserved \u2014 but the network can\'t match you until your profile exists. Your member number, 1,000 EC\u00B3 opening balance, and accelerated rewards are all on hold.')) +
     sectionDiv(benefitBlock(
-      benefitRow('EMC\u00B2 opening balance', '1,000 EMC\u00B2', 'gold') +
+      benefitRow('EC\u00B3 opening balance', '1,000 EC\u00B3', 'gold') +
       benefitRow('Earn multiplier', 'Accelerated \u00b7 for life', 'gold') +
       benefitRow('Community matching', 'Free', 'green') +
       benefitRow('Member number', 'Permanent \u00b7 yours on completion', 'gold')
@@ -1085,7 +1085,7 @@ function buildCompleteWithCityEmail(opts) {
     sectionDiv(benefitBlock(
       benefitRow('Status', 'Founding Member \u00b7 confirmed', 'gold') +
       benefitRow('Member number', '#' + (user.emc2_cohort_number || '\u2014') + ' \u00b7 permanent', 'gold') +
-      benefitRow('EMC\u00B2 balance', '1,000 EMC\u00B2', 'gold') +
+      benefitRow('EC\u00B3 balance', '1,000 EC\u00B3', 'gold') +
       benefitRow('Earn multiplier', (user.emc2_earn_multiplier || 2) + '\u00d7 for life', 'gold') +
       benefitRow('Community matching', 'Free', 'green')
     )) +

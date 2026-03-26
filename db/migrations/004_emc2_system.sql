@@ -1,4 +1,4 @@
--- EMC² (EventMedium Community Credit) System
+-- EC³ (EventMedium Community Credit) System
 -- Hash-chained credit ledger with web2 wallet, designed to bridge to web3 tokenisation
 
 -- Action type enum
@@ -52,7 +52,7 @@ CREATE TABLE emc2_wallets (
   created_at                TIMESTAMP DEFAULT NOW()
 );
 
--- Community owner EMC² pools and multipliers
+-- Community owner EC³ pools and multipliers
 CREATE TABLE community_emc2_config (
   id                  SERIAL PRIMARY KEY,
   community_id        INTEGER REFERENCES communities(id) UNIQUE,
@@ -80,7 +80,7 @@ INSERT INTO network_milestones (milestone)
 VALUES (1000),(10000),(100000),(1000000),(10000000)
 ON CONFLICT (milestone) DO NOTHING;
 
--- Add EMC² fields to stakeholder_profiles
+-- Add EC³ fields to stakeholder_profiles
 ALTER TABLE stakeholder_profiles
 ADD COLUMN IF NOT EXISTS emc2_balance INTEGER DEFAULT 0,
 ADD COLUMN IF NOT EXISTS emc2_lifetime_earned INTEGER DEFAULT 0,

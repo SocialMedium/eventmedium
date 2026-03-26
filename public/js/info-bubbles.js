@@ -4,19 +4,19 @@
 
 var TIPS = {
 
-  // EMC² WALLET
+  // EC³ WALLET
   emc2_balance: {
-    title: "Your EMC\u00B2 balance",
+    title: "Your EC\u00B3 balance",
     body: "Spent when you accept matches: community " +
           "matches are free, event and location matches " +
-          "cost 5 EMC\u00B2 each, global network matches cost " +
-          "10 EMC\u00B2 each. Earn more through debriefs, " +
+          "cost 5 EC\u00B3 each, global network matches cost " +
+          "10 EC\u00B3 each. Earn more through debriefs, " +
           "canister updates, and referrals.",
     tag: "Free in your community"
   },
   emc2_lifetime: {
     title: "Lifetime earned",
-    body: "Total EMC\u00B2 ever earned \u2014 never decrements. " +
+    body: "Total EC\u00B3 ever earned \u2014 never decrements. " +
           "Your verified contribution record to the network, " +
           "carried forward into the tokenised ecosystem.",
     tag: "Permanent provenance"
@@ -25,7 +25,7 @@ var TIPS = {
     title: "Universal access",
     body: "All members can match across the full EventMedium " +
           "network. Community matches are free, event matches " +
-          "cost 5 EMC\u00B2, global matches cost 10 EMC\u00B2.",
+          "cost 5 EC\u00B3, global matches cost 10 EC\u00B3.",
     tag: null
   },
   emc2_genesis: {
@@ -51,7 +51,7 @@ var TIPS = {
   },
   emc2_multiplier: {
     title: "Earn multiplier",
-    body: "Every EMC\u00B2 earn event credits your wallet at your " +
+    body: "Every EC\u00B3 earn event credits your wallet at your " +
           "cohort rate. Genesis = 3\u00D7. Founding = 2\u00D7. " +
           "Early = 1.5\u00D7. This compounds significantly " +
           "over time.",
@@ -111,7 +111,7 @@ var TIPS = {
     body: "Nev\u2019s assessment of your canister\u2019s richness. " +
           "Higher scores mean more precise matches. " +
           "Update your canister monthly to keep signal " +
-          "current and earn EMC\u00B2.",
+          "current and earn EC\u00B3.",
     tag: "Improves match quality"
   },
 
@@ -136,7 +136,7 @@ var TIPS = {
     title: "Match tier",
     body: "Whether this match comes from your event, " +
           "community, or the global network. Global matches " +
-          "require EMC\u00B2 and represent connections outside " +
+          "require EC\u00B3 and represent connections outside " +
           "your existing membership contexts.",
     tag: null
   },
@@ -145,14 +145,14 @@ var TIPS = {
   community_node_health: {
     title: "Node health",
     body: "A member\u2019s contribution tier based on lifetime " +
-          "EMC\u00B2 earned: Anchor (400+), Active (200+), " +
+          "EC\u00B3 earned: Anchor (400+), Active (200+), " +
           "Engaged (100+), Passive (<100). Reflects signal " +
           "quality, not just activity.",
     tag: null
   },
   community_award_pool: {
     title: "Award pool",
-    body: "EMC\u00B2 you have allocated to recognise your most " +
+    body: "EC\u00B3 you have allocated to recognise your most " +
           "active community members. Awards are sent " +
           "directly to member wallets and logged on " +
           "the network ledger.",
@@ -161,7 +161,7 @@ var TIPS = {
   community_multiplier: {
     title: "Earn multiplier",
     body: "A time-limited boost you set for specific earn " +
-          "actions in your community \u2014 e.g. 2\u00D7 EMC\u00B2 for " +
+          "actions in your community \u2014 e.g. 2\u00D7 EC\u00B3 for " +
           "canister completion before your next event. " +
           "Useful for seeding engagement ahead of events.",
     tag: null

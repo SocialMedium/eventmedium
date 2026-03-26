@@ -16,7 +16,7 @@ router.get('/profile', authenticateToken, async function(req, res) {
     );
     if (!profile) return res.json({ profile: null });
 
-    // EMC² backfill: if profile has base fields and user has no canister_complete credit, award it now
+    // EC³ backfill: if profile has base fields and user has no canister_complete credit, award it now
     // recordTransaction is idempotent (once: true) so this is safe to call on every load
     if (profile.stakeholder_type && profile.geography && profile.themes) {
       var bfThemes = profile.themes;
@@ -37,7 +37,7 @@ router.get('/profile', authenticateToken, async function(req, res) {
                 await dbRun("UPDATE stakeholder_profiles SET og_member = TRUE, emc2_cohort = 'genesis', emc2_cohort_number = $1, emc2_earn_multiplier = 3.0 WHERE user_id = $2", [cohortNum, req.user.id]);
               }
             } catch(ogErr) {
-              console.warn('[EMC² backfill] OG status error:', ogErr.message);
+              console.warn('[EC³ backfill] OG status error:', ogErr.message);
             }
             // Reload profile so response includes updated balance
             profile = await dbGet(
@@ -47,7 +47,7 @@ router.get('/profile', authenticateToken, async function(req, res) {
           }
         } catch(e) {
           if (e.message !== 'INSUFFICIENT_EMC2_BALANCE') {
-            console.warn('[EMC² backfill] canister_complete error:', e.message);
+            console.warn('[EC³ backfill] canister_complete error:', e.message);
           }
         }
       }
@@ -193,7 +193,7 @@ router.post('/profile', authenticateToken, async function(req, res) {
       }
     })();
 
-    // EMC² — award canister_complete credits
+    // EC³ — award canister_complete credits
     try {
       await emc2.recordTransaction({
         user_id:     req.user.id,
@@ -226,10 +226,10 @@ router.post('/profile', authenticateToken, async function(req, res) {
           }
         }
       } catch(ogErr) {
-        console.error('[EMC²] OG status check error:', ogErr.message);
+        console.error('[EC³] OG status check error:', ogErr.message);
       }
     } catch(emc2Err) {
-      console.error('[EMC²] canister_complete error:', emc2Err.message);
+      console.error('[EC³] canister_complete error:', emc2Err.message);
     }
 
     res.json({ profile: profile, embedded: true });

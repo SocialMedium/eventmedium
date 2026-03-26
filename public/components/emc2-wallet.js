@@ -1,8 +1,8 @@
-// EMC² Wallet Component — vanilla JS, inject into canister page after auth check
+// EC³ Wallet Component — vanilla JS, inject into canister page after auth check
 async function renderEMC2Wallet(containerId) {
-  console.log('[EMC² Wallet] renderEMC2Wallet called, containerId:', containerId);
+  console.log('[EC³ Wallet] renderEMC2Wallet called, containerId:', containerId);
   var container = document.getElementById(containerId);
-  if (!container) { console.warn('[EMC² Wallet] container not found:', containerId); return; }
+  if (!container) { console.warn('[EC³ Wallet] container not found:', containerId); return; }
 
   var token = localStorage.getItem('auth_token');
 
@@ -17,9 +17,9 @@ async function renderEMC2Wallet(containerId) {
     var historyData = await results[1].json();
     wallet = walletData.wallet || null;
     history = historyData.history || [];
-    console.log('[EMC² Wallet] API response:', { wallet: wallet, history: history });
+    console.log('[EC³ Wallet] API response:', { wallet: wallet, history: history });
   } catch (err) {
-    console.warn('[EMC² Wallet] API fetch error (rendering zero-state):', err);
+    console.warn('[EC³ Wallet] API fetch error (rendering zero-state):', err);
   }
 
   if (!wallet) {
@@ -38,7 +38,7 @@ async function renderEMC2Wallet(containerId) {
   }
 
   // Logo only — no OG tag in header (badge carries it)
-  var logoHTML = '<div class="emc2-logo">EMC\u00B2</div>';
+  var logoHTML = '<div class="emc2-logo">EC\u00B3</div>';
 
   // Canister number — "OG #2" for OG, "#2" for standard, no subtitle
   var cohortNumber = wallet.emc2_cohort_number;
@@ -53,8 +53,8 @@ async function renderEMC2Wallet(containerId) {
   var summary = wallet.access_summary;
   var accessHTML = '<div class="emc2-access-block">' +
     '<div class="emc2-access-row"><span class="emc2-access-label">Community matches</span><span class="emc2-access-value free">Free</span></div>' +
-    '<div class="emc2-access-row"><span class="emc2-access-label">Event &amp; location matches</span><span class="emc2-access-value">5 EMC\u00B2 each</span></div>' +
-    '<div class="emc2-access-row"><span class="emc2-access-label">Global network matches</span><span class="emc2-access-value">10 EMC\u00B2 each</span></div>' +
+    '<div class="emc2-access-row"><span class="emc2-access-label">Event &amp; location matches</span><span class="emc2-access-value">5 EC\u00B3 each</span></div>' +
+    '<div class="emc2-access-row"><span class="emc2-access-label">Global network matches</span><span class="emc2-access-value">10 EC\u00B3 each</span></div>' +
     (summary && summary.low_balance ? '<div class="emc2-low-balance-note">Low balance \u2014 earn more by updating your canister or completing a Nev debrief</div>' : '') +
     '</div>';
 
@@ -75,7 +75,7 @@ async function renderEMC2Wallet(containerId) {
       historyHTML += '<div class="emc2-tx">' +
         '<span class="emc2-tx-label">' + (actionLabels[tx.action_type] || tx.action_type) + '</span>' +
         '<span class="emc2-tx-amount ' + (tx.amount > 0 ? 'earn' : 'spend') + '">' +
-        (tx.amount > 0 ? '+' : '') + tx.amount + ' EMC\u00B2</span></div>';
+        (tx.amount > 0 ? '+' : '') + tx.amount + ' EC\u00B3</span></div>';
     }
   }
 
@@ -115,11 +115,11 @@ async function renderEMC2Wallet(containerId) {
         (historyHTML || '<div class="emc2-empty">No activity yet</div>') +
       '</div>' +
       '<div class="emc2-footer">' +
-        '<small>EMC\u00B2 credits are spent when you accept matches. Earn more through network activity.' +
+        '<small>EC\u00B3 credits are spent when you accept matches. Earn more through network activity.' +
         '<br><span class="emc2-asset-note">Early members build a verified position as the ecosystem grows.</span></small>' +
         footerExtra +
       '</div>' +
     '</div>';
 
-  console.log('[EMC² Wallet] rendered successfully, og:', isOG);
+  console.log('[EC³ Wallet] rendered successfully, og:', isOG);
 }
