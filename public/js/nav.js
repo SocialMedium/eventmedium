@@ -79,17 +79,19 @@
   // Build links
   var linksHTML = '<div class="nav-drawer-links">';
 
-  if (isLanding) {
+  if (isLanding && !token) {
+    // Marketing links for unauthenticated landing page
     linksHTML += '<a href="#how"><i data-lucide="zap"></i> How it works</a>';
     linksHTML += '<a href="#types"><i data-lucide="users"></i> Who it\'s for</a>';
     linksHTML += '<a href="#organisers"><i data-lucide="building-2"></i> Organisers</a>';
     linksHTML += '<a href="/events.html"><i data-lucide="calendar"></i> Browse Events</a>';
   } else {
+    // App links for authenticated users (all pages including landing)
     linksHTML += '<a href="/events.html"' + (page === 'events' ? ' class="active"' : '') + '><i data-lucide="calendar"></i> Events</a>';
   }
 
   if (token) {
-    linksHTML += '<div class="nav-drawer-divider"></div>';
+    if (!isLanding) linksHTML += ''; // Events already added above
     linksHTML += '<a href="/matches.html"' + (page === 'matches' ? ' class="active"' : '') + '><i data-lucide="heart-handshake"></i> Matches</a>';
     linksHTML += '<a href="/inbox.html"' + (page === 'inbox' ? ' class="active"' : '') + '><i data-lucide="inbox"></i> Inbox</a>';
     linksHTML += '<a href="/network-graph.html"' + (page === 'network-graph' ? ' class="active"' : '') + '><i data-lucide="share-2"></i> Network</a>';
@@ -124,12 +126,25 @@
   var navLogin = document.getElementById('nav-login');
 
   if (token) {
+    // Hide marketing links on landing page, show app links
+    document.querySelectorAll('.nav-marketing').forEach(function(el) {
+      el.style.display = 'none';
+    });
+    document.querySelectorAll('.nav-authed').forEach(function(el) {
+      el.style.display = '';
+    });
+    // Also show auth-gated links on app pages
     if (navMatches) navMatches.style.display = '';
     if (navInbox) navInbox.style.display = '';
     if (navCanister) navCanister.style.display = '';
+    // CTA becomes My Canister, hide separate login
     if (navCta) { navCta.textContent = 'My Canister'; navCta.href = '/canister.html'; }
-    if (navLogin) { navLogin.href = '/matches.html'; navLogin.textContent = 'My Matches'; }
+    if (navLogin) navLogin.style.display = 'none';
   } else {
+    // Hide app links for unauthenticated users
+    document.querySelectorAll('.nav-authed').forEach(function(el) {
+      el.style.display = 'none';
+    });
     if (navMatches) navMatches.style.display = 'none';
     if (navInbox) navInbox.style.display = 'none';
     if (navCanister) navCanister.style.display = 'none';
