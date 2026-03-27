@@ -4,7 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Community Intelligence — EventMedium</title>
-<script src="https://d3js.org/d3.v7.min.js"></script>
+<link rel="icon" type="image/png" href="/images/em-logo.png">
+<script src="https://unpkg.com/lucide@latest"></script>
 <style>
 :root{
   --bg:#ffffff;--bg2:#f8f8fa;--bg3:#f0f0f4;
@@ -34,6 +35,10 @@ body{font-family:var(--sans);background:var(--bg2);color:var(--text);min-height:
 .subtitle{font-size:13px;color:var(--text3);margin-top:3px}
 .pill{display:inline-block;padding:3px 12px;border-radius:20px;font-size:11px;font-weight:600}
 .pill-green{background:var(--greenL);color:var(--green)}
+.pill-amber{background:var(--amberL);color:var(--amber)}
+.pill-red{background:var(--redL);color:var(--red)}
+.pill-blue{background:var(--blueL);color:var(--blue)}
+.pill-accent{background:var(--accent-light);color:var(--accent)}
 
 /* ── Buttons ── */
 .btn-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
@@ -43,6 +48,10 @@ body{font-family:var(--sans);background:var(--bg2);color:var(--text);min-height:
 .btn-pri:hover{background:var(--accent2);border-color:var(--accent2);color:#fff}
 .btn-back{border-color:rgba(99,102,241,0.3);background:linear-gradient(135deg,rgba(99,102,241,0.04),rgba(79,70,229,0.08));color:var(--accent)}
 .btn-back:hover{background:linear-gradient(135deg,rgba(99,102,241,0.08),rgba(79,70,229,0.14));border-color:var(--accent);color:var(--accent)}
+.btn-sm{padding:5px 12px;font-size:12px;font-weight:600;border:1px solid var(--border2);border-radius:6px;cursor:pointer;background:var(--bg);color:var(--text2);font-family:var(--sans);transition:all 0.15s}
+.btn-sm:hover{border-color:rgba(99,102,241,0.3);color:var(--accent)}
+.btn-danger{color:var(--red);border-color:rgba(220,38,38,0.2)}
+.btn-danger:hover{background:var(--redL);border-color:var(--red);color:var(--red)}
 
 /* ── Body ── */
 .body{max-width:var(--max);margin:0 auto;padding:28px 36px}
@@ -142,21 +151,6 @@ body{font-family:var(--sans);background:var(--bg2);color:var(--text);min-height:
 /* ── D3 tooltip ── */
 .d3tip{position:fixed;background:var(--heading);color:#fff;font-size:12px;line-height:1.5;padding:8px 12px;border-radius:6px;pointer-events:none;z-index:9999;max-width:180px}
 
-/* ── Misc ── */
-.r{text-align:right}
-.mono{font-family:var(--mono);font-size:12px}
-.footer{border-top:1px solid var(--border);padding-top:18px;margin-top:40px;display:flex;justify-content:space-between;font-size:12px;color:var(--text3)}
-
-@media(max-width:1024px){.g3{grid-template-columns:1fr 1fr}}
-@media(max-width:900px){
-  .g2{grid-template-columns:1fr}
-  .g3{grid-template-columns:1fr}
-  .stat-row{grid-template-columns:repeat(2,1fr)}
-  .header{padding:20px 16px 16px}
-  .body{padding:20px 16px}
-}
-@media(max-width:500px){.stat-row{grid-template-columns:1fr 1fr}}
-
 /* ── Event cards ── */
 .evt-list{display:flex;flex-direction:column;gap:12px}
 .evt-card{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
@@ -167,8 +161,6 @@ body{font-family:var(--sans);background:var(--bg2);color:var(--text);min-height:
 .evt-card-count{font-size:22px;font-weight:700;color:var(--heading);line-height:1}
 .evt-card-count-lbl{font-size:10px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:var(--text3);margin-top:2px}
 .evt-card-actions{display:flex;gap:8px;flex-shrink:0}
-.btn-sm{padding:5px 12px;font-size:12px;font-weight:600;border:1px solid var(--border2);border-radius:6px;cursor:pointer;background:var(--bg);color:var(--text2);font-family:var(--sans);transition:all 0.15s}
-.btn-sm:hover{border-color:rgba(99,102,241,0.3);color:var(--accent)}
 
 /* ── Modal ── */
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:500;display:none;align-items:center;justify-content:center;padding:24px}
@@ -189,16 +181,81 @@ body{font-family:var(--sans);background:var(--bg2);color:var(--text);min-height:
 .modal-submit{padding:9px 22px;border:none;border-radius:8px;font-size:13px;font-weight:600;background:var(--accent);color:#fff;cursor:pointer;font-family:var(--sans);transition:background 0.15s}
 .modal-submit:hover{background:var(--accent2)}
 .modal-submit:disabled{opacity:0.5;cursor:not-allowed}
-.btn-danger{color:var(--red);border-color:rgba(220,38,38,0.2)}
-.btn-danger:hover{background:var(--redL);border-color:var(--red);color:var(--red)}
 .modal-submit-danger{padding:9px 22px;border:none;border-radius:8px;font-size:13px;font-weight:600;background:var(--red);color:#fff;cursor:pointer;font-family:var(--sans);transition:background 0.15s}
 .modal-submit-danger:hover{background:#b91c1c}
 .modal-submit-danger:disabled{opacity:0.5;cursor:not-allowed}
 .type-toggle-sm{display:flex;gap:8px;margin-top:4px}
 .type-btn-sm{flex:1;padding:10px 12px;border:2px solid var(--border2);border-radius:8px;cursor:pointer;font-family:var(--sans);font-size:12px;font-weight:600;background:var(--bg);color:var(--text2);transition:all 0.15s;text-align:center}
 .type-btn-sm.active{border-color:var(--accent);background:var(--accent-light);color:var(--accent)}
+
+/* ── Misc ── */
+.r{text-align:right}
+.mono{font-family:var(--mono);font-size:12px}
+.footer{border-top:1px solid var(--border);padding-top:18px;margin-top:40px;display:flex;justify-content:space-between;font-size:12px;color:var(--text3)}
+
+/* ── Filter bar ── */
+.filter-bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:24px;padding:14px 18px;background:var(--bg);border:1px solid var(--border);border-radius:10px}
+.filter-bar .sel{padding:6px 12px;font-size:12px}
+.filter-bar label{font-size:10px;font-weight:700;letter-spacing:0.6px;text-transform:uppercase;color:var(--text3);margin-right:2px}
+
+/* ── Section heading ── */
+.section-t{font-size:15px;font-weight:700;letter-spacing:-0.02em;color:var(--heading);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+
+/* ── Cluster cards ── */
+.cluster-card{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:14px;transition:border-color 0.2s}
+.cluster-card:hover{border-color:rgba(99,102,241,0.15)}
+.cluster-card.programming-trigger{border-left:3px solid var(--accent)}
+.cluster-label{font-size:15px;font-weight:700;color:var(--heading);margin-bottom:6px}
+.cluster-summary{font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:10px}
+.cluster-badges{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.cluster-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:14px;font-size:11px;font-weight:600;background:var(--bg3);color:var(--text2)}
+.cluster-framing{font-size:12px;color:var(--text3);font-style:italic;margin-bottom:12px}
+.cluster-actions{display:flex;gap:8px}
+
+/* ── Trigger cards ── */
+.trigger-card{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:10px;transition:border-color 0.2s}
+.trigger-card:hover{border-color:rgba(99,102,241,0.12)}
+.trigger-type{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:6px}
+.trigger-title{font-size:14px;font-weight:700;color:var(--heading);margin-bottom:4px}
+.trigger-timing{font-size:12px;color:var(--text3);margin-bottom:8px}
+.trigger-actions{display:flex;gap:8px;align-items:center}
+
+/* ── Connection opp cards ── */
+.conn-card{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:10px;transition:border-color 0.2s}
+.conn-card:hover{border-color:rgba(99,102,241,0.12)}
+.conn-rationale{font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:10px}
+
+/* ── Moment cards ── */
+.moment-card{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:12px;transition:border-color 0.2s}
+.moment-card:hover{border-color:rgba(99,102,241,0.12)}
+.moment-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;flex-wrap:wrap;gap:8px}
+.moment-cost{font-size:12px;font-weight:700;letter-spacing:0.3px}
+.moment-cost.high{color:var(--red)}
+.moment-cost.medium{color:var(--amber)}
+.moment-cost.low{color:var(--green)}
+.moment-age{font-size:11px;color:var(--text3)}
+.moment-body{font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:10px}
+.moment-meta{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:12px}
+.moment-source{font-size:11px;color:var(--text3);font-style:italic}
+.moment-actions{display:flex;gap:8px}
+
+/* ── Feed count badge ── */
+.badge-count{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;border-radius:9px;background:var(--accent);color:#fff;font-size:10px;font-weight:700;padding:0 5px;margin-left:4px}
+
+/* ── Aggregate stat line ── */
+.aggregate-stat{padding:10px 14px;background:var(--accent-light);border-radius:8px;font-size:12px;color:var(--accent);font-weight:600;margin-top:14px}
+
+@media(max-width:1024px){.g3{grid-template-columns:1fr 1fr}}
+@media(max-width:900px){
+  .g2{grid-template-columns:1fr}
+  .g3{grid-template-columns:1fr}
+  .stat-row{grid-template-columns:repeat(2,1fr)}
+  .header{padding:20px 16px 16px}
+  .body{padding:20px 16px}
+  .filter-bar{padding:10px 12px}
+}
+@media(max-width:500px){.stat-row{grid-template-columns:1fr 1fr}}
 </style>
-<link rel="icon" type="image/png" href="/images/em-logo.png">
 </head>
 <body>
 
@@ -207,25 +264,13 @@ body{font-family:var(--sans);background:var(--bg2);color:var(--text);min-height:
   <div class="header-inner">
     <div class="header-row">
       <div>
-        <a href="/" class="logo"><img src="/images/em-logo.png" alt="Event Medium" style="width:36px;height:36px;border-radius:8px;display:block;">Event <em>Medium</em></a>
-        <h1 class="title" id="commTitle"><span class="skel" style="display:inline-block;width:220px;height:24px;border-radius:4px;vertical-align:middle"></span></h1>
+        <a href="/communities.html" class="btn btn-back" style="margin-bottom:10px">&larr; Communities</a>
+        <h1 class="title" id="commTitle"><span class="skel" style="display:inline-block;width:260px;height:24px;border-radius:4px;vertical-align:middle"></span></h1>
         <div class="subtitle" id="commSub">&nbsp;</div>
       </div>
       <div class="btn-row">
-        <button class="btn btn-pri" id="invBtn" onclick="copyInvite()" style="display:none">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
-          Invite Members
-        </button>
-        <button class="btn" id="shrBtn" onclick="shareComm()" style="display:none">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-          Share
-        </button>
-        <button class="btn btn-pri" id="createEvtBtn" onclick="openCreateEvent()" style="display:none">+ Create Event</button>
-        <button class="btn" id="editCommBtn" onclick="openEditCommunity()" style="display:none">Edit</button>
-        <button class="btn btn-danger" id="delCommBtn" onclick="openDeleteCommunity()" style="display:none">Delete</button>
-        <a class="btn" id="netMapBtn" href="#" style="display:none"><i data-lucide="share-2" style="width:14px;height:14px;vertical-align:-2px"></i> Network Map</a>
-        <span class="pill pill-green" id="ownerPill" style="display:none">Owner</span>
-        <a href="/communities.html" class="btn btn-back">← Communities</a>
+        <button class="btn" id="nevBtn" onclick="openNev()" style="display:none">Nev &#10022;</button>
+        <a class="btn" id="signalsBtn" href="#" style="display:none">Signals &#9889;<span class="badge-count" id="feedCountBadge" style="display:none">0</span></a>
       </div>
     </div>
   </div>
@@ -233,1302 +278,666 @@ body{font-family:var(--sans);background:var(--bg2);color:var(--text);min-height:
 
 <!-- ══ BODY ══ -->
 <div class="body">
-  <div class="tabs">
-    <button class="tab active" data-tab="overview">Overview</button>
-    <button class="tab" data-tab="intelligence">Signal Intelligence</button>
-    <button class="tab" data-tab="gaps">Gaps &amp; Opportunities</button>
-    <button class="tab" data-tab="members">Members</button>
-    <button class="tab" data-tab="events">Events</button>
-    <button class="tab" data-tab="emc2">EC&sup3;</button>
+
+  <!-- ── Filter bar ── -->
+  <div class="filter-bar" id="filterBar">
+    <label>Region</label>
+    <select class="sel" id="filterRegion">
+      <option value="">All regions</option>
+      <option value="APAC">APAC</option>
+      <option value="EMEA">EMEA</option>
+      <option value="Americas">Americas</option>
+      <option value="ANZ">ANZ</option>
+      <option value="UK">UK</option>
+      <option value="EU">EU</option>
+      <option value="NA">North America</option>
+    </select>
+    <label>Theme</label>
+    <select class="sel" id="filterTheme">
+      <option value="">All themes</option>
+    </select>
+    <label>Action</label>
+    <select class="sel" id="filterAction">
+      <option value="">All actions</option>
+      <option value="hiring">Hiring</option>
+      <option value="raising">Raising</option>
+      <option value="selling">Selling</option>
+      <option value="buying">Buying</option>
+      <option value="partnering">Partnering</option>
+      <option value="advising">Advising</option>
+      <option value="investing">Investing</option>
+      <option value="speaking">Speaking</option>
+    </select>
+    <label>Period</label>
+    <select class="sel" id="filterPeriod">
+      <option value="7d">7 days</option>
+      <option value="30d" selected>30 days</option>
+      <option value="90d">90 days</option>
+    </select>
   </div>
 
-  <!-- ─── TAB 1: OVERVIEW ─── -->
-  <div id="overview" class="tab-content active">
-    <div class="stat-row" id="statRow">
-      <div class="stat-card"><div class="skel" style="height:28px;margin-bottom:8px"></div><div class="skel" style="height:10px;width:55%"></div></div>
-      <div class="stat-card"><div class="skel" style="height:28px;margin-bottom:8px"></div><div class="skel" style="height:10px;width:55%"></div></div>
-      <div class="stat-card"><div class="skel" style="height:28px;margin-bottom:8px"></div><div class="skel" style="height:10px;width:55%"></div></div>
-      <div class="stat-card"><div class="skel" style="height:28px;margin-bottom:8px"></div><div class="skel" style="height:10px;width:55%"></div></div>
-    </div>
-    <div class="g2">
-      <div class="card">
-        <div class="card-t">Community Composition</div>
-        <div id="healthRingVis"><div class="skel" style="height:260px;border-radius:8px"></div></div>
-      </div>
-      <div class="card">
-        <div class="card-t">Match Momentum — Last 30 Days</div>
-        <div id="momentumVis"><div class="skel" style="height:260px;border-radius:8px"></div></div>
+  <!-- ── Section 1: Network Pulse + Your Community ── -->
+  <div class="g2" id="pulseGrid">
+    <div class="card" id="pulseCard">
+      <div class="card-t">Network Pulse</div>
+      <div id="pulseContent">
+        <div class="skel" style="height:120px;border-radius:8px"></div>
       </div>
     </div>
-  </div>
-
-  <!-- ─── TAB 2: SIGNAL INTELLIGENCE ─── -->
-  <div id="intelligence" class="tab-content">
-    <div class="card gfull">
-      <div class="card-t">Theme Constellation</div>
-      <div id="constellationVis"><div class="skel" style="height:380px;border-radius:8px"></div></div>
-    </div>
-    <div class="g2">
-      <div class="card">
-        <div class="card-t">Community Signal Depth</div>
-        <div id="signalDepthVis"><div class="skel" style="height:120px;border-radius:8px"></div></div>
-      </div>
-      <div class="card">
-        <div class="card-t">Top Themes</div>
-        <div id="themesTableVis"><div class="skel" style="height:200px;border-radius:8px"></div></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ─── TAB 3: GAPS & OPPORTUNITIES ─── -->
-  <div id="gaps" class="tab-content">
-    <div class="g2">
-      <div class="card">
-        <div class="card-t">Supply / Demand Balance</div>
-        <div id="gaugesVis"><div class="skel" style="height:320px;border-radius:8px"></div></div>
-      </div>
-      <div class="card">
-        <div class="card-t">Opportunities</div>
-        <div id="oppsVis"><div class="skel" style="height:320px;border-radius:8px"></div></div>
+    <div class="card" id="communityCard">
+      <div class="card-t">Your Community</div>
+      <div id="communityContent">
+        <div class="skel" style="height:120px;border-radius:8px"></div>
       </div>
     </div>
   </div>
 
-  <!-- ─── TAB 4: MEMBERS ─── -->
-  <div id="members" class="tab-content">
-    <div class="card">
-      <div id="membersVis"><div class="skel" style="height:320px;border-radius:8px"></div></div>
+  <!-- ── Section 2: Signal Clusters ── -->
+  <div class="gfull">
+    <div class="section-t">Signal Clusters</div>
+    <div id="clustersList">
+      <div class="card"><div class="skel" style="height:160px;border-radius:8px"></div></div>
     </div>
   </div>
 
-  <!-- ─── TAB 5: EVENTS ─── -->
-  <div id="events" class="tab-content">
-    <div class="card">
-      <div id="eventsVis"><div class="skel" style="height:280px;border-radius:8px"></div></div>
+  <!-- ── Section 3: Event Triggers + Connection Opportunities ── -->
+  <div class="g2">
+    <div>
+      <div class="section-t">Event Triggers</div>
+      <div id="triggersList">
+        <div class="card"><div class="skel" style="height:200px;border-radius:8px"></div></div>
+      </div>
+      <div id="triggerAggregate"></div>
+    </div>
+    <div>
+      <div class="section-t">Connection Opportunities</div>
+      <div id="connectionsList">
+        <div class="card"><div class="skel" style="height:200px;border-radius:8px"></div></div>
+      </div>
     </div>
   </div>
 
-  <!-- ─── TAB 6: EC³ ─── -->
-  <div id="emc2" class="tab-content">
-    <!-- Health tier summary -->
-    <div class="stat-row" id="emc2TierRow">
-      <div class="stat-card"><div class="skel" style="height:28px;margin-bottom:8px"></div><div class="skel" style="height:10px;width:55%"></div></div>
-      <div class="stat-card"><div class="skel" style="height:28px;margin-bottom:8px"></div><div class="skel" style="height:10px;width:55%"></div></div>
-      <div class="stat-card"><div class="skel" style="height:28px;margin-bottom:8px"></div><div class="skel" style="height:10px;width:55%"></div></div>
-      <div class="stat-card"><div class="skel" style="height:28px;margin-bottom:8px"></div><div class="skel" style="height:10px;width:55%"></div></div>
+  <!-- ── Section 4: Member Moments (alumni_network only) ── -->
+  <div class="gfull" id="momentsSection" style="display:none">
+    <div class="section-t" style="justify-content:space-between">
+      <span>Member Moments</span>
+      <select class="sel" id="momentsPeriod" style="font-size:12px;padding:4px 10px">
+        <option value="7d">7 days</option>
+        <option value="30d" selected>30 days</option>
+      </select>
     </div>
-
-    <!-- Node health ranked list -->
-    <div class="card" style="margin-bottom:20px">
-      <h3 style="margin-bottom:14px">Community Node Health</h3>
-      <div id="emc2NodeList"><div class="skel" style="height:200px;border-radius:8px"></div></div>
-    </div>
-
-    <!-- Award form -->
-    <div class="card" style="margin-bottom:20px">
-      <h3 style="margin-bottom:14px">Award EC&sup3; to Member</h3>
-      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
-        <div style="flex:1;min-width:160px">
-          <label style="display:block;font-size:12px;color:var(--text3);margin-bottom:4px">Node (anonymised ID)</label>
-          <select id="emc2AwardNode" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:8px;font-size:13px;font-family:var(--sans)">
-            <option value="">Select node...</option>
-          </select>
-        </div>
-        <div style="min-width:100px">
-          <label style="display:block;font-size:12px;color:var(--text3);margin-bottom:4px">Amount</label>
-          <input type="number" id="emc2AwardAmount" min="1" max="500" placeholder="50" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:8px;font-size:13px;font-family:var(--sans)">
-        </div>
-        <div style="flex:2;min-width:200px">
-          <label style="display:block;font-size:12px;color:var(--text3);margin-bottom:4px">Reason</label>
-          <input type="text" id="emc2AwardReason" placeholder="e.g. Outstanding contribution" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:8px;font-size:13px;font-family:var(--sans)">
-        </div>
-        <button class="btn btn-pri" onclick="submitEmc2Award()" style="white-space:nowrap">Award EC&sup3;</button>
-      </div>
-      <div id="emc2AwardMsg" style="margin-top:8px;font-size:13px"></div>
-    </div>
-
-    <!-- Multiplier config -->
-    <div class="card">
-      <h3 style="margin-bottom:14px">Earn Multiplier</h3>
-      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
-        <div style="min-width:160px">
-          <label style="display:block;font-size:12px;color:var(--text3);margin-bottom:4px">Action Type</label>
-          <select id="emc2MultAction" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:8px;font-size:13px;font-family:var(--sans)">
-            <option value="event_attend">Event Attend</option>
-            <option value="match_accepted">Match Accepted</option>
-            <option value="match_confirmed">Match Confirmed</option>
-            <option value="match_debrief">Match Debrief</option>
-            <option value="community_join">Community Join</option>
-          </select>
-        </div>
-        <div style="min-width:100px">
-          <label style="display:block;font-size:12px;color:var(--text3);margin-bottom:4px">Multiplier</label>
-          <select id="emc2MultValue" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:8px;font-size:13px;font-family:var(--sans)">
-            <option value="1.5">1.5x</option>
-            <option value="2.0">2x</option>
-          </select>
-        </div>
-        <div style="min-width:140px">
-          <label style="display:block;font-size:12px;color:var(--text3);margin-bottom:4px">Start Date</label>
-          <input type="date" id="emc2MultStart" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:8px;font-size:13px;font-family:var(--sans)">
-        </div>
-        <div style="min-width:140px">
-          <label style="display:block;font-size:12px;color:var(--text3);margin-bottom:4px">End Date</label>
-          <input type="date" id="emc2MultEnd" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:8px;font-size:13px;font-family:var(--sans)">
-        </div>
-        <button class="btn btn-pri" onclick="submitEmc2Multiplier()" style="white-space:nowrap">Set Multiplier</button>
-      </div>
-      <div id="emc2MultMsg" style="margin-top:8px;font-size:13px"></div>
+    <div id="momentsList">
+      <div class="card"><div class="skel" style="height:200px;border-radius:8px"></div></div>
     </div>
   </div>
 
   <div class="footer">
-    <span>EventMedium.ai · Community Intelligence</span>
-    <span class="mono" id="footerSlug"></span>
+    <span>EventMedium.ai &middot; Community Intelligence</span>
+    <span class="mono" id="footerCommunityId"></span>
   </div>
 </div>
 
-<!-- ── Edit Community Modal ── -->
-<div class="modal-bg" id="editCommModal">
+<!-- ══ Note Modal ══ -->
+<div class="modal-bg" id="noteModal">
   <div class="modal">
-    <h3>Edit Community</h3>
+    <h3>Add a Note</h3>
     <div class="form-row">
-      <label>Community Name</label>
-      <input type="text" id="ecName">
+      <label>Note</label>
+      <textarea id="noteText" placeholder="Write your note..."></textarea>
     </div>
-    <div class="form-row">
-      <label>Description</label>
-      <textarea id="ecDesc"></textarea>
-    </div>
-    <div class="form-row">
-      <label>Community Type</label>
-      <div class="type-toggle-sm">
-        <button class="type-btn-sm active" id="ecTypeOpen" onclick="setEditCommType('open')">Open</button>
-        <button class="type-btn-sm" id="ecTypeOfficial" onclick="setEditCommType('official')">Official / Private</button>
-      </div>
-    </div>
-    <div id="ecError" style="color:#dc2626;font-size:13px;margin-top:8px;display:none"></div>
+    <input type="hidden" id="noteMomentId">
     <div class="modal-actions">
-      <button class="modal-cancel" onclick="closeEditCommunity()">Cancel</button>
-      <button class="modal-submit" id="ecSubmitBtn" onclick="submitEditCommunity()">Save Changes</button>
-    </div>
-  </div>
-</div>
-
-<!-- ── Delete Community Step 1 Modal ── -->
-<div class="modal-bg" id="delComm1Modal">
-  <div class="modal">
-    <h3>Delete community?</h3>
-    <p id="delComm1Msg" style="font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:20px"></p>
-    <div class="modal-actions">
-      <button class="modal-cancel" onclick="closeDelComm1()">Cancel</button>
-      <button class="modal-submit" onclick="confirmDeleteCommunity()">Continue</button>
-    </div>
-  </div>
-</div>
-
-<!-- ── Delete Community Step 2 Modal ── -->
-<div class="modal-bg" id="delComm2Modal">
-  <div class="modal">
-    <h3>This cannot be undone</h3>
-    <p style="font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:16px">All member data, matches, and events linked to this community will be permanently deleted. Type the community name to confirm.</p>
-    <div class="form-row">
-      <label>Community Name</label>
-      <input type="text" id="delCommConfirm" placeholder="Type community name">
-    </div>
-    <div class="modal-actions">
-      <button class="modal-cancel" onclick="closeDelComm2()">Cancel</button>
-      <button class="modal-submit-danger" id="delCommFinalBtn" onclick="permanentlyDeleteCommunity()" disabled>Permanently Delete</button>
-    </div>
-  </div>
-</div>
-
-<!-- ── Delete Event Step 1 Modal ── -->
-<div class="modal-bg" id="delEvt1Modal">
-  <div class="modal">
-    <h3>Delete event?</h3>
-    <p id="delEvt1Msg" style="font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:20px"></p>
-    <div class="modal-actions">
-      <button class="modal-cancel" onclick="closeDelEvt1()">Cancel</button>
-      <button class="modal-submit" onclick="confirmDeleteEvent()">Continue</button>
-    </div>
-  </div>
-</div>
-
-<!-- ── Delete Event Step 2 Modal ── -->
-<div class="modal-bg" id="delEvt2Modal">
-  <div class="modal">
-    <h3>This cannot be undone</h3>
-    <p style="font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:16px">All registrations, matches, and attendee data for this event will be permanently deleted. Type the event name to confirm.</p>
-    <div class="form-row">
-      <label>Event Name</label>
-      <input type="text" id="delEvtConfirm" placeholder="Type event name">
-    </div>
-    <div class="modal-actions">
-      <button class="modal-cancel" onclick="closeDelEvt2()">Cancel</button>
-      <button class="modal-submit-danger" id="delEvtFinalBtn" onclick="permanentlyDeleteEvent()" disabled>Permanently Delete</button>
-    </div>
-  </div>
-</div>
-
-<!-- ── Create Event Modal ── -->
-<div class="modal-bg" id="createEvtModal">
-  <div class="modal">
-    <h3>Create Event</h3>
-    <div class="form-row">
-      <label>Event Name *</label>
-      <input type="text" id="ceName" placeholder="e.g. AI Founders Summit 2026" required>
-    </div>
-    <div class="form-2col">
-      <div class="form-row">
-        <label>Date *</label>
-        <input type="date" id="ceDate" required>
-      </div>
-      <div class="form-row">
-        <label>Expected Attendees</label>
-        <input type="number" id="ceAttendees" placeholder="500" min="1">
-      </div>
-    </div>
-    <div class="form-2col">
-      <div class="form-row">
-        <label>City *</label>
-        <input type="text" id="ceCity" placeholder="London">
-      </div>
-      <div class="form-row">
-        <label>Country *</label>
-        <input type="text" id="ceCountry" placeholder="UK">
-      </div>
-    </div>
-    <div class="form-row">
-      <label>Themes</label>
-      <div class="theme-grid" id="ceThemeGrid"></div>
-    </div>
-    <div class="form-row">
-      <label>Description</label>
-      <textarea id="ceDesc" placeholder="What is this event about?"></textarea>
-    </div>
-    <div class="form-row" style="margin-top:12px">
-      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;text-transform:none;letter-spacing:0;font-weight:500;color:var(--text)">
-        <input type="checkbox" id="cePublic" style="accent-color:var(--accent);width:16px;height:16px">
-        Make this event publicly visible (non-members can discover and register)
-      </label>
-    </div>
-    <div id="ceError" style="color:#dc2626;font-size:13px;margin-top:8px;display:none"></div>
-    <div class="modal-actions">
-      <button class="modal-cancel" onclick="closeCreateEvent()">Cancel</button>
-      <button class="modal-submit" id="ceSubmitBtn" onclick="submitCreateEvent()">Create Event</button>
-    </div>
-  </div>
-</div>
-
-<!-- ── Edit Event Modal ── -->
-<div class="modal-bg" id="editEvtModal">
-  <div class="modal">
-    <h3>Edit Event</h3>
-    <input type="hidden" id="eeId">
-    <div class="form-row">
-      <label>Event Name</label>
-      <input type="text" id="eeName">
-    </div>
-    <div class="form-2col">
-      <div class="form-row">
-        <label>Date</label>
-        <input type="date" id="eeDate">
-      </div>
-      <div class="form-row">
-        <label>City</label>
-        <input type="text" id="eeCity">
-      </div>
-    </div>
-    <div class="form-row" style="margin-top:12px">
-      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;text-transform:none;letter-spacing:0;font-weight:500;color:var(--text)">
-        <input type="checkbox" id="eePublic" style="accent-color:var(--accent);width:16px;height:16px">
-        Publicly visible (non-members can discover and register)
-      </label>
-    </div>
-    <div id="eeError" style="color:#dc2626;font-size:13px;margin-top:8px;display:none"></div>
-    <div class="modal-actions">
-      <button class="modal-cancel" onclick="closeEditEvent()">Cancel</button>
-      <button class="modal-submit" id="eeSubmitBtn" onclick="submitEditEvent()">Save Changes</button>
+      <button class="modal-cancel" onclick="closeNoteModal()">Cancel</button>
+      <button class="modal-submit" onclick="submitNote()">Save Note</button>
     </div>
   </div>
 </div>
 
 <script>
-// ── Bootstrap ─────────────────────────────────────────────────────────────────
+// ── Bootstrap ──────────────────────────────────────────────────────────────────
 var token = localStorage.getItem('auth_token');
 if (!token) { window.location.href = '/auth.html'; }
-var SLUG = new URLSearchParams(window.location.search).get('slug');
-if (!SLUG) { window.location.href = '/communities.html'; }
-document.getElementById('footerSlug').textContent = SLUG;
 
-// ── Colour config ─────────────────────────────────────────────────────────────
-var TC = {
-  founder:'#2563eb', investor:'#059669', advisor:'#d97706',
-  researcher:'#7c3aed', corporate:'#64748b', operator:'#ea580c',
-  buyer:'#0891b2', seller:'#be185d', partner:'#0d9488',
-  talent:'#b45309', hirer:'#1d4ed8', unknown:'#94a3b8'
-};
-var BUBBLE_PAL = ['#bfdbfe','#bbf7d0','#fde68a','#ddd6fe','#bae6fd','#d1fae5','#fef08a','#fecdd3','#cffafe','#e9d5ff'];
-var ACCENT='#6366f1', GREEN='#059669', AMBER='#d97706', RED='#dc2626', BLUE='#2563eb';
+var params = new URLSearchParams(window.location.search);
+var COMMUNITY_ID = params.get('id') || params.get('community') || params.get('slug');
+if (!COMMUNITY_ID) { window.location.href = '/communities.html'; }
+document.getElementById('footerCommunityId').textContent = COMMUNITY_ID;
 
-function tcol(t) { return TC[(t||'unknown').toLowerCase().replace(/s$/,'')] || '#94a3b8'; }
+var communityType = null;
+var communityName = '';
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-function esc(s){if(!s)return '';var d=document.createElement('div');d.textContent=s;return d.innerHTML;}
-function pct(v,dp){dp=dp||0;return(v*100).toFixed(dp)+'%';}
-function relDate(s){if(!s)return '—';var d=Math.floor((Date.now()-new Date(s))/86400000);if(d<1)return 'today';if(d===1)return 'yesterday';if(d<7)return d+'d ago';if(d<30)return Math.floor(d/7)+'w ago';return Math.floor(d/30)+'mo ago';}
-function initials(n){return(n||'?').split(' ').map(function(p){return p[0]||'';}).slice(0,2).join('').toUpperCase()||'?';}
-function blurSurname(n){if(!n)return '—';var parts=n.trim().split(/\s+/);if(parts.length<2)return esc(n);var given=parts.slice(0,parts.length-1).join(' ');var sur=parts[parts.length-1];var rest=sur.slice(1);return esc(given)+' '+esc(sur.charAt(0))+(rest?'<span style="filter:blur(4px);user-select:none;letter-spacing:0">'+esc(rest)+'</span>':'');}
-function avColor(n){var c=['#6366f1','#059669','#d97706','#7c3aed','#2563eb','#ea580c','#0891b2','#be185d'];var h=0;for(var i=0;i<(n||'').length;i++)h=(h*31+n.charCodeAt(i))&0xffff;return c[h%c.length];}
-function polarXY(cx,cy,r,deg){var rad=deg*Math.PI/180;return{x:(cx+r*Math.cos(rad)).toFixed(2),y:(cy+r*Math.sin(rad)).toFixed(2)};}
+// ── Theme taxonomy (canonical list) ──────────────────────────────────────────
+var CANONICAL_THEMES = [
+  'AI','Fintech','Cybersecurity','Enterprise SaaS','Web3','Quantum','Robotics','IoT','Hardware',
+  'Climate','Health','Education','Media & Entertainment','Real Estate','Food & Agriculture',
+  'Supply Chain','Space','Defence',
+  'Growth & GTM','Impact & Social','Venture & Capital','Data & Analytics',
+  'Privacy & Regulation','Infrastructure & Cloud','Marketplace & Commerce','Travel & Mobility'
+];
 
-// ── Global state ──────────────────────────────────────────────────────────────
-var D = null;
-var _d3tip = null;
-var _inited = {};
-var _mPage = 1, _mSort = 'joined', _mQ = '', _mSorted = [];
-var PER_PAGE = 20;
+// Populate theme dropdown
+(function(){
+  var sel = document.getElementById('filterTheme');
+  CANONICAL_THEMES.forEach(function(t){
+    var o = document.createElement('option');
+    o.value = t; o.textContent = t;
+    sel.appendChild(o);
+  });
+})();
 
-// ── Tab switching ─────────────────────────────────────────────────────────────
-document.querySelectorAll('.tab').forEach(function(t) {
-  t.addEventListener('click', function() {
-    document.querySelectorAll('.tab').forEach(function(x){x.classList.remove('active');});
-    document.querySelectorAll('.tab-content').forEach(function(x){x.classList.remove('active');});
-    t.classList.add('active');
-    var id = t.dataset.tab;
-    document.getElementById(id).classList.add('active');
-    if (D && !_inited[id]) {
-      _inited[id] = true;
-      if (id === 'intelligence') { renderConstellation(); renderSignalDepth(); renderThemesTable(); }
-      if (id === 'gaps') { renderGauges(); renderInsights(); }
-      if (id === 'members') { renderMembersTab(); }
-      if (id === 'events') { renderEventsTab(); }
-      if (id === 'emc2') { renderEmc2Tab(); }
-    }
+// ── Helpers ────────────────────────────────────────────────────────────────────
+function esc(s){ if(!s) return ''; var d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+function relDate(s){ if(!s) return ''; var d=Math.floor((Date.now()-new Date(s))/86400000); if(d<1) return 'today'; if(d===1) return 'yesterday'; if(d<7) return d+'d ago'; if(d<30) return Math.floor(d/7)+'w ago'; return Math.floor(d/30)+'mo ago'; }
+function hdr(){ return { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }; }
+
+function costDots(cost){
+  if(!cost) return '';
+  var c = cost.toLowerCase();
+  if(c === 'high') return '<span class="moment-cost high">\u25CF\u25CF\u25CF HIGH</span>';
+  if(c === 'medium') return '<span class="moment-cost medium">\u25CF\u25CF MEDIUM</span>';
+  return '<span class="moment-cost low">\u25CF LOW</span>';
+}
+
+function confidencePill(conf){
+  if(!conf) return '';
+  var c = (conf+'').toLowerCase();
+  if(c === 'high' || conf >= 0.8) return '<span class="pill pill-green">High confidence</span>';
+  if(c === 'medium' || conf >= 0.5) return '<span class="pill pill-amber">Medium confidence</span>';
+  return '<span class="pill pill-red">Low confidence</span>';
+}
+
+function triggerTypeBadge(type){
+  var t = (type||'').toLowerCase();
+  var colors = {
+    'conference': { bg: 'var(--blueL)', color: 'var(--blue)' },
+    'meetup': { bg: 'var(--greenL)', color: 'var(--green)' },
+    'workshop': { bg: 'var(--amberL)', color: 'var(--amber)' },
+    'webinar': { bg: 'rgba(124,58,237,0.08)', color: 'var(--purple)' },
+    'dinner': { bg: 'rgba(234,88,12,0.08)', color: 'var(--orange)' }
+  };
+  var s = colors[t] || { bg: 'var(--bg3)', color: 'var(--text2)' };
+  return '<span class="trigger-type" style="background:'+s.bg+';color:'+s.color+'">'+esc(type||'event')+'</span>';
+}
+
+// ── Filter state persistence ─────────────────────────────────────────────────
+var FILTER_KEY = 'em_dash_filters_' + COMMUNITY_ID;
+
+function saveFilters(){
+  var state = {
+    region: document.getElementById('filterRegion').value,
+    theme: document.getElementById('filterTheme').value,
+    action: document.getElementById('filterAction').value,
+    period: document.getElementById('filterPeriod').value
+  };
+  try { localStorage.setItem(FILTER_KEY, JSON.stringify(state)); } catch(e){}
+}
+
+function restoreFilters(){
+  try {
+    var s = JSON.parse(localStorage.getItem(FILTER_KEY));
+    if(!s) return;
+    if(s.region) document.getElementById('filterRegion').value = s.region;
+    if(s.theme) document.getElementById('filterTheme').value = s.theme;
+    if(s.action) document.getElementById('filterAction').value = s.action;
+    if(s.period) document.getElementById('filterPeriod').value = s.period;
+  } catch(e){}
+}
+
+function getFilterParams(){
+  var r = document.getElementById('filterRegion').value;
+  var t = document.getElementById('filterTheme').value;
+  var a = document.getElementById('filterAction').value;
+  var p = document.getElementById('filterPeriod').value;
+  var q = [];
+  if(r) q.push('region='+encodeURIComponent(r));
+  if(t) q.push('theme='+encodeURIComponent(t));
+  if(a) q.push('action='+encodeURIComponent(a));
+  if(p) q.push('period='+encodeURIComponent(p));
+  return q.length ? '?'+q.join('&') : '';
+}
+
+restoreFilters();
+
+// Bind filter changes
+['filterRegion','filterTheme','filterAction','filterPeriod'].forEach(function(id){
+  document.getElementById(id).addEventListener('change', function(){
+    saveFilters();
+    loadAll();
   });
 });
 
-// ── Load data ─────────────────────────────────────────────────────────────────
-async function load() {
+// ── Data loading ─────────────────────────────────────────────────────────────
+async function apiFetch(url){
+  var r = await fetch(url, { headers: hdr() });
+  if(r.status === 401){ window.location.href = '/auth.html'; return null; }
+  if(!r.ok) throw new Error('HTTP '+r.status);
+  return r.json();
+}
+
+async function loadPulse(){
   try {
-    var r = await fetch('/api/communities/' + SLUG + '/dashboard', {
-      headers: { 'Authorization': 'Bearer ' + token }
-    });
-    if (r.status === 401 || r.status === 403 || r.status === 404) {
-      window.location.href = '/communities.html'; return;
-    }
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    D = await r.json();
-    renderHeader();
-    renderStatRow();
-    renderHealthRing();
-    renderMomentum();
-    renderMembersTab();
-    _inited.overview = true;
-    _inited.members = true;
-  } catch(e) {
-    console.error('Dashboard load error:', e);
-    renderAllEmpty();
+    var data = await apiFetch('/api/community/'+COMMUNITY_ID+'/pulse'+getFilterParams());
+    renderPulse(data);
+  } catch(e){
+    console.error('Pulse load error:', e);
+    document.getElementById('pulseContent').innerHTML = '<div class="empty-vis"><i data-lucide="activity" style="width:28px;height:28px;opacity:0.4"></i><strong>Could not load pulse data</strong>Check your connection and try again</div>';
+    if(typeof lucide!=='undefined') lucide.createIcons();
   }
 }
 
-// ── Header ────────────────────────────────────────────────────────────────────
-function renderHeader() {
-  var c = D.community;
-  document.title = c.name + ' · Intelligence';
-  document.getElementById('commTitle').textContent = c.name;
-  var sub = c.member_count + ' members';
-  if (c.access_code) sub += ' · code\u00a0' + c.access_code;
-  if (c.description) sub = c.description + ' · ' + sub;
-  document.getElementById('commSub').textContent = sub;
-  document.getElementById('invBtn').style.display = 'inline-flex';
-  document.getElementById('shrBtn').style.display = 'inline-flex';
-  document.getElementById('ownerPill').style.display = 'inline-block';
-  document.getElementById('createEvtBtn').style.display = 'inline-flex';
-  document.getElementById('editCommBtn').style.display = 'inline-flex';
-  document.getElementById('delCommBtn').style.display = 'inline-flex';
-  var nm = document.getElementById('netMapBtn');
-  nm.href = '/network-graph.html?mode=community&id=' + c.id;
-  nm.style.display = 'inline-flex';
-  if (typeof lucide !== 'undefined') lucide.createIcons();
-}
-
-function copyInvite() {
-  var url = location.origin + '/community.html?slug=' + SLUG + (D.community.access_code ? '&code=' + D.community.access_code : '');
-  navigator.clipboard.writeText(url).then(function() {
-    var b = document.getElementById('invBtn'); var o = b.textContent;
-    b.textContent = 'Link copied!';
-    setTimeout(function(){b.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg> Invite Members';}, 2000);
-  });
-}
-
-function shareComm() {
-  var url = location.origin + '/community.html?slug=' + SLUG;
-  if (navigator.share) { navigator.share({ title: D.community.name, url: url }); }
-  else {
-    navigator.clipboard.writeText(url);
-    var b = document.getElementById('shrBtn');
-    b.textContent = 'Copied!';
-    setTimeout(function(){ b.textContent = 'Share'; }, 1800);
-  }
-}
-
-// ── Stat row ──────────────────────────────────────────────────────────────────
-function renderStatRow() {
-  var k = D.kpi;
-  var active = D.members.filter(function(m){return !!m.stakeholder_type;}).length;
-  var health = k.members < 10 ? 'Emerging' : k.members < 50 ? 'Building' : k.members < 200 ? 'Active' : 'Dense';
-  var acceptRate = k.matches > 0 ? pct(k.mutual / k.matches, 0) : '—';
-  var stats = [
-    {v: k.members,     l: 'Members',           sub: health + ' community'},
-    {v: active,        l: 'Active Canisters',   sub: active + ' of ' + k.members + ' profiled'},
-    {v: k.matches,     l: 'Matches Generated',  sub: k.revealed + ' reveals'},
-    {v: acceptRate,    l: 'Acceptance Rate',     sub: k.mutual + ' mutual accepts', c: k.mutual > 0 ? GREEN : ''}
-  ];
-  document.getElementById('statRow').innerHTML = stats.map(function(s) {
-    return '<div class="stat-card"><div class="stat-val" style="color:'+(s.c||'var(--heading)')+'">'+esc(''+s.v)+'</div><div class="stat-label">'+s.l+'</div><div class="stat-sub">'+esc(s.sub)+'</div></div>';
-  }).join('');
-}
-
-// ── Health Ring (SVG arcs) ────────────────────────────────────────────────────
-function renderHealthRing() {
-  var el = document.getElementById('healthRingVis');
-  var types = D.typeBreakdown.filter(function(t){ return t.count > 0; });
-  var total = D.kpi.members;
-  var health = total < 10 ? 'Emerging' : total < 50 ? 'Building' : total < 200 ? 'Active' : 'Dense';
-
-  if (!types.length) {
-    el.innerHTML = '<div class="empty-vis"><strong>No profile data yet</strong>Data builds as members complete their canisters</div>'; return;
-  }
-
-  var cx = 110, cy = 115, r = 82, sw = 20;
-  var GAP = types.length > 1 ? 4 : 0;
-  var typeTotal = types.reduce(function(s,t){return s+parseInt(t.count);}, 0);
-  var totalSweep = 360 - GAP * types.length;
-  var angle = -90;
-  var paths = '';
-
-  types.forEach(function(t) {
-    var sweep = (parseInt(t.count) / typeTotal) * totalSweep;
-    var end = angle + sweep;
-    var color = tcol(t.stakeholder_type);
-    if (types.length === 1 || sweep >= 359) {
-      paths += '<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="'+color+'" stroke-width="'+sw+'"/>';
+async function loadFeeds(){
+  try {
+    var data = await apiFetch('/api/integrations/'+COMMUNITY_ID+'/feeds');
+    var feeds = Array.isArray(data) ? data : (data.feeds || []);
+    var count = feeds.length;
+    var badge = document.getElementById('feedCountBadge');
+    if(count > 0){
+      badge.textContent = count;
+      badge.style.display = 'inline-flex';
     } else {
-      var s = polarXY(cx,cy,r,angle);
-      var e = polarXY(cx,cy,r,end);
-      var large = sweep > 180 ? 1 : 0;
-      paths += '<path d="M '+s.x+' '+s.y+' A '+r+' '+r+' 0 '+large+' 1 '+e.x+' '+e.y+'" fill="none" stroke="'+color+'" stroke-width="'+sw+'" stroke-linecap="round"/>';
+      badge.style.display = 'none';
     }
-    angle = end + GAP;
-  });
-
-  var legend = types.map(function(t) {
-    return '<div class="ring-item"><span class="dot" style="background:'+tcol(t.stakeholder_type)+'"></span>'+esc(t.stakeholder_type||'unknown')+' <strong>'+t.count+'</strong></div>';
-  }).join('');
-
-  el.innerHTML = '<div class="ring-wrap">'
-    + '<svg width="220" height="230" viewBox="0 0 220 230" xmlns="http://www.w3.org/2000/svg">'
-    + paths
-    + '<text x="'+cx+'" y="'+(cy-10)+'" text-anchor="middle" font-size="30" font-weight="700" font-family="system-ui,-apple-system,sans-serif" fill="#1a1a2e">'+total+'</text>'
-    + '<text x="'+cx+'" y="'+(cy+12)+'" text-anchor="middle" font-size="11" font-weight="700" font-family="system-ui,-apple-system,sans-serif" fill="#94a3b8" letter-spacing="1">'+health.toUpperCase()+'</text>'
-    + '</svg>'
-    + '<div class="ring-legend">'+legend+'</div>'
-    + '</div>';
+    renderCommunityCard(count, feeds);
+  } catch(e){
+    console.error('Feeds load error:', e);
+    renderCommunityCard(0, []);
+  }
 }
 
-// ── Match Momentum Strip (SVG) ────────────────────────────────────────────────
-function renderMomentum() {
-  var el = document.getElementById('momentumVis');
-  // Build 30-day buckets
-  var today = new Date(); today.setHours(0,0,0,0);
-  var buckets = [];
-  for (var i = 29; i >= 0; i--) {
-    var d = new Date(today); d.setDate(d.getDate()-i);
-    buckets.push({ date: d.toISOString().slice(0,10), matches: 0, mutual: 0 });
+async function loadTriggers(){
+  try {
+    var data = await apiFetch('/api/community/'+COMMUNITY_ID+'/event-triggers');
+    renderTriggers(data);
+  } catch(e){
+    console.error('Triggers load error:', e);
+    document.getElementById('triggersList').innerHTML = '<div class="empty-vis"><i data-lucide="calendar" style="width:28px;height:28px;opacity:0.4"></i><strong>No event triggers found</strong>Triggers will appear as signals are processed</div>';
+    document.getElementById('connectionsList').innerHTML = '<div class="empty-vis"><i data-lucide="link" style="width:28px;height:28px;opacity:0.4"></i><strong>No connection opportunities yet</strong>Opportunities emerge from signal analysis</div>';
+    if(typeof lucide!=='undefined') lucide.createIcons();
   }
-  D.matches.forEach(function(m) {
-    var day = (m.created_at||'').slice(0,10);
-    var b = buckets.find(function(x){return x.date===day;});
-    if (b) { b.matches++; if (m.user_a_decision==='accept'&&m.user_b_decision==='accept') b.mutual++; }
-  });
-  var hasData = buckets.some(function(b){return b.matches>0;});
-  if (!hasData) {
-    el.innerHTML = '<div class="empty-vis" style="min-height:220px"><strong>Match activity will appear here</strong>Matches are generated as members join events and get matched</div>'; return;
-  }
-  var maxM = Math.max.apply(null, buckets.map(function(b){return b.matches;})) || 1;
-  var W = 540, H = 140, bw = Math.floor(W/30)-2;
-  var bars = buckets.map(function(b, i) {
-    var x = i*(W/30)+1;
-    var bh = b.matches>0 ? Math.max(4, (b.matches/maxM)*(H-16)) : 2;
-    var rate = b.matches>0 ? b.mutual/b.matches : -1;
-    var col = b.matches===0 ? '#e2e8f0' : rate>0.5 ? '#1d4ed8' : rate>0.2 ? '#3b82f6' : '#93c5fd';
-    return '<rect x="'+x.toFixed(1)+'" y="'+(H-bh).toFixed(1)+'" width="'+bw+'" height="'+bh.toFixed(1)+'" fill="'+col+'" rx="2">'
-      +'<title>'+b.date+': '+b.matches+' match'+(b.matches!==1?'es':'')+', '+b.mutual+' mutual</title></rect>';
-  }).join('');
-
-  var svg = '<svg width="100%" viewBox="0 0 '+W+' '+(H+20)+'" xmlns="http://www.w3.org/2000/svg">'
-    + bars
-    + '<text x="1" y="'+(H+14)+'" font-size="9" fill="#94a3b8" font-family="system-ui">'+buckets[0].date.slice(5)+'</text>'
-    + '<text x="'+(W-28)+'" y="'+(H+14)+'" font-size="9" fill="#94a3b8" font-family="system-ui">today</text>'
-    + '</svg>';
-
-  var legend = '<div style="display:flex;gap:14px;margin-top:10px;flex-wrap:wrap">'
-    + '<span style="font-size:11px;color:var(--text3);display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;background:#1d4ed8;border-radius:2px;display:inline-block"></span>High acceptance</span>'
-    + '<span style="font-size:11px;color:var(--text3);display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;background:#93c5fd;border-radius:2px;display:inline-block"></span>Low acceptance</span>'
-    + '<span style="font-size:11px;color:var(--text3);display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;background:#e2e8f0;border-radius:2px;display:inline-block"></span>No matches</span>'
-    + '</div>';
-  el.innerHTML = svg + legend;
 }
 
-// ── Theme Constellation (D3 force bubbles) ────────────────────────────────────
-function renderConstellation() {
-  var el = document.getElementById('constellationVis');
-  var themes = D.topThemes || [];
-  if (themes.length < 3) {
-    el.innerHTML = '<div class="empty-vis" style="min-height:360px"><strong>Theme constellation builds over time</strong>More themes appear as members complete their canisters</div>'; return;
+async function loadTriggerStats(){
+  try {
+    var data = await apiFetch('/api/community/'+COMMUNITY_ID+'/match-trigger-stats');
+    if(data && data.accepted != null && data.total != null){
+      document.getElementById('triggerAggregate').innerHTML = '<div class="aggregate-stat">'+data.accepted+' of '+data.total+' triggers this month led to accepted connections</div>';
+    }
+  } catch(e){
+    console.error('Trigger stats load error:', e);
   }
-  el.innerHTML = '';
-  var W = el.clientWidth || 820, H = 400;
-  var maxC = Math.max.apply(null, themes.map(function(t){return t.count;}));
-  var minC = Math.min.apply(null, themes.map(function(t){return t.count;}));
-  var rScale = function(c) { return maxC===minC ? 45 : 26 + ((c-minC)/(maxC-minC))*46; };
-
-  var nodes = themes.map(function(t,i) {
-    return { item:t.item, count:t.count, r:rScale(t.count), color:BUBBLE_PAL[i%BUBBLE_PAL.length],
-             x: W/2+(Math.random()-0.5)*120, y: H/2+(Math.random()-0.5)*80 };
-  });
-
-  var svg = d3.select(el).append('svg').attr('width',W).attr('height',H).style('display','block');
-
-  if (_d3tip) { _d3tip.remove(); _d3tip=null; }
-  _d3tip = d3.select('body').append('div').attr('class','d3tip').style('display','none');
-
-  var sim = d3.forceSimulation(nodes)
-    .force('x', d3.forceX(W/2).strength(0.05))
-    .force('y', d3.forceY(H/2).strength(0.07))
-    .force('collide', d3.forceCollide(function(d){return d.r+4;}).strength(0.85))
-    .force('charge', d3.forceManyBody().strength(-18));
-
-  var grp = svg.selectAll('g').data(nodes).enter().append('g');
-
-  grp.append('circle')
-    .attr('r', function(d){return d.r;})
-    .attr('fill', function(d){return d.color;})
-    .attr('opacity', 0.9);
-
-  grp.append('text')
-    .text(function(d){ var max=Math.floor(d.r/4.2); return d.item.length>max ? d.item.slice(0,max-1)+'…' : d.item; })
-    .attr('text-anchor','middle').attr('dy','0.35em')
-    .attr('fill','#1a1a2e').attr('pointer-events','none')
-    .attr('font-weight','600')
-    .attr('font-size', function(d){return Math.max(9,Math.min(13,d.r*0.27));})
-    .attr('font-family','system-ui,-apple-system,sans-serif');
-
-  grp.on('mouseover', function(ev,d){
-    _d3tip.style('display','block').html('<strong>'+esc(d.item)+'</strong><br>'+d.count+' member'+(d.count!==1?'s':''));
-  }).on('mousemove', function(ev){
-    _d3tip.style('left',(ev.clientX+14)+'px').style('top',(ev.clientY-30)+'px');
-  }).on('mouseleave', function(){
-    _d3tip.style('display','none');
-  });
-
-  sim.on('tick', function() {
-    grp.attr('transform', function(d) {
-      d.x = Math.max(d.r+2, Math.min(W-d.r-2, d.x));
-      d.y = Math.max(d.r+2, Math.min(H-d.r-2, d.y));
-      return 'translate('+d.x+','+d.y+')';
-    });
-  });
 }
 
-// ── Signal Depth bar ──────────────────────────────────────────────────────────
-function renderSignalDepth() {
-  var el = document.getElementById('signalDepthVis');
-  var total = D.members.length;
-  if (!total) { el.innerHTML = '<div class="empty-vis" style="min-height:100px"><strong>No members yet</strong></div>'; return; }
-
-  var withType = D.members.filter(function(m){return !!m.stakeholder_type;}).length;
-  // Estimate full vs partial: members who appear in top themes are "fuller"
-  var themeHeavy = D.topThemes.reduce(function(s,t){return s+t.count;},0);
-  var avgThemeMem = D.topThemes.length>0 ? themeHeavy/D.topThemes.length : 0;
-  var full = Math.min(withType, Math.round(avgThemeMem));
-  var partial = withType - full;
-  var empty = total - withType;
-
-  var segs = [
-    {label:'Full canister', n:full,    color:'#334155'},
-    {label:'Partial',       n:partial, color:'#94a3b8'},
-    {label:'No profile',    n:empty,   color:'#e2e8f0', dark:true}
-  ].filter(function(s){return s.n>0;});
-
-  var bar = '<div style="display:flex;height:32px;border-radius:8px;overflow:hidden;width:100%;margin-bottom:12px">';
-  segs.forEach(function(s) {
-    var w = (s.n/total*100).toFixed(1);
-    var tc = s.dark ? '#64748b' : '#fff';
-    bar += '<div style="width:'+w+'%;background:'+s.color+';display:flex;align-items:center;justify-content:center" title="'+s.label+': '+s.n+'">';
-    if (parseFloat(w)>9) bar += '<span style="font-size:10px;font-weight:700;color:'+tc+'">'+w+'%</span>';
-    bar += '</div>';
-  });
-  bar += '</div>';
-
-  var legend = '<div style="display:flex;gap:14px;flex-wrap:wrap">';
-  segs.forEach(function(s) {
-    legend += '<span style="font-size:11px;color:var(--text2);display:flex;align-items:center;gap:5px">'
-      +'<span style="width:10px;height:10px;border-radius:2px;background:'+s.color+';display:inline-block;border:1px solid var(--border2)"></span>'
-      +esc(s.label)+' — '+s.n+'</span>';
-  });
-  legend += '</div>';
-
-  var signal = '<div class="insight"><div class="insight-lbl">Signal</div><div class="insight-txt">'
-    +withType+' of '+total+' members have started their profile. Deeper canisters produce stronger matches — encourage members to complete their Nev onboarding.'
-    +'</div></div>';
-
-  el.innerHTML = bar + legend + signal;
+async function loadMoments(){
+  if(communityType !== 'alumni_network') return;
+  document.getElementById('momentsSection').style.display = 'block';
+  var period = document.getElementById('momentsPeriod').value;
+  try {
+    var data = await apiFetch('/api/community/'+COMMUNITY_ID+'/member-moments?period='+period);
+    renderMoments(data);
+  } catch(e){
+    console.error('Moments load error:', e);
+    document.getElementById('momentsList').innerHTML = '<div class="empty-vis"><i data-lucide="users" style="width:28px;height:28px;opacity:0.4"></i><strong>No member moments found</strong>Moments will appear as member signals are processed</div>';
+    if(typeof lucide!=='undefined') lucide.createIcons();
+  }
 }
 
-// ── Themes table ──────────────────────────────────────────────────────────────
-function renderThemesTable() {
-  var el = document.getElementById('themesTableVis');
-  var themes = (D.topThemes||[]).slice(0,8);
-  if (!themes.length) {
-    el.innerHTML = '<div class="empty-vis" style="min-height:180px"><strong>No theme data yet</strong>Themes appear as members complete their canisters</div>'; return;
-  }
-  var maxC = themes[0].count;
-  var rows = themes.map(function(t) {
-    var w = maxC>0 ? (t.count/maxC*100).toFixed(0) : 0;
-    return '<div class="tbl-row" style="grid-template-columns:1fr 44px 80px">'
-      +'<span style="font-size:12px;font-weight:600">'+esc(t.item)+'</span>'
-      +'<span class="r mono" style="color:'+ACCENT+'">'+t.count+'</span>'
-      +'<span style="padding-left:8px"><div class="bar-track"><div class="bar-fill" style="width:'+w+'%;background:'+ACCENT+'cc"></div></div></span>'
-      +'</div>';
-  }).join('');
-  el.innerHTML = '<div class="tbl-head" style="grid-template-columns:1fr 44px 80px"><span>Theme</span><span class="r">Members</span><span></span></div>' + rows;
+document.getElementById('momentsPeriod').addEventListener('change', function(){ loadMoments(); });
+
+async function loadAll(){
+  loadPulse();
+  loadFeeds();
+  loadTriggers();
+  loadTriggerStats();
+  loadMoments();
 }
 
-// ── Supply/demand gauges ───────────────────────────────────────────────────────
-function renderGauges() {
-  var el = document.getElementById('gaugesVis');
-  // Merge seeking and offering
-  var map = {};
-  (D.topSeeking||[]).forEach(function(s){ if(!map[s.item])map[s.item]={s:0,o:0}; map[s.item].s=s.count; });
-  (D.topOffering||[]).forEach(function(o){ if(!map[o.item])map[o.item]={s:0,o:0}; map[o.item].o=o.count; });
-  var items = Object.entries(map)
-    .map(function(e){return{label:e[0],seeking:e[1].s,offering:e[1].o,total:e[1].s+e[1].o};})
-    .sort(function(a,b){return b.total-a.total;}).slice(0,8);
+// ── Initial load — fetch community info then everything ──────────────────────
+async function init(){
+  try {
+    // Try pulse first to get community info
+    var data = await apiFetch('/api/community/'+COMMUNITY_ID+'/pulse'+getFilterParams());
+    if(data && data.community){
+      communityName = data.community.name || '';
+      communityType = data.community.community_type || data.community.type || null;
+      document.title = communityName + ' \u00b7 Intelligence';
+      document.getElementById('commTitle').textContent = communityName ? communityName + ' intelligence' : 'Community intelligence';
+      document.getElementById('commSub').textContent = communityType ? communityType.replace(/_/g,' ') : '';
+    } else {
+      document.getElementById('commTitle').textContent = 'Community intelligence';
+    }
+    renderPulse(data);
 
-  if (!items.length) {
-    el.innerHTML = '<div class="empty-vis" style="min-height:300px"><strong>Insufficient data</strong>Supply/demand analysis requires members with completed canisters</div>'; return;
+    // Show header buttons
+    document.getElementById('nevBtn').style.display = 'inline-flex';
+    var sigBtn = document.getElementById('signalsBtn');
+    sigBtn.href = '/signal-marketplace.html?community='+COMMUNITY_ID;
+    sigBtn.style.display = 'inline-flex';
+
+    // Show moments section for alumni networks
+    if(communityType === 'alumni_network'){
+      document.getElementById('momentsSection').style.display = 'block';
+    }
+
+    // Load remaining sections
+    loadFeeds();
+    loadTriggers();
+    loadTriggerStats();
+    loadMoments();
+  } catch(e){
+    console.error('Init error:', e);
+    document.getElementById('commTitle').textContent = 'Community intelligence';
+    document.getElementById('pulseContent').innerHTML = '<div class="empty-vis"><i data-lucide="activity" style="width:28px;height:28px;opacity:0.4"></i><strong>Could not load dashboard</strong>Check your connection and try again</div>';
+    if(typeof lucide!=='undefined') lucide.createIcons();
+    // Still try other endpoints
+    document.getElementById('nevBtn').style.display = 'inline-flex';
+    var sigBtn = document.getElementById('signalsBtn');
+    sigBtn.href = '/signal-marketplace.html?community='+COMMUNITY_ID;
+    sigBtn.style.display = 'inline-flex';
+    loadFeeds();
+    loadTriggers();
+    loadTriggerStats();
   }
-  var maxV = Math.max.apply(null, items.map(function(i){return Math.max(i.seeking,i.offering);})) || 1;
+}
+
+// ── Render: Pulse ────────────────────────────────────────────────────────────
+function renderPulse(data){
+  var el = document.getElementById('pulseContent');
+  if(!data || !data.pulse){
+    el.innerHTML = '<div class="empty-vis"><i data-lucide="activity" style="width:28px;height:28px;opacity:0.4"></i><strong>No pulse data available</strong>Pulse data appears once signals are flowing</div>';
+    if(typeof lucide!=='undefined') lucide.createIcons();
+    return;
+  }
+  var p = data.pulse;
+  var heat = p.heat_score != null ? p.heat_score : (p.score || 0);
+  var maxHeat = p.max_heat || 100;
+  var pctVal = Math.min(100, Math.round((heat/maxHeat)*100));
+  var delta = p.delta || p.change || '';
+  var deltaSign = '';
+  if(typeof delta === 'number'){ deltaSign = delta > 0 ? '+' : ''; delta = deltaSign + delta; }
+  var domAction = p.dominant_action || p.top_action || '';
+
+  var barColor = pctVal >= 70 ? 'var(--green)' : pctVal >= 40 ? 'var(--amber)' : 'var(--red)';
 
   var html = '';
-  items.forEach(function(item) {
-    var ratio = item.seeking>0 ? item.offering/item.seeking : (item.offering>0?99:1);
-    var status, sc, sbg, bc;
-    if (ratio>=0.7&&ratio<=1.3)        { status='Balanced';     sc='#64748b'; sbg='#f1f5f9'; bc='#94a3b8'; }
-    else if (ratio>1.3)                 { status='Surplus';      sc=BLUE;      sbg='#eff6ff'; bc='rgba(59,130,246,0.55)'; }
-    else if (item.seeking>3*Math.max(1,item.offering)) { status='Critical Gap'; sc=RED; sbg='#fef2f2'; bc='rgba(239,68,68,0.6)'; }
-    else                                { status='High Demand';  sc=AMBER;     sbg='#fffbeb'; bc='rgba(245,158,11,0.7)'; }
+  html += '<div style="display:flex;align-items:baseline;gap:12px;margin-bottom:14px">';
+  html += '<span class="stat-val" style="font-size:36px">'+esc(''+Math.round(heat))+'</span>';
+  html += '<span style="font-size:13px;color:var(--text3)">heat score</span>';
+  if(delta) html += '<span class="pill '+(String(delta).indexOf('-')===0?'pill-red':'pill-green')+'">'+esc(''+delta)+'</span>';
+  html += '</div>';
+  html += '<div class="bar-track" style="height:8px;margin-bottom:14px"><div class="bar-fill" style="width:'+pctVal+'%;background:'+barColor+'"></div></div>';
+  if(domAction){
+    html += '<div style="font-size:12px;color:var(--text3)">Dominant action: <strong style="color:var(--heading)">'+esc(domAction)+'</strong></div>';
+  }
 
-    var sw = Math.max(3, (item.offering/maxV*100)).toFixed(0);
-    var dw = Math.max(3, (item.seeking/maxV*100)).toFixed(0);
-    var sub = item.seeking>item.offering
-      ? item.seeking+' seeking · '+item.offering+' offering'
-      : item.offering+' offering · '+item.seeking+' seeking';
+  // Show cluster count and signal count if available
+  if(data.clusters){
+    html += '<div style="margin-top:12px;font-size:12px;color:var(--text3)">'+data.clusters.length+' signal clusters active</div>';
+    // Render clusters
+    renderClusters(data.clusters);
+  }
 
-    html += '<div class="gauge-row">'
-      +'<div class="gauge-header"><span class="gauge-name">'+esc(item.label)+'</span>'
-      +'<span class="gauge-status" style="color:'+sc+';background:'+sbg+'">'+status+'</span></div>'
-      +'<div class="gauge-track">'
-      +'<div class="gauge-supply"><div class="gauge-bar" style="width:'+sw+'%;background:'+bc+'"></div></div>'
-      +'<div class="gauge-divider"></div>'
-      +'<div class="gauge-demand"><div class="gauge-bar" style="width:'+dw+'%;background:'+bc+'"></div></div>'
-      +'</div>'
-      +'<div class="gauge-sub">'+esc(sub)+'</div>'
-      +'</div>';
-  });
-  html += '<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-top:12px;padding-top:8px;border-top:1px solid var(--border)">'
-    +'<span>◀ Offering (supply)</span><span>Seeking (demand) ▶</span></div>';
   el.innerHTML = html;
 }
 
-// ── Opportunities (generated insights) ────────────────────────────────────────
-function renderInsights() {
-  var el = document.getElementById('oppsVis');
-  var total = D.kpi.members;
-  var active = D.members.filter(function(m){return !!m.stakeholder_type;}).length;
-
-  if (total < 3 || active < 2) {
-    el.innerHTML = '<div class="empty-vis" style="min-height:300px"><strong>Insights generate once members are profiled</strong>Encourage members to complete their Nev canister to unlock pattern analysis</div>'; return;
+// ── Render: Community card ──────────────────────────────────────────────────
+function renderCommunityCard(feedCount, feeds){
+  var el = document.getElementById('communityContent');
+  var activeCanisters = 0;
+  // Count from pulse data if available
+  if(feeds && feeds.length){
+    activeCanisters = feeds.filter(function(f){ return f.active || f.status === 'active'; }).length;
   }
 
-  var insights = [];
-
-  // Build gap map
-  var map = {};
-  (D.topSeeking||[]).forEach(function(s){if(!map[s.item])map[s.item]={s:0,o:0};map[s.item].s=s.count;});
-  (D.topOffering||[]).forEach(function(o){if(!map[o.item])map[o.item]={s:0,o:0};map[o.item].o=o.count;});
-  var entries = Object.entries(map).map(function(e){return{k:e[0],s:e[1].s,o:e[1].o};});
-
-  // 1. Biggest unmet demand
-  var gap = entries.filter(function(e){return e.s>0;}).sort(function(a,b){return(b.s-b.o)-(a.s-a.o);})[0];
-  if (gap && gap.s>gap.o) {
-    insights.push('<strong>'+esc(gap.k)+'</strong> is in highest demand — '
-      +gap.s+' member'+(gap.s!==1?'s':'')+' seeking it'
-      +(gap.o>0?' with only '+gap.o+' offering':' with no one offering yet')
-      +'. Recruiting members who offer this would unlock new matches.');
-  }
-
-  // 2. Biggest surplus
-  var sur = entries.filter(function(e){return e.o>0;}).sort(function(a,b){return(b.o-b.s)-(a.o-a.s);})[0];
-  if (sur && sur.o>sur.s) {
-    insights.push('Strong supply of <strong>'+esc(sur.k)+'</strong> — '
-      +sur.o+' offering, '+sur.s+' seeking. Attracting members who seek this would activate latent supply.');
-  }
-
-  // 3. Type concentration
-  var types = D.typeBreakdown.filter(function(t){return parseInt(t.count)>0&&t.stakeholder_type!=='unknown';});
-  if (types.length>0) {
-    var typedTotal = types.reduce(function(s,t){return s+parseInt(t.count);},0);
-    var top = types[0]; var topFrac = parseInt(top.count)/typedTotal;
-    if (topFrac>0.6&&typedTotal>3) {
-      insights.push(top.stakeholder_type.charAt(0).toUpperCase()+top.stakeholder_type.slice(1)+'s make up <strong>'+Math.round(topFrac*100)+'%</strong> of your community. Adding complementary types — especially '+
-        (top.stakeholder_type==='founder'?'investors and advisors':top.stakeholder_type==='investor'?'founders':'operators and researchers')
-        +' — would broaden match variety.');
-    } else if (types.length>=3) {
-      insights.push('Well-diversified across '+types.length+' stakeholder types: '
-        +types.slice(0,3).map(function(t){return t.stakeholder_type+'s ('+t.count+')';}).join(', ')
-        +'. This diversity creates natural complementarity for high-quality matches.');
-    }
-  }
-
-  // 4. Match quality
-  if (D.kpi.matches>4) {
-    var ar = D.kpi.mutual/D.kpi.matches;
-    if (ar>0.4) insights.push('Match acceptance rate of <strong>'+pct(ar,0)+'</strong> is strong — members are finding each other highly relevant. Canister quality is working.');
-    else if (ar<0.2) insights.push('Acceptance rate of <strong>'+pct(ar,0)+'</strong> suggests canister profiles could be more specific. Encourage members to enrich their seeking/offering with Nev.');
-  }
-
-  // 5. Growth
-  if (D.growth&&D.growth.length>1) {
-    var lastWeek = parseInt(D.growth[D.growth.length-1].count)||0;
-    if (lastWeek>0) insights.push(lastWeek+' new member'+(lastWeek!==1?'s':'')+' joined in the last week. Share momentum builds match pool density — keep recruiting.');
-  }
-
-  if (!insights.length) {
-    insights.push('Share the access code to grow your member pool. More members = more match opportunities.');
-    insights.push('Encourage members to complete their Nev canister to improve match accuracy.');
-  }
-
-  var html = '<div class="opps-box"><div class="opps-t">Opportunities</div>';
-  insights.slice(0,4).forEach(function(ins) {
-    html += '<div class="opp-item"><div class="opp-bullet"></div><div>'+ins+'</div></div>';
-  });
+  var html = '';
+  html += '<div style="display:flex;gap:24px;margin-bottom:16px;flex-wrap:wrap">';
+  html += '<div><div class="stat-val">'+activeCanisters+'</div><div class="stat-label">Active canisters</div></div>';
+  html += '<div><div class="stat-val">'+feedCount+'</div><div class="stat-label">Connected feeds</div></div>';
   html += '</div>';
+  html += '<a href="/signal-marketplace.html?community='+COMMUNITY_ID+'" class="btn btn-sm" style="margin-top:4px">Manage feeds &#9889;</a>';
+
   el.innerHTML = html;
 }
 
-// ── Members tab ───────────────────────────────────────────────────────────────
-function renderMembersTab() {
-  var el = document.getElementById('membersVis');
-  var total = D.members.length;
-
-  var controls = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;gap:12px;flex-wrap:wrap">'
-    +'<div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3)">Members ('+total+')</div>'
-    +'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'
-    +'<input class="search-box" id="mSearch" placeholder="Search by name…" oninput="doMSearch(this.value)">'
-    +'<select class="sel" id="mSortSel" onchange="doMSort(this.value)">'
-    +'<option value="joined">Sort: Joined</option><option value="name">Sort: Name</option><option value="type">Sort: Type</option>'
-    +'</select></div></div>';
-
-  if (!total) {
-    el.innerHTML = controls + '<div class="empty-vis"><strong>No members yet</strong>Share your community code to invite people</div>'; return;
-  }
-  el.innerHTML = controls + '<div id="mTableWrap"></div><div id="mPager" class="pager"></div>';
-  _mSorted = D.members.slice();
-  doMSort('joined', true);
-}
-
-function doMSearch(q) { _mQ = q.toLowerCase(); _mPage=1; renderMTable(); }
-function doMSort(f, noRender) {
-  _mSort = f; _mPage = 1;
-  _mSorted = D.members.slice().sort(function(a,b) {
-    if (f==='name') return (a.name||'').localeCompare(b.name||'');
-    if (f==='type') return (a.stakeholder_type||'').localeCompare(b.stakeholder_type||'');
-    return new Date(b.joined_at||0)-new Date(a.joined_at||0);
-  });
-  if (!noRender) renderMTable(); else renderMTable();
-}
-
-function renderMTable() {
-  var filtered = _mSorted.filter(function(m){
-    if (!_mQ) return true;
-    return (m.name||'').toLowerCase().includes(_mQ)||(m.company||'').toLowerCase().includes(_mQ);
-  });
-  var pages = Math.ceil(filtered.length/PER_PAGE)||1;
-  var slice = filtered.slice((_mPage-1)*PER_PAGE, _mPage*PER_PAGE);
-
-  var html = '<div style="overflow-x:auto">'
-    +'<div class="tbl-head" style="grid-template-columns:34px 1fr 110px 90px 80px;min-width:480px">'
-    +'<span></span><span>Member</span><span>Type</span><span>Profile</span><span class="r">Joined</span></div>';
-
-  slice.forEach(function(m) {
-    var type = m.stakeholder_type||'';
-    var tc = tcol(type);
-    var badge = type
-      ? '<span style="background:'+tc+'18;color:'+tc+';font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600">'+esc(type)+'</span>'
-      : '<span style="color:var(--text3);font-size:11px">—</span>';
-    var prof = type
-      ? '<span style="color:'+GREEN+';font-size:11px;font-weight:600">● Profile</span>'
-      : '<span style="color:var(--text3);font-size:11px">○ None</span>';
-    var bg = avColor(m.name||'');
-    html += '<div class="tbl-row" style="grid-template-columns:34px 1fr 110px 90px 80px;min-width:480px">'
-      +'<div class="av" style="background:'+bg+'">'+esc(initials(m.name))+'</div>'
-      +'<div><div style="font-weight:600">'+blurSurname(m.name)+'</div>'
-      +(m.company?'<div style="font-size:11px;color:var(--text3)">'+esc(m.company)+'</div>':'')+'</div>'
-      +'<div>'+badge+'</div>'
-      +'<div>'+prof+'</div>'
-      +'<div class="r mono" style="color:var(--text3)">'+relDate(m.joined_at)+'</div>'
-      +'</div>';
-  });
-  if (!slice.length) html += '<div style="text-align:center;padding:32px;color:var(--text3)">No members match your search</div>';
-  html += '</div>';
-
-  document.getElementById('mTableWrap').innerHTML = html;
-
-  var pager = '';
-  if (pages>1||filtered.length!==D.members.length) {
-    pager += '<span style="font-size:12px;color:var(--text3);margin-right:6px">'+filtered.length+' members</span>';
-    pager += '<button class="pg" onclick="setMPage('+(_mPage-1)+')" '+(_mPage<=1?'disabled':'')+'>‹</button>';
-    for (var p=1;p<=pages;p++) {
-      if (pages>7&&p>2&&p<pages-1&&Math.abs(p-_mPage)>1){if(p===3||p===pages-2)pager+='<span style="padding:0 2px;color:var(--text3)">…</span>';continue;}
-      pager += '<button class="pg'+( p===_mPage?' on':'')+'" onclick="setMPage('+p+')">'+p+'</button>';
-    }
-    pager += '<button class="pg" onclick="setMPage('+(_mPage+1)+')" '+(_mPage>=pages?'disabled':'')+'>›</button>';
-  }
-  document.getElementById('mPager').innerHTML = pager;
-}
-
-function setMPage(p) {
-  var filtered = _mSorted.filter(function(m){if(!_mQ)return true;return(m.name||'').toLowerCase().includes(_mQ)||(m.company||'').toLowerCase().includes(_mQ);});
-  var pages = Math.ceil(filtered.length/PER_PAGE)||1;
-  _mPage = Math.max(1,Math.min(p,pages));
-  renderMTable();
-}
-
-// ── Fallback empty states ─────────────────────────────────────────────────────
-function renderAllEmpty() {
-  var msg = '<div class="empty-vis"><strong>Data builds as your community grows</strong>Check back as members join and complete their profiles</div>';
-  ['healthRingVis','momentumVis','constellationVis','signalDepthVis','themesTableVis','gaugesVis','oppsVis','membersVis'].forEach(function(id){
-    var e = document.getElementById(id); if(e) e.innerHTML = msg;
-  });
-  document.getElementById('statRow').innerHTML = '<div class="stat-card"><div class="stat-val">—</div><div class="stat-label">Members</div></div>'.repeat(4);
-}
-
-// ── Events tab ────────────────────────────────────────────────────────────────
-var _communityEvents = null;
-
-var CE_THEMES = ['AI','Connectivity','IoT','Enterprise SaaS','Cybersecurity','FinTech',
-  'Climate Tech','HealthTech','Hardware','Privacy','Regulation','EdTech',
-  'Open Source','Robotics','SpaceTech','Gaming'];
-
-async function renderEventsTab() {
-  var el = document.getElementById('eventsVis');
-  if (_communityEvents !== null) { renderEventsTable(_communityEvents, el); return; }
-  el.innerHTML = '<div class="skel" style="height:120px;border-radius:8px"></div>';
-  try {
-    var r = await fetch('/api/events/community/' + D.community.id, {
-      headers: { Authorization: 'Bearer ' + token }
-    });
-    var data = await r.json();
-    _communityEvents = data.events || [];
-    renderEventsTable(_communityEvents, el);
-  } catch(e) {
-    el.innerHTML = '<div class="empty-vis"><strong>Could not load events</strong>Try refreshing the page</div>';
-  }
-}
-
-function renderEventsTable(evts, el) {
-  if (!evts.length) {
-    el.innerHTML = '<div class="empty-vis"><strong>No events yet</strong>Create your first event to get started<button onclick="openCreateEvent()" style="margin-top:12px;padding:9px 20px;background:var(--blue);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">+ Create Event</button></div>';
+// ── Render: Clusters ────────────────────────────────────────────────────────
+function renderClusters(clusters){
+  var el = document.getElementById('clustersList');
+  if(!clusters || !clusters.length){
+    el.innerHTML = '<div class="empty-vis"><i data-lucide="layers" style="width:28px;height:28px;opacity:0.4"></i><strong>No signal clusters detected</strong>Clusters will form as more signals flow in</div>';
+    if(typeof lucide!=='undefined') lucide.createIcons();
     return;
   }
-  var rows = evts.map(function(e) {
-    var d = e.event_date ? new Date(e.event_date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '—';
-    var loc = [e.city, e.country].filter(Boolean).join(', ') || '—';
-    var reg = parseInt(e.registration_count) || 0;
-    return '<div class="evt-card">'
-      +'<div class="evt-card-main">'
-      +'<div class="evt-card-name">'+esc(e.name)+(e.is_public ? ' <span style="font-size:10px;font-weight:600;color:var(--accent);background:var(--accent-light);padding:2px 6px;border-radius:4px;margin-left:6px;vertical-align:middle">PUBLIC</span>' : ' <span style="font-size:10px;font-weight:600;color:var(--text3);background:var(--bg);padding:2px 6px;border-radius:4px;margin-left:6px;vertical-align:middle">MEMBERS ONLY</span>')+'</div>'
-      +'<div class="evt-card-meta">'+esc(d)+' · '+esc(loc)+'</div>'
-      +'</div>'
-      +'<div class="evt-card-stat"><div class="evt-card-count">'+reg+'</div><div class="evt-card-count-lbl">Registrations</div></div>'
-      +'<div class="evt-card-actions">'
-      +'<button class="btn-sm" onclick=\'openEditEvent('+e.id+','+JSON.stringify(e.name)+','+JSON.stringify(e.event_date||'')+','+JSON.stringify(e.city||'')+ ','+(e.is_public ? 'true' : 'false')+')\'>'
-      +'Edit</button>'
-      +'<button class="btn-sm" style="color:var(--red);border-color:rgba(220,38,38,0.2)" onclick=\'openDeleteEvent('+e.id+','+JSON.stringify(e.name)+')\'>'
-      +'Delete</button>'
-      +'</div>'
-      +'</div>';
-  }).join('');
-  el.innerHTML = '<div class="evt-list">'+rows+'</div>';
-}
 
-// ── Create Event modal ────────────────────────────────────────────────────────
-function openCreateEvent() {
-  // Render theme chips
-  var grid = document.getElementById('ceThemeGrid');
-  grid.innerHTML = CE_THEMES.map(function(t) {
-    return '<span class="theme-chip" data-theme="'+esc(t)+'" onclick="toggleTheme(this)">'+esc(t)+'</span>';
-  }).join('');
-  // Clear fields
-  ['ceName','ceDate','ceCity','ceCountry','ceAttendees','ceDesc'].forEach(function(id){
-    document.getElementById(id).value='';
+  var html = '';
+  clusters.forEach(function(c){
+    var isProg = c.programming_trigger || c.is_programming_trigger;
+    var strength = c.strength || c.score || 0;
+    var maxStrength = c.max_strength || 100;
+    var strengthPct = Math.min(100, Math.round((strength/maxStrength)*100));
+    var barColor = strengthPct >= 70 ? 'var(--green)' : strengthPct >= 40 ? 'var(--amber)' : 'var(--accent)';
+
+    html += '<div class="cluster-card'+(isProg?' programming-trigger':'')+'">';
+    html += '<div class="cluster-label">'+esc(c.label || c.name || 'Unnamed cluster')+'</div>';
+
+    // Strength bar
+    html += '<div class="bar-track" style="height:5px;margin-bottom:10px;max-width:200px"><div class="bar-fill" style="width:'+strengthPct+'%;background:'+barColor+'"></div></div>';
+
+    // Theme chip
+    if(c.theme){
+      html += '<span class="theme-chip selected" style="margin-bottom:8px;cursor:default">'+esc(c.theme)+'</span> ';
+    }
+
+    // Summary
+    if(c.summary || c.editorial_summary){
+      html += '<div class="cluster-summary">'+esc(c.summary || c.editorial_summary)+'</div>';
+    }
+
+    // Action breakdown badges
+    var actions = c.action_breakdown || c.actions || {};
+    var actionKeys = Object.keys(actions);
+    if(actionKeys.length){
+      html += '<div class="cluster-badges">';
+      actionKeys.forEach(function(k){
+        html += '<span class="cluster-badge">'+esc(k)+' &times;'+actions[k]+'</span>';
+      });
+      html += '</div>';
+    }
+
+    // Supply/demand framing
+    if(c.supply_demand_framing || c.framing){
+      html += '<div class="cluster-framing">'+esc(c.supply_demand_framing || c.framing)+'</div>';
+    }
+
+    // Action buttons
+    html += '<div class="cluster-actions">';
+    html += '<button class="btn btn-sm" onclick="curateEvent(\''+esc(c.id || '')+'\')">Curate event</button>';
+    html += '<button class="btn btn-sm" onclick="draftBrief(\''+esc(c.id || '')+'\')">Draft content brief</button>';
+    html += '</div>';
+
+    html += '</div>';
   });
-  document.getElementById('ceError').style.display='none';
-  document.getElementById('ceSubmitBtn').disabled=false;
-  document.getElementById('createEvtModal').classList.add('open');
+
+  el.innerHTML = html;
+  if(typeof lucide!=='undefined') lucide.createIcons();
 }
 
-function closeCreateEvent() {
-  document.getElementById('createEvtModal').classList.remove('open');
+// ── Render: Event Triggers + Connection Opportunities ───────────────────────
+function renderTriggers(data){
+  var triggers = data ? (data.triggers || data.event_triggers || []) : [];
+  var connections = data ? (data.connections || data.connection_opportunities || []) : [];
+
+  // Event triggers
+  var tEl = document.getElementById('triggersList');
+  if(!triggers.length){
+    tEl.innerHTML = '<div class="empty-vis"><i data-lucide="calendar" style="width:28px;height:28px;opacity:0.4"></i><strong>No event triggers found</strong>Triggers will appear as signals are processed</div>';
+  } else {
+    var tHtml = '';
+    triggers.forEach(function(t){
+      tHtml += '<div class="trigger-card">';
+      tHtml += triggerTypeBadge(t.type || t.trigger_type);
+      tHtml += '<div class="trigger-title">'+esc(t.title || t.name)+'</div>';
+      if(t.timing || t.date){
+        tHtml += '<div class="trigger-timing">'+esc(t.timing || t.date)+'</div>';
+      }
+      tHtml += '<div class="trigger-actions">';
+      tHtml += confidencePill(t.confidence);
+      tHtml += ' <button class="btn btn-sm btn-pri" onclick="planEvent(\''+esc(t.id || '')+'\')">Plan event</button>';
+      tHtml += '</div>';
+      tHtml += '</div>';
+    });
+    tEl.innerHTML = tHtml;
+  }
+
+  // Connection opportunities
+  var cEl = document.getElementById('connectionsList');
+  if(!connections.length){
+    cEl.innerHTML = '<div class="empty-vis"><i data-lucide="link" style="width:28px;height:28px;opacity:0.4"></i><strong>No connection opportunities yet</strong>Opportunities emerge from signal analysis</div>';
+  } else {
+    var cHtml = '';
+    connections.forEach(function(c){
+      cHtml += '<div class="conn-card">';
+      if(c.signal_rationale || c.rationale){
+        cHtml += '<div class="conn-rationale">'+esc(c.signal_rationale || c.rationale)+'</div>';
+      }
+      cHtml += '<button class="btn btn-sm" onclick="surfaceToMembers(\''+esc(c.id || '')+'\')">Surface to members &rarr;</button>';
+      cHtml += '</div>';
+    });
+    cEl.innerHTML = cHtml;
+  }
+
+  if(typeof lucide!=='undefined') lucide.createIcons();
 }
 
-function toggleTheme(el) {
-  el.classList.toggle('selected');
-}
+// ── Render: Member Moments ──────────────────────────────────────────────────
+function renderMoments(data){
+  var moments = Array.isArray(data) ? data : (data ? (data.moments || []) : []);
+  var el = document.getElementById('momentsList');
 
-async function submitCreateEvent() {
-  var name = document.getElementById('ceName').value.trim();
-  var date = document.getElementById('ceDate').value;
-  var city = document.getElementById('ceCity').value.trim();
-  var country = document.getElementById('ceCountry').value.trim();
-  var attendees = document.getElementById('ceAttendees').value;
-  var desc = document.getElementById('ceDesc').value.trim();
-  var themes = Array.from(document.querySelectorAll('#ceThemeGrid .theme-chip.selected')).map(function(c){return c.dataset.theme;});
-  var errEl = document.getElementById('ceError');
-
-  if (!name || !date || !city || !country) {
-    errEl.textContent = 'Please fill in all required fields.';
-    errEl.style.display = 'block';
+  if(!moments.length){
+    el.innerHTML = '<div class="empty-vis"><i data-lucide="users" style="width:28px;height:28px;opacity:0.4"></i><strong>No member moments found</strong>Moments will appear as member signals are processed</div>';
+    if(typeof lucide!=='undefined') lucide.createIcons();
     return;
   }
-  var btn = document.getElementById('ceSubmitBtn');
-  btn.disabled = true; btn.textContent = 'Creating…';
-  errEl.style.display = 'none';
 
+  // Sort by cost desc then recency
+  var costOrder = { high: 3, medium: 2, low: 1 };
+  moments.sort(function(a,b){
+    var ca = costOrder[(a.cost||'low').toLowerCase()] || 0;
+    var cb = costOrder[(b.cost||'low').toLowerCase()] || 0;
+    if(cb !== ca) return cb - ca;
+    return new Date(b.created_at || b.date || 0) - new Date(a.created_at || a.date || 0);
+  });
+
+  var html = '';
+  moments.forEach(function(m){
+    html += '<div class="moment-card">';
+
+    // Header: cost + age
+    html += '<div class="moment-header">';
+    html += costDots(m.cost);
+    html += '<span class="moment-age">'+relDate(m.created_at || m.date)+'</span>';
+    html += '</div>';
+
+    // Meta: theme chip + jurisdiction badge
+    html += '<div class="moment-meta">';
+    if(m.theme){
+      html += '<span class="theme-chip selected" style="cursor:default">'+esc(m.theme)+'</span>';
+    }
+    if(m.jurisdiction){
+      html += '<span class="pill pill-blue">'+esc(m.jurisdiction)+'</span>';
+    }
+    html += '</div>';
+
+    // Editorial body (never raw text, no individual names)
+    if(m.editorial_copy || m.summary || m.body){
+      html += '<div class="moment-body">'+esc(m.editorial_copy || m.summary || m.body)+'</div>';
+    }
+
+    // Source
+    if(m.source || m.source_label){
+      html += '<div class="moment-source">Source: '+esc(m.source || m.source_label)+'</div>';
+    }
+
+    // Actions
+    html += '<div class="moment-actions">';
+    html += '<button class="btn btn-sm" onclick="openNoteModal(\''+esc(m.id || '')+'\')">Note</button>';
+    html += '<button class="btn btn-sm btn-pri" onclick="surfaceToMembers(\''+esc(m.id || '')+'\')">Surface to members</button>';
+    html += '</div>';
+
+    html += '</div>';
+  });
+
+  el.innerHTML = html;
+  if(typeof lucide!=='undefined') lucide.createIcons();
+}
+
+// ── Actions ─────────────────────────────────────────────────────────────────
+function openNev(){
+  // Navigate to Nev chat or open Nev modal
+  window.location.href = '/nev.html?community='+COMMUNITY_ID;
+}
+
+function curateEvent(clusterId){
+  window.location.href = '/create-event.html?community='+COMMUNITY_ID+(clusterId ? '&cluster='+clusterId : '');
+}
+
+function draftBrief(clusterId){
+  window.location.href = '/content-brief.html?community='+COMMUNITY_ID+(clusterId ? '&cluster='+clusterId : '');
+}
+
+function planEvent(triggerId){
+  window.location.href = '/create-event.html?community='+COMMUNITY_ID+(triggerId ? '&trigger='+triggerId : '');
+}
+
+async function surfaceToMembers(itemId){
+  if(!itemId) return;
   try {
-    var r = await fetch('/api/events', {
+    var r = await fetch('/api/community/'+COMMUNITY_ID+'/suggest-match', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
-      body: JSON.stringify({ name: name, event_date: date, city: city, country: country,
-        expected_attendees: attendees ? parseInt(attendees) : null,
-        themes: themes, description: desc, community_id: D.community.id,
-        is_public: document.getElementById('cePublic').checked })
+      headers: hdr(),
+      body: JSON.stringify({ item_id: itemId })
     });
-    var data = await r.json();
-    if (!r.ok) { errEl.textContent = data.error || 'Failed to create event.'; errEl.style.display='block'; btn.disabled=false; btn.textContent='Create Event'; return; }
-    closeCreateEvent();
-    _communityEvents = null; // invalidate cache
-    renderEventsTab();
-  } catch(e) {
-    errEl.textContent = 'Connection error. Please try again.';
-    errEl.style.display = 'block';
-    btn.disabled = false; btn.textContent = 'Create Event';
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    // Find the button that was clicked and update it
+    event.target.textContent = 'Surfaced!';
+    event.target.disabled = true;
+    setTimeout(function(){ event.target.textContent = 'Surface to members'; event.target.disabled = false; }, 2000);
+  } catch(e){
+    console.error('Surface to members error:', e);
+    alert('Failed to surface to members. Please try again.');
   }
 }
 
-// ── Edit Event modal ──────────────────────────────────────────────────────────
-function openEditEvent(id, name, date, city, isPublic) {
-  document.getElementById('eeId').value = id;
-  document.getElementById('eeName').value = name || '';
-  document.getElementById('eeDate').value = date ? date.substring(0,10) : '';
-  document.getElementById('eeCity').value = city || '';
-  document.getElementById('eePublic').checked = !!isPublic;
-  document.getElementById('eeError').style.display = 'none';
-  document.getElementById('eeSubmitBtn').disabled = false;
-  document.getElementById('eeSubmitBtn').textContent = 'Save Changes';
-  document.getElementById('editEvtModal').classList.add('open');
+function openNoteModal(momentId){
+  document.getElementById('noteMomentId').value = momentId;
+  document.getElementById('noteText').value = '';
+  document.getElementById('noteModal').classList.add('open');
 }
 
-function closeEditEvent() {
-  document.getElementById('editEvtModal').classList.remove('open');
+function closeNoteModal(){
+  document.getElementById('noteModal').classList.remove('open');
 }
 
-async function submitEditEvent() {
-  var id = document.getElementById('eeId').value;
-  var name = document.getElementById('eeName').value.trim();
-  var date = document.getElementById('eeDate').value;
-  var city = document.getElementById('eeCity').value.trim();
-  var errEl = document.getElementById('eeError');
-  var btn = document.getElementById('eeSubmitBtn');
-  btn.disabled = true; btn.textContent = 'Saving…';
+async function submitNote(){
+  var momentId = document.getElementById('noteMomentId').value;
+  var text = document.getElementById('noteText').value.trim();
+  if(!text) return;
 
   try {
-    var r = await fetch('/api/events/' + id, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
-      body: JSON.stringify({ name: name || null, event_date: date || null, city: city || null, is_public: document.getElementById('eePublic').checked })
-    });
-    var data = await r.json();
-    if (!r.ok) { errEl.textContent = data.error || 'Failed to save.'; errEl.style.display='block'; btn.disabled=false; btn.textContent='Save Changes'; return; }
-    closeEditEvent();
-    _communityEvents = null;
-    renderEventsTab();
-  } catch(e) {
-    errEl.textContent = 'Connection error.';
-    errEl.style.display = 'block';
-    btn.disabled = false; btn.textContent = 'Save Changes';
-  }
-}
-
-// ── Edit Community modal ──────────────────────────────────────────────────────
-var _editCommType = 'open';
-
-function setEditCommType(type) {
-  _editCommType = type;
-  document.getElementById('ecTypeOpen').classList.toggle('active', type === 'open');
-  document.getElementById('ecTypeOfficial').classList.toggle('active', type === 'official');
-}
-
-function openEditCommunity() {
-  var c = D.community;
-  document.getElementById('ecName').value = c.name || '';
-  document.getElementById('ecDesc').value = c.description || '';
-  setEditCommType(c.comm_type || 'open');
-  document.getElementById('ecError').style.display = 'none';
-  document.getElementById('ecSubmitBtn').disabled = false;
-  document.getElementById('ecSubmitBtn').textContent = 'Save Changes';
-  document.getElementById('editCommModal').classList.add('open');
-}
-
-function closeEditCommunity() {
-  document.getElementById('editCommModal').classList.remove('open');
-}
-
-async function submitEditCommunity() {
-  var name = document.getElementById('ecName').value.trim();
-  var desc = document.getElementById('ecDesc').value.trim();
-  var errEl = document.getElementById('ecError');
-  var btn = document.getElementById('ecSubmitBtn');
-  if (!name) { errEl.textContent = 'Name is required.'; errEl.style.display = 'block'; return; }
-  btn.disabled = true; btn.textContent = 'Saving…';
-  try {
-    var r = await fetch('/api/communities/' + D.community.id, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
-      body: JSON.stringify({ name: name, description: desc, comm_type: _editCommType })
-    });
-    var data = await r.json();
-    if (!r.ok) { errEl.textContent = data.error || 'Failed to save.'; errEl.style.display = 'block'; btn.disabled = false; btn.textContent = 'Save Changes'; return; }
-    D.community.name = name;
-    D.community.description = desc;
-    D.community.comm_type = _editCommType;
-    renderHeader();
-    closeEditCommunity();
-  } catch(e) {
-    errEl.textContent = 'Connection error.'; errEl.style.display = 'block';
-    btn.disabled = false; btn.textContent = 'Save Changes';
-  }
-}
-
-// ── Delete Community modals ───────────────────────────────────────────────────
-function openDeleteCommunity() {
-  document.getElementById('delComm1Msg').textContent =
-    'Are you sure you want to delete "' + D.community.name + '"? This will remove all members and events associated with this community.';
-  document.getElementById('delComm1Modal').classList.add('open');
-}
-
-function closeDelComm1() { document.getElementById('delComm1Modal').classList.remove('open'); }
-
-function confirmDeleteCommunity() {
-  closeDelComm1();
-  document.getElementById('delCommConfirm').value = '';
-  document.getElementById('delCommFinalBtn').disabled = true;
-  document.getElementById('delComm2Modal').classList.add('open');
-}
-
-function closeDelComm2() { document.getElementById('delComm2Modal').classList.remove('open'); }
-
-document.getElementById('delCommConfirm').addEventListener('input', function() {
-  document.getElementById('delCommFinalBtn').disabled = this.value !== D.community.name;
-});
-
-async function permanentlyDeleteCommunity() {
-  var btn = document.getElementById('delCommFinalBtn');
-  btn.disabled = true; btn.textContent = 'Deleting…';
-  try {
-    var r = await fetch('/api/communities/' + D.community.id, {
-      method: 'DELETE',
-      headers: { Authorization: 'Bearer ' + token }
-    });
-    var data = await r.json();
-    if (!r.ok) { alert(data.error || 'Delete failed.'); btn.disabled = false; btn.textContent = 'Permanently Delete'; return; }
-    window.location.href = '/communities.html';
-  } catch(e) {
-    alert('Connection error. Please try again.'); btn.disabled = false; btn.textContent = 'Permanently Delete';
-  }
-}
-
-// ── Delete Event modals ───────────────────────────────────────────────────────
-var _delEvtId = null, _delEvtName = null;
-
-function openDeleteEvent(id, name) {
-  _delEvtId = id; _delEvtName = name;
-  document.getElementById('delEvt1Msg').textContent =
-    'Are you sure you want to delete "' + name + '"? This will remove all registrations and matches associated with this event.';
-  document.getElementById('delEvt1Modal').classList.add('open');
-}
-
-function closeDelEvt1() { document.getElementById('delEvt1Modal').classList.remove('open'); }
-
-function confirmDeleteEvent() {
-  closeDelEvt1();
-  document.getElementById('delEvtConfirm').value = '';
-  document.getElementById('delEvtFinalBtn').disabled = true;
-  document.getElementById('delEvt2Modal').classList.add('open');
-}
-
-function closeDelEvt2() { document.getElementById('delEvt2Modal').classList.remove('open'); }
-
-document.getElementById('delEvtConfirm').addEventListener('input', function() {
-  document.getElementById('delEvtFinalBtn').disabled = this.value !== _delEvtName;
-});
-
-async function permanentlyDeleteEvent() {
-  var btn = document.getElementById('delEvtFinalBtn');
-  btn.disabled = true; btn.textContent = 'Deleting…';
-  try {
-    var r = await fetch('/api/events/' + _delEvtId, {
-      method: 'DELETE',
-      headers: { Authorization: 'Bearer ' + token }
-    });
-    var data = await r.json();
-    if (!r.ok) { alert(data.error || 'Delete failed.'); btn.disabled = false; btn.textContent = 'Permanently Delete'; return; }
-    closeDelEvt2();
-    _communityEvents = null;
-    renderEventsTab();
-  } catch(e) {
-    alert('Connection error. Please try again.'); btn.disabled = false; btn.textContent = 'Permanently Delete';
-  }
-}
-
-// Close modals on background click
-document.getElementById('createEvtModal').addEventListener('click', function(e){ if(e.target===this) closeCreateEvent(); });
-document.getElementById('editEvtModal').addEventListener('click', function(e){ if(e.target===this) closeEditEvent(); });
-document.getElementById('editCommModal').addEventListener('click', function(e){ if(e.target===this) closeEditCommunity(); });
-document.getElementById('delComm1Modal').addEventListener('click', function(e){ if(e.target===this) closeDelComm1(); });
-document.getElementById('delComm2Modal').addEventListener('click', function(e){ if(e.target===this) closeDelComm2(); });
-document.getElementById('delEvt1Modal').addEventListener('click', function(e){ if(e.target===this) closeDelEvt1(); });
-document.getElementById('delEvt2Modal').addEventListener('click', function(e){ if(e.target===this) closeDelEvt2(); });
-
-// ── EC³ Tab ──────────────────────────────────────────────────────────────────
-var _emc2Nodes = null;
-
-async function renderEmc2Tab() {
-  if (_emc2Nodes) return;
-  try {
-    var r = await fetch('/api/emc2/community/' + D.community.id + '/nodes', {
-      headers: { Authorization: 'Bearer ' + token }
-    });
-    var data = await r.json();
-    if (!data.success) { document.getElementById('emc2NodeList').innerHTML = '<p style="color:var(--text3)">Could not load node data.</p>'; return; }
-    _emc2Nodes = data.nodes || [];
-
-    // Tier counts
-    var tiers = { anchor: 0, active: 0, engaged: 0, passive: 0 };
-    var tierColors = { anchor: 'var(--green)', active: 'var(--blue)', engaged: 'var(--amber)', passive: 'var(--text3)' };
-    var tierBg = { anchor: 'var(--greenL)', active: 'var(--blueL)', engaged: 'var(--amberL)', passive: 'var(--bg3)' };
-    for (var i = 0; i < _emc2Nodes.length; i++) tiers[_emc2Nodes[i].node_health] = (tiers[_emc2Nodes[i].node_health] || 0) + 1;
-
-    var tierRow = document.getElementById('emc2TierRow');
-    tierRow.innerHTML = '';
-    ['anchor', 'active', 'engaged', 'passive'].forEach(function(t) {
-      tierRow.innerHTML += '<div class="stat-card"><div style="font-size:28px;font-weight:800;color:' + tierColors[t] + '">' + (tiers[t] || 0) + '</div><div style="font-size:12px;color:var(--text3);text-transform:capitalize">' + t + ' Nodes</div></div>';
-    });
-
-    // Node list (anonymised)
-    var html = '<table style="width:100%;border-collapse:collapse;font-size:13px">';
-    html += '<tr style="text-align:left;border-bottom:2px solid var(--border)"><th style="padding:8px 6px">Node</th><th style="padding:8px 6px">Type</th><th style="padding:8px 6px">Health</th><th style="padding:8px 6px;text-align:right">Lifetime EC&sup3;</th><th style="padding:8px 6px;text-align:right">Balance</th><th style="padding:8px 6px;text-align:right">Matches</th><th style="padding:8px 6px;text-align:center">Founding</th></tr>';
-    for (var j = 0; j < _emc2Nodes.length; j++) {
-      var n = _emc2Nodes[j];
-      var healthColor = tierColors[n.node_health] || 'var(--text3)';
-      html += '<tr style="border-bottom:1px solid var(--border)">' +
-        '<td style="padding:8px 6px;font-family:var(--mono);font-size:12px">N-' + String(n.user_id).padStart(4, '0') + '</td>' +
-        '<td style="padding:8px 6px;text-transform:capitalize">' + (n.stakeholder_type || '-') + '</td>' +
-        '<td style="padding:8px 6px"><span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600;background:' + tierBg[n.node_health] + ';color:' + healthColor + '">' + n.node_health + '</span></td>' +
-        '<td style="padding:8px 6px;text-align:right;font-weight:600">' + (n.emc2_lifetime_earned || 0).toLocaleString() + '</td>' +
-        '<td style="padding:8px 6px;text-align:right">' + (n.emc2_balance || 0).toLocaleString() + '</td>' +
-        '<td style="padding:8px 6px;text-align:right">' + (n.match_count || 0) + ' / ' + (n.confirmed_matches || 0) + '</td>' +
-        '<td style="padding:8px 6px;text-align:center">' + (n.founding_member ? '\u2B21' : '-') + '</td>' +
-        '</tr>';
-    }
-    html += '</table>';
-    document.getElementById('emc2NodeList').innerHTML = html;
-
-    // Populate award dropdown
-    var sel = document.getElementById('emc2AwardNode');
-    sel.innerHTML = '<option value="">Select node...</option>';
-    for (var k = 0; k < _emc2Nodes.length; k++) {
-      var nd = _emc2Nodes[k];
-      sel.innerHTML += '<option value="' + nd.user_id + '">N-' + String(nd.user_id).padStart(4, '0') + ' (' + (nd.stakeholder_type || 'unknown') + ', ' + nd.node_health + ')</option>';
-    }
-  } catch(e) {
-    document.getElementById('emc2NodeList').innerHTML = '<p style="color:var(--red)">Error loading EC&sup3; data.</p>';
-  }
-}
-
-async function submitEmc2Award() {
-  var userId = document.getElementById('emc2AwardNode').value;
-  var amount = parseInt(document.getElementById('emc2AwardAmount').value);
-  var reason = document.getElementById('emc2AwardReason').value;
-  var msg = document.getElementById('emc2AwardMsg');
-  if (!userId || !amount || amount < 1) { msg.innerHTML = '<span style="color:var(--red)">Select a node and enter a valid amount.</span>'; return; }
-  try {
-    var r = await fetch('/api/emc2/community/' + D.community.id + '/award', {
+    await fetch('/api/community/'+COMMUNITY_ID+'/member-moments/'+momentId+'/notes', {
       method: 'POST',
-      headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ recipient_user_id: parseInt(userId), amount: amount, reason: reason })
+      headers: hdr(),
+      body: JSON.stringify({ note: text })
     });
-    var data = await r.json();
-    if (data.success) {
-      msg.innerHTML = '<span style="color:var(--green)">Awarded ' + amount + ' EC&sup3; to N-' + String(userId).padStart(4, '0') + '</span>';
-      _emc2Nodes = null; renderEmc2Tab();
-    } else {
-      msg.innerHTML = '<span style="color:var(--red)">' + (data.error || 'Award failed') + '</span>';
-    }
-  } catch(e) {
-    msg.innerHTML = '<span style="color:var(--red)">Connection error.</span>';
+    closeNoteModal();
+  } catch(e){
+    console.error('Note submit error:', e);
+    alert('Failed to save note. Please try again.');
   }
 }
 
-async function submitEmc2Multiplier() {
-  var action = document.getElementById('emc2MultAction').value;
-  var value = parseFloat(document.getElementById('emc2MultValue').value);
-  var starts = document.getElementById('emc2MultStart').value;
-  var ends = document.getElementById('emc2MultEnd').value;
-  var msg = document.getElementById('emc2MultMsg');
-  if (!starts || !ends) { msg.innerHTML = '<span style="color:var(--red)">Please set start and end dates.</span>'; return; }
-  try {
-    var r = await fetch('/api/emc2/community/' + D.community.id + '/multiplier', {
-      method: 'POST',
-      headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action_type: action, multiplier_value: value, starts: starts, ends: ends })
-    });
-    var data = await r.json();
-    if (data.success) {
-      msg.innerHTML = '<span style="color:var(--green)">Multiplier set: ' + value + 'x on ' + action + ' from ' + starts + ' to ' + ends + '</span>';
-    } else {
-      msg.innerHTML = '<span style="color:var(--red)">' + (data.error || 'Failed to set multiplier') + '</span>';
-    }
-  } catch(e) {
-    msg.innerHTML = '<span style="color:var(--red)">Connection error.</span>';
-  }
-}
-
-load();
+// ── Kick off ────────────────────────────────────────────────────────────────
+init();
 </script>
+<script src="/js/nav.js"></script>
 </body>
 </html>

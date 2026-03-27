@@ -85,6 +85,10 @@ app.use('/api/documents', require('./routes/documents').router);
 app.use('/api/admin', require('./routes/community_setup'));
 app.use('/api', require('./routes/feedback'));
 
+// ── Community Intelligence ──
+app.use('/api/community', require('./routes/community_intel').router);
+app.use('/api/integrations', require('./routes/integrations').router);
+
 // ── Landing page ──
 app.get('/', function(req, res) {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));

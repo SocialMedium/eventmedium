@@ -8,7 +8,7 @@ var { nevChatLimiter, nevBehaviourCheck, flagUser, checkCanisterVelocity } = req
 
 var router = express.Router();
 
-var ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+var { callClaude } = require('../lib/anthropic_client');
 var MODEL = 'claude-sonnet-4-20250514';
 
 // ── Load playbook ──
@@ -225,27 +225,13 @@ async function extractAndSaveCanisterUpdates(userId, nevResponse, userMessage) {
     var themeList = getCanonicalThemes().join(', ');
     var extractionPrompt = 'Given this Nev response and the user message that preceded it, extract any of the following if they were clearly confirmed or updated in the conversation:\n\n- geography (string)\n- stakeholder_type (one of: founder, investor, researcher, corporate, advisor, operator — or compound like "founder/advisor")\n- themes (array — MUST use only these canonical values: ' + themeList + '. Map what the user describes to the closest theme(s). Never leave empty if they described their work.)\n- focus_text (string — their focus in their own words)\n- intent (object — what they are actively seeking)\n- offering (object — what they bring to others)\n- deal_details (object — timing and priorities for ANY stakeholder type. Use keys like "priority", "timeline", "capacity", "stage". E.g. founder: raising/hiring/launching, investor: deploying/evaluating, advisor: capacity/engagement, corporate: partnering/piloting, researcher: grant cycle/collaboration)\n- city (string — the user\'s actual home base city, e.g. "London", "San Francisco", "Berlin")\n- country (string — the user\'s country, e.g. "UK", "US", "Germany")\n\nReturn ONLY a JSON object with the fields that were clearly confirmed. If nothing was confirmed, return {}.\nDo not invent or infer — only extract what was explicitly stated.\n\nUser message: ' + userMessage + '\nNev response: ' + nevResponse;
 
-    var extractResp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        max_tokens: 400,
-        system: 'You are a data extraction assistant. Return ONLY valid JSON, no markdown, no explanation.',
-        messages: [{ role: 'user', content: extractionPrompt }]
-      })
+    var extractData = await callClaude({
+      model: MODEL,
+      max_tokens: 400,
+      system: 'You are a data extraction assistant. Return ONLY valid JSON, no markdown, no explanation.',
+      messages: [{ role: 'user', content: extractionPrompt }]
     });
 
-    if (!extractResp.ok) {
-      console.warn('[Nev] Extraction API error:', extractResp.status);
-      return;
-    }
-
-    var extractData = await extractResp.json();
     if (!extractData.content || !extractData.content[0] || !extractData.content[0].text) return;
 
     var rawText = extractData.content[0].text.trim().replace(/```json/g, '').replace(/```/g, '').trim();
@@ -329,6 +315,36 @@ async function extractAndSaveCanisterUpdates(userId, nevResponse, userMessage) {
 }
 
 // ── POST /api/nev/chat ──
+// ── Nev Owner Mode System Prompt ──
+function buildNevOwnerPrompt(ctx) {
+  return 'You are Nev, operating in community owner mode for ' + (ctx.community_name || 'this community') + '.\n\n' +
+    'You are assisting the person who runs this community — not a member.\n' +
+    'You have access to aggregate signal intelligence about this community\'s ecosystem.\n' +
+    'You have NO access to individual member canisters, individual member activity, or any data that could identify a specific person.\n\n' +
+    'Current community context:\n' +
+    '- Active canisters: ' + (ctx.active_canister_count || 0) + ' members have live profiles\n' +
+    '- Network heat score: ' + (ctx.heat_score || 'N/A') + (ctx.heat_delta ? ' (' + ctx.heat_delta + ')' : '') + '\n' +
+    '- Dominant activity: ' + (ctx.dominant_action || 'N/A') + '\n' +
+    '- Active signal clusters: ' + (ctx.cluster_labels ? ctx.cluster_labels.join(', ') : 'N/A') + '\n' +
+    '- Connected feeds: ' + (ctx.feed_count || 0) + ' sources\n' +
+    '- Community type: ' + (ctx.community_type || 'event_community') + '\n\n' +
+    'You can help the community owner:\n' +
+    '1. Understand what\'s moving in their ecosystem and the world around it\n' +
+    '2. Identify supply/demand imbalances — who\'s looking for what and whether the right other side exists\n' +
+    '3. Curate timely events and content grounded in signal evidence\n' +
+    '4. Understand which feeds to connect to improve signal quality\n' +
+    '5. Interpret Member Moments signals and decide whether to surface them\n' +
+    '6. Draft programming briefs, content outlines, and event rationales based on signal clusters\n\n' +
+    'What you CANNOT do in owner mode:\n' +
+    '- Draft or send introductions between members on the owner\'s behalf\n' +
+    '- Reveal anything about individual members beyond aggregate counts\n' +
+    '- Access or discuss any member\'s canister, match history, or activity\n' +
+    '- Initiate communications that bypass the double-blind consent model\n\n' +
+    'When suggesting events or content, always explain the signal basis — why now, not just what.\n' +
+    'Warm, specific, non-generic language. No boilerplate.\n' +
+    'One question or suggestion at a time. Three sentences max.';
+}
+
 router.post('/chat', authenticateToken, nevChatLimiter, nevBehaviourCheck, async function(req, res) {
   try {
     var { message, conversation } = req.body;
@@ -362,21 +378,46 @@ router.post('/chat', authenticateToken, nevChatLimiter, nevBehaviourCheck, async
       });
     }
 
-    // Load canister data for canister-aware prompting
-    var canisterData = await loadUserCanister(req.user.id);
-    // Include current session messages in count (DB may lag behind fire-and-forget writes)
-    var sessionMsgCount = conversation ? conversation.length : 0;
-    canisterData.priorMessageCount = Math.max(canisterData.priorMessageCount, sessionMsgCount);
-    var stablePrompt = buildNevSystemPromptStable(canisterData);
+    // ── Owner mode check ──
+    var nevMode = req.body.nev_mode || 'member';
+    var communityContext = req.body.community_context || null;
+    var systemBlocks;
 
-    // Build system as content blocks with cache_control on stable part
-    var systemBlocks = [
-      {
-        type: 'text',
-        text: stablePrompt,
-        cache_control: { type: 'ephemeral' }
+    if (nevMode === 'owner' && communityContext) {
+      // Verify user is community owner
+      var ownerCheck = await dbGet(
+        'SELECT role FROM community_members WHERE community_id = $1 AND user_id = $2',
+        [communityContext.community_id, req.user.id]
+      );
+      if (!ownerCheck || ownerCheck.role !== 'owner') {
+        return res.status(403).json({ error: 'Community owner access required for owner mode' });
       }
-    ];
+
+      var ownerPrompt = buildNevOwnerPrompt(communityContext);
+      systemBlocks = [
+        {
+          type: 'text',
+          text: ownerPrompt,
+          cache_control: { type: 'ephemeral' }
+        }
+      ];
+    } else {
+      // Standard member mode
+      // Load canister data for canister-aware prompting
+      var canisterData = await loadUserCanister(req.user.id);
+      // Include current session messages in count (DB may lag behind fire-and-forget writes)
+      var sessionMsgCount = conversation ? conversation.length : 0;
+      canisterData.priorMessageCount = Math.max(canisterData.priorMessageCount, sessionMsgCount);
+      var stablePrompt = buildNevSystemPromptStable(canisterData);
+
+      systemBlocks = [
+        {
+          type: 'text',
+          text: stablePrompt,
+          cache_control: { type: 'ephemeral' }
+        }
+      ];
+    }
 
     // Build messages for Anthropic format
     var anthropicMessages = [];
@@ -388,30 +429,13 @@ router.post('/chat', authenticateToken, nevChatLimiter, nevBehaviourCheck, async
     anthropicMessages.push({ role: 'user', content: message });
 
     // Call Anthropic with prompt caching
-    var resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-        'anthropic-beta': 'prompt-caching-2024-07-31',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        system: systemBlocks,
-        messages: anthropicMessages,
-        max_tokens: 500,
-        temperature: 0.4
-      })
+    var data = await callClaude({
+      model: MODEL,
+      system: systemBlocks,
+      messages: anthropicMessages,
+      max_tokens: 500,
+      temperature: 0.4
     });
-
-    if (!resp.ok) {
-      var errText = await resp.text();
-      console.error('Anthropic error:', resp.status, errText);
-      return res.status(500).json({ error: 'AI service error' });
-    }
-
-    var data = await resp.json();
 
     // Log cache usage for cost monitoring
     if (data.usage) {
@@ -470,17 +494,12 @@ router.post('/chat', authenticateToken, nevChatLimiter, nevBehaviourCheck, async
         // Use recent messages (tail) not head — latest context is richest
         var convText = anthropicMessages.map(function(m){ return m.role + ': ' + m.content; }).join('\n') + '\nassistant: ' + fullReply;
         if (convText.length > 4000) convText = convText.slice(-4000);
-        var extResp = await fetch('https://api.anthropic.com/v1/messages', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
-          body: JSON.stringify({
-            model: MODEL,
-            max_tokens: 400,
-            system: 'Extract profile data from this conversation. Respond ONLY with valid JSON, nothing else. No markdown, no explanation.\nJSON format: {"stakeholder_type":"","themes":[],"intent":[],"offering":[],"context":"","geography":"","deal_details":{},"city":"","country":""}\nstakeholder_type must be one of: founder/investor/researcher/corporate/advisor/operator (or compound like "founder/advisor")\nthemes MUST use only these canonical values: ' + getCanonicalThemes().join(', ') + '. Map what the user describes to the closest theme(s). Never leave themes empty if the user described what they do.\ndeal_details captures timing and priorities for ALL stakeholder types — not just founders. Use keys like "priority" (current focus), "timeline" (when), "capacity" (availability), "stage" (where in process). Use empty object {} if not discussed.\nUse empty string or empty array if genuinely unknown. Never use "...".',
-            messages: [{ role: 'user', content: 'Conversation:\n' + convText }]
-          })
+        var extData = await callClaude({
+          model: MODEL,
+          max_tokens: 400,
+          system: 'Extract profile data from this conversation. Respond ONLY with valid JSON, nothing else. No markdown, no explanation.\nJSON format: {"stakeholder_type":"","themes":[],"intent":[],"offering":[],"context":"","geography":"","deal_details":{},"city":"","country":""}\nstakeholder_type must be one of: founder/investor/researcher/corporate/advisor/operator (or compound like "founder/advisor")\nthemes MUST use only these canonical values: ' + getCanonicalThemes().join(', ') + '. Map what the user describes to the closest theme(s). Never leave themes empty if the user described what they do.\ndeal_details captures timing and priorities for ALL stakeholder types — not just founders. Use keys like "priority" (current focus), "timeline" (when), "capacity" (availability), "stage" (where in process). Use empty object {} if not discussed.\nUse empty string or empty array if genuinely unknown. Never use "...".',
+          messages: [{ role: 'user', content: 'Conversation:\n' + convText }]
         });
-        var extData = await extResp.json();
         if (extData.content && extData.content[0] && extData.content[0].text) {
           var extText = extData.content[0].text.trim();
           var extClean = extText.replace(/```json/g,"").replace(/```/g,"").trim(); var parsed = JSON.parse(extClean);

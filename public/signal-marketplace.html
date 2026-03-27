@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Signal Marketplace — EventMedium</title>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+:root{
+  --bg:#ffffff;--bg2:#f8f8fa;--bg3:#f0f0f4;
+  --heading:#1a1a2e;--accent:#6366f1;--accent2:#4f46e5;--accent-light:rgba(99,102,241,0.08);
+  --text:#1a1a2e;--text2:#555;--text3:#999;
+  --border:rgba(0,0,0,0.06);--border2:rgba(0,0,0,0.1);
+  --green:#059669;--greenL:rgba(5,150,105,0.08);
+  --amber:#d97706;--amberL:rgba(217,119,6,0.08);
+  --red:#dc2626;--redL:rgba(220,38,38,0.08);
+  --blue:#2563eb;--blueL:rgba(37,99,235,0.08);
+  --purple:#7c3aed;--orange:#ea580c;
+  --sans:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+  --max:1380px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--sans);background:var(--bg2);color:var(--text);min-height:100vh}
+
+/* ── Header ── */
+.header{background:linear-gradient(135deg,var(--bg) 0%,var(--bg2) 100%);border-bottom:1px solid var(--border);padding:28px 36px 24px}
+.header-inner{max-width:var(--max);margin:0 auto}
+.header-row{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px}
+.logo{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;color:var(--heading);text-decoration:none;margin-bottom:6px}
+.logo .ld{width:20px;height:20px;border-radius:5px;background:linear-gradient(135deg,var(--accent),var(--accent2))}
+.logo em{color:var(--accent);font-style:normal}
+.title{font-size:22px;font-weight:700;letter-spacing:-0.03em;color:var(--heading)}
+.subtitle{font-size:13px;color:var(--text3);margin-top:3px}
+.pill{display:inline-block;padding:3px 12px;border-radius:20px;font-size:11px;font-weight:600}
+.pill-green{background:var(--greenL);color:var(--green)}
+.pill-accent{background:var(--accent-light);color:var(--accent)}
+.pill-amber{background:var(--amberL);color:var(--amber)}
+
+/* ── Buttons ── */
+.btn-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border2);border-radius:8px;padding:8px 16px;cursor:pointer;font-size:13px;font-weight:600;font-family:var(--sans);background:var(--bg);color:var(--text2);transition:all 0.2s;text-decoration:none}
+.btn:hover{border-color:rgba(99,102,241,0.3);color:var(--accent)}
+.btn-pri{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn-pri:hover{background:var(--accent2);border-color:var(--accent2);color:#fff}
+.btn-back{border-color:rgba(99,102,241,0.3);background:linear-gradient(135deg,rgba(99,102,241,0.04),rgba(79,70,229,0.08));color:var(--accent)}
+.btn-back:hover{background:linear-gradient(135deg,rgba(99,102,241,0.08),rgba(79,70,229,0.14));border-color:var(--accent);color:var(--accent)}
+.btn-sm{padding:5px 12px;font-size:12px;border-radius:6px}
+.btn-danger{color:var(--red);border-color:rgba(220,38,38,0.2)}
+.btn-danger:hover{background:var(--redL);border-color:var(--red);color:var(--red)}
+.btn-green{background:var(--green);color:#fff;border-color:var(--green)}
+.btn-green:hover{background:#047857;border-color:#047857;color:#fff}
+
+/* ── Body ── */
+.body{max-width:var(--max);margin:0 auto;padding:28px 36px}
+
+/* ── Tabs ── */
+.tabs{display:flex;border-bottom:2px solid var(--border2);margin-bottom:32px}
+.tab{padding:10px 22px 12px;font-size:14px;font-weight:500;cursor:pointer;border:none;background:transparent;color:var(--text3);font-family:var(--sans);border-bottom:2px solid transparent;margin-bottom:-2px;transition:all 0.15s}
+.tab.active{font-weight:700;color:var(--accent);border-bottom-color:var(--accent)}
+.tab:hover{color:var(--heading)}
+.tab-content{display:none}.tab-content.active{display:block}
+
+/* ── Cards ── */
+.card{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:24px;transition:border-color 0.2s}
+.card:hover{border-color:rgba(99,102,241,0.1)}
+.card-t{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:20px}
+
+/* ── Search ── */
+.search-box{background:var(--bg);border:1px solid var(--border2);border-radius:8px;padding:8px 14px;font-size:13px;font-family:var(--sans);color:var(--text);outline:none;transition:border-color 0.2s;width:200px}
+.search-box:focus{border-color:var(--accent)}
+.sel{background:var(--bg);border:1px solid var(--border2);border-radius:8px;padding:8px 14px;font-size:13px;font-family:var(--sans);color:var(--text);outline:none;cursor:pointer}
+.sel:focus{border-color:var(--accent)}
+
+/* ── Search bar (hero) ── */
+.search-hero{position:relative;margin-bottom:28px}
+.search-hero input{width:100%;padding:14px 18px 14px 44px;border:1.5px solid var(--border2);border-radius:10px;font-size:14px;font-family:var(--sans);color:var(--text);background:var(--bg);outline:none;transition:border-color 0.2s}
+.search-hero input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(99,102,241,0.08)}
+.search-hero input::placeholder{color:var(--text3)}
+.search-hero .search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text3);pointer-events:none}
+
+/* ── Section ── */
+.section{margin-bottom:36px}
+.section-title{font-size:14px;font-weight:700;color:var(--heading);margin-bottom:16px;display:flex;align-items:center;gap:10px}
+.section-title .count{font-size:11px;font-weight:600;padding:2px 10px;border-radius:12px;background:var(--accent-light);color:var(--accent)}
+
+/* ── Feed grid ── */
+.feed-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:16px}
+
+/* ── Feed card ── */
+.feed-card{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:20px;transition:all 0.2s}
+.feed-card:hover{border-color:rgba(99,102,241,0.18);box-shadow:0 2px 12px rgba(99,102,241,0.06)}
+.feed-card.connected{border-left:3px solid var(--green)}
+.feed-card-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
+.feed-name{font-size:14px;font-weight:700;color:var(--heading);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.feed-desc{font-size:13px;color:var(--text2);line-height:1.55;margin-bottom:12px}
+.feed-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.feed-actions{display:flex;align-items:center;gap:8px;justify-content:space-between}
+.feed-status{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text3)}
+.feed-status .dot-green{width:6px;height:6px;border-radius:50%;background:var(--green)}
+.feed-status .dot-grey{width:6px;height:6px;border-radius:50%;background:var(--text3)}
+
+/* ── Signal cost dots ── */
+.cost-dots{font-size:13px;letter-spacing:1px;color:var(--text3)}
+.cost-dots .filled{color:var(--amber)}
+
+/* ── Theme chip ── */
+.theme-chip{display:inline-block;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;border:1.5px solid var(--border2);background:var(--bg2);color:var(--text2);margin-right:4px;margin-bottom:4px}
+
+/* ── Category badge ── */
+.cat-badge{display:inline-block;padding:2px 8px;border-radius:5px;font-size:10px;font-weight:700;letter-spacing:0.3px;text-transform:uppercase}
+.cat-registry{background:var(--blueL);color:var(--blue)}
+.cat-social{background:rgba(124,58,237,0.08);color:var(--purple)}
+.cat-news{background:var(--amberL);color:var(--amber)}
+.cat-gov{background:var(--greenL);color:var(--green)}
+.cat-market{background:rgba(234,88,12,0.08);color:var(--orange)}
+.cat-community{background:var(--accent-light);color:var(--accent)}
+.cat-legal{background:var(--redL);color:var(--red)}
+
+/* ── Filters row ── */
+.filters-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px}
+
+/* ── Used by ── */
+.used-by{font-size:11px;color:var(--text3);display:flex;align-items:center;gap:4px}
+
+/* ── Greyed section ── */
+.section-greyed{opacity:0.5;pointer-events:none;position:relative}
+.section-greyed .coming-soon{position:absolute;top:16px;right:0;padding:4px 14px;border-radius:8px;font-size:11px;font-weight:700;background:var(--bg3);color:var(--text3);letter-spacing:0.5px;text-transform:uppercase;pointer-events:none}
+
+/* ── Tool card (connected) ── */
+.tool-strip{display:flex;gap:12px;flex-wrap:wrap}
+.tool-card{display:flex;align-items:center;gap:10px;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px 18px;font-size:13px;font-weight:600;color:var(--heading)}
+.tool-card .tool-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:var(--accent-light);color:var(--accent)}
+.tool-card .tool-status{font-size:11px;font-weight:500;color:var(--green);display:flex;align-items:center;gap:4px}
+
+/* ── Modal ── */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:500;display:none;align-items:center;justify-content:center;padding:24px}
+.modal-bg.open{display:flex}
+.modal{background:#fff;border-radius:14px;padding:32px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,0.18)}
+.modal h3{font-size:17px;font-weight:700;color:var(--heading);margin-bottom:20px}
+.form-row{margin-bottom:16px}
+.form-row label{display:block;font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:5px}
+.form-row input,.form-row textarea{width:100%;padding:9px 14px;border:1px solid var(--border2);border-radius:8px;font-size:13px;font-family:var(--sans);outline:none;color:var(--text);transition:border-color 0.2s}
+.form-row input:focus,.form-row textarea:focus{border-color:var(--accent)}
+.modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:24px}
+.modal-cancel{padding:9px 18px;border:1px solid var(--border2);border-radius:8px;font-size:13px;font-weight:600;background:var(--bg);color:var(--text2);cursor:pointer;font-family:var(--sans)}
+.modal-submit{padding:9px 22px;border:none;border-radius:8px;font-size:13px;font-weight:600;background:var(--accent);color:#fff;cursor:pointer;font-family:var(--sans);transition:background 0.15s}
+.modal-submit:hover{background:var(--accent2)}
+.modal-submit:disabled{opacity:0.5;cursor:not-allowed}
+
+/* ── Toast ── */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--heading);color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:600;opacity:0;transform:translateY(12px);transition:all 0.3s;pointer-events:none}
+.toast.show{opacity:1;transform:translateY(0)}
+
+/* ── Skeleton ── */
+.skel{border-radius:4px;background:linear-gradient(90deg,var(--bg3) 25%,var(--bg2) 50%,var(--bg3) 75%);background-size:400% 100%;animation:shimmer 1.5s ease-in-out infinite}
+@keyframes shimmer{0%{background-position:100% 50%}100%{background-position:0 50%}}
+
+/* ── Footer ── */
+.footer{border-top:1px solid var(--border);padding-top:18px;margin-top:40px;display:flex;justify-content:space-between;font-size:12px;color:var(--text3)}
+
+/* ── Test result ── */
+.test-result{margin-top:12px;padding:10px 14px;border-radius:8px;font-size:12px;font-weight:600;display:none}
+.test-result.success{display:block;background:var(--greenL);color:var(--green)}
+.test-result.error{display:block;background:var(--redL);color:var(--red)}
+
+@media(max-width:768px){
+  .feed-grid{grid-template-columns:1fr}
+  .header{padding:20px 18px 18px}
+  .body{padding:20px 18px}
+  .filters-row{flex-direction:column}
+  .tool-strip{flex-direction:column}
+}
+</style>
+</head>
+<body>
+
+<!-- ── Header ── -->
+<div class="header">
+  <div class="header-inner">
+    <a href="/community-dashboard.html" class="logo"><div class="ld"></div>Event<em>Medium</em></a>
+    <div class="header-row">
+      <div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <div class="title">Signal marketplace</div>
+          <span class="pill pill-accent" id="feedCountBadge">-- feeds</span>
+        </div>
+        <div class="subtitle">Connect data feeds and tools to power your community intelligence</div>
+      </div>
+      <div class="btn-row">
+        <a href="/community-dashboard.html" class="btn btn-back"><i data-lucide="arrow-left" style="width:14px;height:14px"></i> Back to dashboard</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Body ── -->
+<div class="body">
+
+  <!-- Search bar -->
+  <div class="search-hero">
+    <i data-lucide="search" class="search-icon" style="width:18px;height:18px"></i>
+    <input type="text" id="searchInput" placeholder="Search feeds by name, theme, or what signal you need..." />
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs" id="mainTabs">
+    <button class="tab active" data-tab="recommended">Recommended for you</button>
+    <button class="tab" data-tab="popular">Popular in your sector</button>
+    <button class="tab" data-tab="new">New</button>
+  </div>
+
+  <!-- Tab content wrapper -->
+  <div id="tabContentArea">
+
+    <!-- Connected tools -->
+    <div class="section" id="connectedToolsSection">
+      <div class="section-title">Your tools (connected) <span class="count" id="toolCount">0</span></div>
+      <div class="tool-strip" id="toolStrip">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+
+    <!-- Active feeds -->
+    <div class="section" id="activeFeedsSection">
+      <div class="section-title">Your feeds <span class="count" id="activeFeedCount">0 active</span></div>
+      <div class="feed-grid" id="activeFeedGrid">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+
+    <!-- All feeds with filters -->
+    <div class="section" id="allFeedsSection">
+      <div class="section-title">All feeds <span class="count" id="allFeedCount">0</span></div>
+      <div class="filters-row">
+        <select class="sel" id="filterCategory"><option value="">All categories</option></select>
+        <select class="sel" id="filterTheme"><option value="">All themes</option></select>
+        <select class="sel" id="filterJurisdiction"><option value="">All jurisdictions</option></select>
+        <select class="sel" id="filterCost"><option value="">All costs</option><option value="low">Low cost</option><option value="medium">Medium cost</option><option value="high">High cost</option></select>
+      </div>
+      <div class="feed-grid" id="allFeedGrid">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+
+    <!-- Member-connected feeds (greyed out) -->
+    <div class="section section-greyed">
+      <div class="coming-soon">Coming soon</div>
+      <div class="section-title">Member-connected feeds</div>
+      <div class="feed-grid">
+        <div class="feed-card" style="min-height:100px">
+          <div class="feed-name" style="margin-bottom:8px">Member LinkedIn activity</div>
+          <div class="feed-desc">Signals from your members' opt-in connected LinkedIn profiles, job changes, and posts.</div>
+        </div>
+        <div class="feed-card" style="min-height:100px">
+          <div class="feed-name" style="margin-bottom:8px">Member calendar availability</div>
+          <div class="feed-desc">Aggregated availability windows for smarter event scheduling and 1:1 introductions.</div>
+        </div>
+        <div class="feed-card" style="min-height:100px">
+          <div class="feed-name" style="margin-bottom:8px">Member content engagement</div>
+          <div class="feed-desc">Track which content, topics, and discussions your members engage with most.</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="footer">
+    <span>EventMedium Signal Marketplace</span>
+    <span id="lastUpdated"></span>
+  </div>
+</div>
+
+<!-- ── Connect modal (API key) ── -->
+<div class="modal-bg" id="apiKeyModal">
+  <div class="modal">
+    <h3 id="apiKeyModalTitle">Connect feed</h3>
+    <div class="form-row">
+      <label>API Key</label>
+      <input type="text" id="apiKeyInput" placeholder="Paste your API key here..." />
+    </div>
+    <div class="test-result" id="apiKeyTestResult"></div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeModal('apiKeyModal')">Cancel</button>
+      <button class="btn" id="apiKeyTestBtn" onclick="testConnection()" style="margin-right:auto"><i data-lucide="zap" style="width:13px;height:13px"></i> Test connection</button>
+      <button class="modal-submit" id="apiKeySubmitBtn" onclick="submitApiKey()">Connect</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Connect modal (URL / RSS) ── -->
+<div class="modal-bg" id="urlModal">
+  <div class="modal">
+    <h3 id="urlModalTitle">Connect feed</h3>
+    <div class="form-row">
+      <label>Feed URL</label>
+      <input type="url" id="urlInput" placeholder="https://example.com/feed.rss" />
+    </div>
+    <div class="test-result" id="urlTestResult"></div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeModal('urlModal')">Cancel</button>
+      <button class="modal-submit" onclick="submitUrl()">Connect</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Disconnect confirm modal ── -->
+<div class="modal-bg" id="disconnectModal">
+  <div class="modal">
+    <h3>Disconnect feed</h3>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:8px">Are you sure you want to disconnect <strong id="disconnectFeedName"></strong>? You will stop receiving signals from this feed.</p>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeModal('disconnectModal')">Cancel</button>
+      <button class="modal-submit" style="background:var(--red)" onclick="confirmDisconnect()">Disconnect</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Toast ── -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── State ──
+const params = new URLSearchParams(window.location.search);
+const communityId = params.get('community') || '';
+const token = localStorage.getItem('auth_token') || '';
+let allFeeds = [];
+let connectedFeeds = [];
+let connectedTools = [];
+let pendingProvider = null;
+let pendingIntegrationId = null;
+let pendingFeedName = '';
+let activeTab = 'recommended';
+let searchDebounce = null;
+
+// ── API helpers ──
+function headers() {
+  return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token };
+}
+
+async function apiFetch(url, opts = {}) {
+  opts.headers = headers();
+  const res = await fetch(url, opts);
+  if (!res.ok) throw new Error('API error ' + res.status);
+  return res.json();
+}
+
+// ── Init ──
+document.addEventListener('DOMContentLoaded', async () => {
+  lucide.createIcons();
+  setupTabs();
+  setupSearch();
+  setupFilters();
+  await loadFeeds();
+});
+
+// ── Tabs ──
+function setupTabs() {
+  document.querySelectorAll('#mainTabs .tab').forEach(t => {
+    t.addEventListener('click', () => {
+      document.querySelectorAll('#mainTabs .tab').forEach(b => b.classList.remove('active'));
+      t.classList.add('active');
+      activeTab = t.dataset.tab;
+      renderAll();
+    });
+  });
+}
+
+// ── Search ──
+function setupSearch() {
+  const input = document.getElementById('searchInput');
+  input.addEventListener('input', () => {
+    clearTimeout(searchDebounce);
+    searchDebounce = setTimeout(() => renderAll(), 250);
+  });
+}
+
+// ── Filters ──
+function setupFilters() {
+  ['filterCategory', 'filterTheme', 'filterJurisdiction', 'filterCost'].forEach(id => {
+    document.getElementById(id).addEventListener('change', () => renderAll());
+  });
+}
+
+// ── Load feeds ──
+async function loadFeeds() {
+  try {
+    const data = await apiFetch('/api/integrations/' + communityId + '/feeds');
+    allFeeds = data.feeds || data.catalogue || data || [];
+    connectedFeeds = allFeeds.filter(f => f.connected);
+    connectedTools = allFeeds.filter(f => f.connected && f.type === 'tool');
+    populateFilterOptions();
+    renderAll();
+  } catch (e) {
+    console.warn('Failed to load feeds, using demo data', e);
+    loadDemoData();
+  }
+}
+
+// ── Demo data ──
+function loadDemoData() {
+  allFeeds = [
+    { id:'ch', provider:'companies_house', name:'Companies House', category:'Registry', cat_class:'cat-registry', description:'UK company filings, officer changes, and charge registrations in real-time.', themes:['RegTech','Compliance'], jurisdiction:'UK', cost:'low', cost_dots:1, auth_type:'api_key', connected:true, integration_id:'int-1', last_sync:'2 hours ago', type:'feed', used_by:34, recommended:true, popular:true },
+    { id:'fca', provider:'fca_register', name:'FCA Register', category:'Gov', cat_class:'cat-gov', description:'Regulated firms, individuals, and enforcement actions from the Financial Conduct Authority.', themes:['FinTech','Compliance'], jurisdiction:'UK', cost:'low', cost_dots:1, auth_type:'none', connected:true, integration_id:'int-2', last_sync:'1 hour ago', type:'feed', used_by:28, recommended:true },
+    { id:'cb', provider:'crunchbase', name:'Crunchbase', category:'Market', cat_class:'cat-market', description:'Funding rounds, acquisitions, and company profiles for investor intelligence.', themes:['FinTech','AI','DeepTech'], jurisdiction:'Global', cost:'high', cost_dots:3, auth_type:'api_key', connected:false, type:'feed', used_by:52, recommended:true, popular:true },
+    { id:'ph', provider:'producthunt', name:'Product Hunt', category:'Social', cat_class:'cat-social', description:'Trending product launches and maker community activity.', themes:['AI','SaaS'], jurisdiction:'Global', cost:'low', cost_dots:1, auth_type:'none', connected:false, type:'feed', used_by:19, is_new:true },
+    { id:'tc', provider:'techcrunch_rss', name:'TechCrunch', category:'News', cat_class:'cat-news', description:'Breaking technology news, funding announcements, and startup coverage.', themes:['FinTech','AI','SaaS'], jurisdiction:'Global', cost:'low', cost_dots:1, auth_type:'url', connected:false, type:'feed', used_by:41, popular:true },
+    { id:'gh', provider:'github_events', name:'GitHub Trending', category:'Social', cat_class:'cat-social', description:'Track trending repositories and developer activity for technical due diligence.', themes:['AI','DeepTech','Open Source'], jurisdiction:'Global', cost:'medium', cost_dots:2, auth_type:'oauth', connected:false, type:'tool', used_by:23, is_new:true },
+    { id:'ln', provider:'linkedin_posts', name:'LinkedIn Industry Feed', category:'Social', cat_class:'cat-social', description:'Industry leader posts and engagement signals from your sector.', themes:['FinTech','AI'], jurisdiction:'Global', cost:'medium', cost_dots:2, auth_type:'oauth', connected:false, type:'feed', used_by:37, recommended:true, popular:true },
+    { id:'ga', provider:'gazette', name:'London Gazette', category:'Gov', cat_class:'cat-gov', description:'Insolvency notices, corporate actions, and regulatory announcements.', themes:['RegTech','Compliance','Legal'], jurisdiction:'UK', cost:'low', cost_dots:1, auth_type:'none', connected:false, type:'feed', used_by:15 },
+    { id:'pa', provider:'patents_api', name:'Patent Filings', category:'Registry', cat_class:'cat-registry', description:'New patent applications and grants across key technology categories.', themes:['DeepTech','AI','IP'], jurisdiction:'Global', cost:'high', cost_dots:3, auth_type:'api_key', connected:false, type:'feed', used_by:11, is_new:true },
+    { id:'sl', provider:'slack_integration', name:'Slack Alerts', category:'Community', cat_class:'cat-community', description:'Push signal alerts directly to your team Slack channels.', themes:['Ops'], jurisdiction:'Global', cost:'low', cost_dots:1, auth_type:'oauth', connected:true, integration_id:'int-3', last_sync:'Live', type:'tool', used_by:44, recommended:true },
+    { id:'ct', provider:'court_tracker', name:'Court Tracker', category:'Legal', cat_class:'cat-legal', description:'Track litigation and tribunal proceedings involving companies in your portfolio.', themes:['Legal','Compliance'], jurisdiction:'UK', cost:'high', cost_dots:3, auth_type:'api_key', connected:false, type:'feed', used_by:8 },
+    { id:'ev', provider:'eventbrite_api', name:'Eventbrite', category:'Community', cat_class:'cat-community', description:'Track industry events, conferences, and meetups relevant to your community.', themes:['Events','Networking'], jurisdiction:'Global', cost:'low', cost_dots:1, auth_type:'api_key', connected:false, type:'feed', used_by:22, popular:true },
+  ];
+  connectedFeeds = allFeeds.filter(f => f.connected);
+  connectedTools = allFeeds.filter(f => f.connected && f.type === 'tool');
+  populateFilterOptions();
+  renderAll();
+}
+
+// ── Populate filter dropdowns ──
+function populateFilterOptions() {
+  const cats = [...new Set(allFeeds.map(f => f.category))].sort();
+  const themes = [...new Set(allFeeds.flatMap(f => f.themes || []))].sort();
+  const juris = [...new Set(allFeeds.map(f => f.jurisdiction))].sort();
+  const catSel = document.getElementById('filterCategory');
+  const themeSel = document.getElementById('filterTheme');
+  const jurisSel = document.getElementById('filterJurisdiction');
+  cats.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; catSel.appendChild(o); });
+  themes.forEach(t => { const o = document.createElement('option'); o.value = t; o.textContent = t; themeSel.appendChild(o); });
+  juris.forEach(j => { const o = document.createElement('option'); o.value = j; o.textContent = j; jurisSel.appendChild(o); });
+}
+
+// ── Filter logic ──
+function getFilteredFeeds(base) {
+  const q = document.getElementById('searchInput').value.toLowerCase().trim();
+  const cat = document.getElementById('filterCategory').value;
+  const theme = document.getElementById('filterTheme').value;
+  const juris = document.getElementById('filterJurisdiction').value;
+  const cost = document.getElementById('filterCost').value;
+  return base.filter(f => {
+    if (q && !f.name.toLowerCase().includes(q) && !f.description.toLowerCase().includes(q) && !(f.themes || []).some(t => t.toLowerCase().includes(q))) return false;
+    if (cat && f.category !== cat) return false;
+    if (theme && !(f.themes || []).includes(theme)) return false;
+    if (juris && f.jurisdiction !== juris) return false;
+    if (cost) {
+      const costMap = { low: 1, medium: 2, high: 3 };
+      if (f.cost_dots !== costMap[cost]) return false;
+    }
+    return true;
+  });
+}
+
+function getTabFeeds() {
+  if (activeTab === 'recommended') return allFeeds.filter(f => f.recommended);
+  if (activeTab === 'popular') return allFeeds.filter(f => f.popular);
+  if (activeTab === 'new') return allFeeds.filter(f => f.is_new);
+  return allFeeds;
+}
+
+// ── Render all ──
+function renderAll() {
+  const connected = allFeeds.filter(f => f.connected);
+  const tools = connected.filter(f => f.type === 'tool');
+  const activeF = connected.filter(f => f.type === 'feed');
+
+  // Badge
+  document.getElementById('feedCountBadge').textContent = allFeeds.length + ' feeds';
+
+  // Connected tools
+  document.getElementById('toolCount').textContent = tools.length;
+  const toolStrip = document.getElementById('toolStrip');
+  if (tools.length === 0) {
+    toolStrip.innerHTML = '<div style="font-size:13px;color:var(--text3)">No tools connected yet</div>';
+  } else {
+    toolStrip.innerHTML = tools.map(t => `
+      <div class="tool-card">
+        <div class="tool-icon"><i data-lucide="plug" style="width:16px;height:16px"></i></div>
+        <div>
+          <div>${esc(t.name)}</div>
+          <div class="tool-status"><span class="dot-green" style="width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block"></span> Connected</div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // Active feeds
+  document.getElementById('activeFeedCount').textContent = activeF.length + ' active';
+  const activeGrid = document.getElementById('activeFeedGrid');
+  if (activeF.length === 0) {
+    activeGrid.innerHTML = '<div style="font-size:13px;color:var(--text3);padding:12px 0">No active feeds yet. Connect a feed below to get started.</div>';
+  } else {
+    activeGrid.innerHTML = activeF.map(f => renderFeedCard(f)).join('');
+  }
+
+  // All feeds (filtered by tab + search + filters)
+  const tabFeeds = getTabFeeds();
+  const filtered = getFilteredFeeds(tabFeeds);
+  document.getElementById('allFeedCount').textContent = filtered.length;
+  document.getElementById('allFeedGrid').innerHTML = filtered.length
+    ? filtered.map(f => renderFeedCard(f)).join('')
+    : '<div style="font-size:13px;color:var(--text3);padding:12px 0">No feeds match your current filters.</div>';
+
+  // Update date
+  document.getElementById('lastUpdated').textContent = 'Updated ' + new Date().toLocaleTimeString();
+
+  lucide.createIcons();
+}
+
+// ── Render single feed card ──
+function renderFeedCard(f) {
+  const costDots = renderCostDots(f.cost_dots || 1);
+  const themeChips = (f.themes || []).map(t => `<span class="theme-chip">${esc(t)}</span>`).join('');
+  const catBadge = `<span class="cat-badge ${f.cat_class || 'cat-registry'}">${esc(f.category || '')}</span>`;
+  const usedBy = f.used_by ? `<span class="used-by"><i data-lucide="users" style="width:12px;height:12px"></i> Used by ${f.used_by} similar</span>` : '';
+
+  let statusHtml = '';
+  let actionsHtml = '';
+
+  if (f.connected) {
+    statusHtml = `<div class="feed-status"><span class="dot-green"></span> Connected &middot; ${esc(f.last_sync || 'just now')}</div>`;
+    actionsHtml = `<button class="btn btn-sm btn-danger" onclick="startDisconnect('${esc(f.integration_id)}','${esc(f.name)}')"><i data-lucide="unplug" style="width:12px;height:12px"></i> Disconnect</button>`;
+  } else {
+    statusHtml = `<div class="feed-status"><span class="dot-grey"></span> Not connected</div>`;
+    actionsHtml = renderConnectButton(f);
+  }
+
+  return `
+    <div class="feed-card ${f.connected ? 'connected' : ''}">
+      <div class="feed-card-head">
+        <div class="feed-name">${esc(f.name)} ${catBadge} <span class="cost-dots">${costDots}</span></div>
+      </div>
+      <div class="feed-desc">${esc(f.description)}</div>
+      <div class="feed-meta">${themeChips} ${usedBy}</div>
+      <div class="feed-actions">${statusHtml} ${actionsHtml}</div>
+    </div>
+  `;
+}
+
+function renderCostDots(n) {
+  const filled = '<span class="filled">&#9679;</span>';
+  const empty = '&#9675;';
+  let s = '';
+  for (let i = 0; i < 3; i++) s += i < n ? filled : empty;
+  return s;
+}
+
+function renderConnectButton(f) {
+  switch (f.auth_type) {
+    case 'api_key':
+      return `<button class="btn btn-sm btn-pri" onclick="openApiKeyModal('${esc(f.provider)}','${esc(f.name)}')"><i data-lucide="key" style="width:12px;height:12px"></i> Connect with API key</button>`;
+    case 'oauth':
+      return `<button class="btn btn-sm btn-pri" onclick="startOAuth('${esc(f.provider)}','${esc(f.name)}')"><i data-lucide="external-link" style="width:12px;height:12px"></i> Connect with OAuth</button>`;
+    case 'url':
+      return `<button class="btn btn-sm btn-pri" onclick="openUrlModal('${esc(f.provider)}','${esc(f.name)}')"><i data-lucide="rss" style="width:12px;height:12px"></i> Add feed URL</button>`;
+    case 'none':
+    default:
+      return `<button class="btn btn-sm btn-green" onclick="activateFeed('${esc(f.provider)}','${esc(f.name)}')"><i data-lucide="zap" style="width:12px;height:12px"></i> Activate</button>`;
+  }
+}
+
+// ── Connect flows ──
+
+// API Key modal
+function openApiKeyModal(provider, name) {
+  pendingProvider = provider;
+  pendingFeedName = name;
+  document.getElementById('apiKeyModalTitle').textContent = 'Connect ' + name;
+  document.getElementById('apiKeyInput').value = '';
+  document.getElementById('apiKeyTestResult').className = 'test-result';
+  document.getElementById('apiKeyTestResult').textContent = '';
+  openModal('apiKeyModal');
+}
+
+async function testConnection() {
+  const btn = document.getElementById('apiKeyTestBtn');
+  const result = document.getElementById('apiKeyTestResult');
+  btn.disabled = true;
+  btn.textContent = 'Testing...';
+  try {
+    // Find the integration_id for an already-connected feed or use provider
+    const feed = allFeeds.find(f => f.provider === pendingProvider);
+    const intId = feed && feed.integration_id ? feed.integration_id : 'pending';
+    await apiFetch('/api/integrations/' + communityId + '/' + intId + '/test', { method: 'POST', body: JSON.stringify({ provider: pendingProvider, api_key: document.getElementById('apiKeyInput').value }) });
+    result.className = 'test-result success';
+    result.textContent = 'Connection successful. Ready to connect.';
+  } catch (e) {
+    result.className = 'test-result error';
+    result.textContent = 'Connection test failed. Check your API key and try again.';
+  }
+  btn.disabled = false;
+  btn.innerHTML = '<i data-lucide="zap" style="width:13px;height:13px"></i> Test connection';
+  lucide.createIcons();
+}
+
+async function submitApiKey() {
+  const key = document.getElementById('apiKeyInput').value.trim();
+  if (!key) { toast('Please enter an API key'); return; }
+  const btn = document.getElementById('apiKeySubmitBtn');
+  btn.disabled = true;
+  btn.textContent = 'Connecting...';
+  try {
+    await apiFetch('/api/integrations/' + communityId + '/connect', { method: 'POST', body: JSON.stringify({ provider: pendingProvider, credentials: { api_key: key } }) });
+    toast(pendingFeedName + ' connected successfully');
+    markConnected(pendingProvider);
+  } catch (e) {
+    // Demo fallback: mark connected locally
+    toast(pendingFeedName + ' connected (demo mode)');
+    markConnected(pendingProvider);
+  }
+  btn.disabled = false;
+  btn.textContent = 'Connect';
+  closeModal('apiKeyModal');
+}
+
+// URL modal
+function openUrlModal(provider, name) {
+  pendingProvider = provider;
+  pendingFeedName = name;
+  document.getElementById('urlModalTitle').textContent = 'Connect ' + name;
+  document.getElementById('urlInput').value = '';
+  document.getElementById('urlTestResult').className = 'test-result';
+  document.getElementById('urlTestResult').textContent = '';
+  openModal('urlModal');
+}
+
+async function submitUrl() {
+  const url = document.getElementById('urlInput').value.trim();
+  if (!url) { toast('Please enter a feed URL'); return; }
+  try {
+    await apiFetch('/api/integrations/' + communityId + '/connect', { method: 'POST', body: JSON.stringify({ provider: pendingProvider, credentials: { url: url } }) });
+    toast(pendingFeedName + ' connected successfully');
+    markConnected(pendingProvider);
+  } catch (e) {
+    toast(pendingFeedName + ' connected (demo mode)');
+    markConnected(pendingProvider);
+  }
+  closeModal('urlModal');
+}
+
+// OAuth
+function startOAuth(provider, name) {
+  toast('Redirecting to ' + name + ' authorization...');
+  // In production this would redirect to OAuth flow
+  setTimeout(() => {
+    toast(name + ' connected (demo mode)');
+    markConnected(provider);
+  }, 1500);
+}
+
+// One-click activate (public/no-auth feeds)
+async function activateFeed(provider, name) {
+  try {
+    await apiFetch('/api/integrations/' + communityId + '/connect', { method: 'POST', body: JSON.stringify({ provider: provider, credentials: {} }) });
+    toast(name + ' activated successfully');
+    markConnected(provider);
+  } catch (e) {
+    toast(name + ' activated (demo mode)');
+    markConnected(provider);
+  }
+}
+
+// ── Disconnect ──
+function startDisconnect(integrationId, name) {
+  pendingIntegrationId = integrationId;
+  pendingFeedName = name;
+  document.getElementById('disconnectFeedName').textContent = name;
+  openModal('disconnectModal');
+}
+
+async function confirmDisconnect() {
+  try {
+    await apiFetch('/api/integrations/' + communityId + '/' + pendingIntegrationId, { method: 'DELETE' });
+    toast(pendingFeedName + ' disconnected');
+  } catch (e) {
+    toast(pendingFeedName + ' disconnected (demo mode)');
+  }
+  // Mark disconnected locally
+  const feed = allFeeds.find(f => f.integration_id === pendingIntegrationId);
+  if (feed) {
+    feed.connected = false;
+    feed.integration_id = null;
+    feed.last_sync = null;
+  }
+  closeModal('disconnectModal');
+  renderAll();
+}
+
+// ── Helpers ──
+function markConnected(provider) {
+  const feed = allFeeds.find(f => f.provider === provider);
+  if (feed) {
+    feed.connected = true;
+    feed.integration_id = feed.integration_id || ('int-' + Date.now());
+    feed.last_sync = 'just now';
+  }
+  renderAll();
+}
+
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// Close modals on backdrop click
+document.addEventListener('click', e => {
+  if (e.target.classList.contains('modal-bg') && e.target.classList.contains('open')) {
+    e.target.classList.remove('open');
+  }
+});
+
+// Close modals on Escape
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal-bg.open').forEach(m => m.classList.remove('open'));
+  }
+});
+
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s || '';
+  return d.innerHTML;
+}
+</script>
+<script src="/js/nav.js"></script>
+</body>
+</html>
