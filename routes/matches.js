@@ -4,6 +4,7 @@ var { authenticateToken } = require('../middleware/auth');
 var { normalizeThemes, normalizeTheme } = require('../lib/theme_taxonomy');
 var { getEmbedding, getEmbeddings, getPointVector, getPointVectors, findCandidates, searchByVector, buildProfileText, COLLECTIONS } = require('../lib/vector_search');
 var emc2 = require('../lib/emc2.js');
+var { logMatchOutcome } = require('../lib/outcome_logger');
 var router = express.Router();
 
 // ══════════════════════════════════════════════════════
@@ -1179,6 +1180,20 @@ router.post('/:matchId/decide', authenticateToken, async function(req, res) {
         console.error('[EC³] match_accepted error:', emc2Err.message);
       }
 
+      // Outcome logging — fire and forget
+      logMatchOutcome({
+        match_id: matchId,
+        community_id: match.community_id || null,
+        event_id: match.event_id,
+        source: match.match_mode || 'event',
+        score_total: match.score_total,
+        score_theme: match.score_theme,
+        score_intent: match.score_intent_offering,
+        score_stakeholder: match.score_stakeholder,
+        both_accepted: true,
+        signal_context: {}
+      });
+
       match.status = 'revealed';
     } else if (decision === 'declined') {
       await dbRun("UPDATE event_matches SET status = 'declined' WHERE id = $1", [matchId]);
@@ -1738,14 +1753,13 @@ ${ctx.feedbackSoFar && ctx.feedbackSoFar.did_meet === false ? 'They said they di
 
 async function getNevResponse(systemPrompt, history) {
   try {
-    var Anthropic = require('@anthropic-ai/sdk');
-    var client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    var { callClaude } = require('../lib/anthropic_client');
 
     var messages = history.map(function(m) {
       return { role: m.role === 'nev' ? 'assistant' : 'user', content: m.content };
     });
 
-    var response = await client.messages.create({
+    var response = await callClaude({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 400,
       system: systemPrompt,

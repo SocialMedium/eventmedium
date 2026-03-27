@@ -5,6 +5,7 @@ var { dbGet, dbAll, dbRun } = require('../db');
 var { authenticateToken } = require('../middleware/auth');
 var { normalizeThemes, getCanonicalThemes } = require('../lib/theme_taxonomy');
 var { nevChatLimiter, nevBehaviourCheck, flagUser, checkCanisterVelocity } = require('../middleware/anti_abuse');
+var { logNevOutcome } = require('../lib/outcome_logger');
 
 var router = express.Router();
 
@@ -372,6 +373,13 @@ router.post('/chat', authenticateToken, nevChatLimiter, nevBehaviourCheck, async
         { q: "We are all connected; to each other, biologically. To the earth, chemically. To the rest of the universe atomically.", a: "Neil deGrasse Tyson" }
       ];
       var picked = quotes[Math.floor(Math.random() * quotes.length)];
+      // Outcome logging — fire and forget
+      logNevOutcome({
+        session_type: 'canister_build',
+        stakeholder_type: null,
+        turn_count: conversation ? conversation.length : 0,
+        outcome: 'canister_completed'
+      });
       return res.json({
         reply: "Your canister is saved and matching is active. I will continue to monitor events and communities for strong matches for your needs.\n\nGood talk.\n\n*\"" + picked.q + "\"*\n— " + picked.a,
         canister_data: null

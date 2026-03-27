@@ -6,6 +6,7 @@ var express = require('express');
 var crypto = require('crypto');
 var router = express.Router();
 var { dbGet, dbRun, dbAll } = require('../db');
+var { logSignalOutcome } = require('../lib/outcome_logger');
 var { authenticateToken } = require('../middleware/auth');
 var { getCanonicalThemes, normalizeTheme } = require('../lib/theme_taxonomy');
 
@@ -393,6 +394,16 @@ router.post('/:communityId/suggest-match', authenticateToken, communityOwnerAuth
       "UPDATE community_match_triggers SET status = 'notified', notified_at = NOW() WHERE id = $1",
       [trigger.id]
     );
+
+    // Outcome logging — fire and forget
+    logSignalOutcome({
+      community_id: communityId,
+      signal_type: 'match_trigger',
+      action_taken: 'match_triggered',
+      action_taken_at: new Date(),
+      outcome: 'pending',
+      metadata: { signal_basis: signalBasis, theme_context: themeContext }
+    });
 
     res.json({
       status: 'triggered',
