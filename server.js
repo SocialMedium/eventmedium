@@ -246,6 +246,51 @@ async function runMigrations() {
     await dbRun('CREATE INDEX IF NOT EXISTS idx_emc2_ledger_user_id ON emc2_ledger(user_id)');
     await dbRun('CREATE INDEX IF NOT EXISTS idx_emc2_ledger_created_at ON emc2_ledger(created_at)');
     await dbRun('CREATE INDEX IF NOT EXISTS idx_emc2_ledger_action_type ON emc2_ledger(action_type)');
+    // ── Community Intelligence Dashboard tables ──
+    await dbRun(`CREATE TABLE IF NOT EXISTS community_tenants (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(), community_id VARCHAR(255) UNIQUE NOT NULL,
+      name VARCHAR(255) NOT NULL, community_type VARCHAR(100), region VARCHAR(100),
+      primary_themes TEXT[], api_key_hash VARCHAR(255) NOT NULL DEFAULT 'pending',
+      active_canister_count INT DEFAULT 0, write_enrichment_enabled BOOLEAN DEFAULT FALSE,
+      created_at TIMESTAMPTZ DEFAULT NOW(), updated_at TIMESTAMPTZ DEFAULT NOW()
+    )`);
+    await dbRun(`CREATE TABLE IF NOT EXISTS community_signals (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(), community_id VARCHAR(255) NOT NULL,
+      signal_type VARCHAR(100) NOT NULL, region VARCHAR(100), theme_tags TEXT[],
+      member_count INT DEFAULT 5, metadata JSONB, aggregate_only BOOLEAN NOT NULL DEFAULT TRUE,
+      received_at TIMESTAMPTZ DEFAULT NOW(),
+      CONSTRAINT aggregate_only_enforced CHECK (aggregate_only = TRUE),
+      CONSTRAINT k_anonymity_floor CHECK (member_count >= 5)
+    )`);
+    await dbRun(`CREATE TABLE IF NOT EXISTS community_integrations (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(), community_id VARCHAR(255) NOT NULL,
+      provider VARCHAR(100) NOT NULL, category VARCHAR(50) NOT NULL CHECK (category IN ('owner_controlled', 'public')),
+      credentials JSONB, last_synced_at TIMESTAMPTZ, sync_status VARCHAR(50) DEFAULT 'pending',
+      signal_types_produced TEXT[], enabled BOOLEAN DEFAULT TRUE, created_at TIMESTAMPTZ DEFAULT NOW()
+    )`);
+    await dbRun(`CREATE TABLE IF NOT EXISTS pulse_cache (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(), community_id VARCHAR(255) NOT NULL,
+      filter_hash VARCHAR(64) NOT NULL, payload JSONB NOT NULL,
+      generated_at TIMESTAMPTZ DEFAULT NOW(), expires_at TIMESTAMPTZ NOT NULL,
+      UNIQUE(community_id, filter_hash)
+    )`);
+    await dbRun(`CREATE TABLE IF NOT EXISTS community_match_triggers (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(), community_id VARCHAR(255) NOT NULL,
+      triggered_by UUID NOT NULL, signal_basis TEXT[], signal_rationale TEXT,
+      theme_context VARCHAR(100), status VARCHAR(50) DEFAULT 'pending',
+      notified_at TIMESTAMPTZ, resolved_at TIMESTAMPTZ, created_at TIMESTAMPTZ DEFAULT NOW()
+    )`);
+    await dbRun(`CREATE TABLE IF NOT EXISTS enrichment_writebacks (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(), community_id VARCHAR(255) NOT NULL,
+      provider VARCHAR(100) NOT NULL, entity_type VARCHAR(50) NOT NULL CHECK (entity_type IN ('person', 'company', 'event')),
+      external_entity_id VARCHAR(255) NOT NULL, payload JSONB NOT NULL,
+      status VARCHAR(50) DEFAULT 'pending', written_at TIMESTAMPTZ
+    )`);
+    await dbRun('CREATE INDEX IF NOT EXISTS idx_community_signals_community ON community_signals(community_id, received_at)').catch(function(){});
+    await dbRun('CREATE INDEX IF NOT EXISTS idx_community_integrations_community ON community_integrations(community_id, provider)').catch(function(){});
+    await dbRun('CREATE INDEX IF NOT EXISTS idx_pulse_cache_lookup ON pulse_cache(community_id, filter_hash, expires_at)').catch(function(){});
+    await dbRun('CREATE INDEX IF NOT EXISTS idx_match_triggers_community ON community_match_triggers(community_id, status, created_at)').catch(function(){});
+    await dbRun('CREATE INDEX IF NOT EXISTS idx_enrichment_writebacks_community ON enrichment_writebacks(community_id, entity_type, status)').catch(function(){});
     console.log('[Migrations] Schema up to date');
   } catch(err) {
     console.error('[Migrations] Error:', err);
