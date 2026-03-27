@@ -416,7 +416,55 @@ router.post('/chat', authenticateToken, nevChatLimiter, nevBehaviourCheck, async
       // Include current session messages in count (DB may lag behind fire-and-forget writes)
       var sessionMsgCount = conversation ? conversation.length : 0;
       canisterData.priorMessageCount = Math.max(canisterData.priorMessageCount, sessionMsgCount);
+
+      // ── Contact context injection ──
+      // If user was invited via community contact, pre-populate canister context
+      var contactContext = req.body.contact_context || null;
+      if (!contactContext) {
+        // Auto-detect: check if this user has a linked community_contacts record
+        try {
+          var linkedContact = await dbGet(
+            "SELECT name, company_name, role_title, stakeholder_type, canonical_themes, geography FROM community_contacts WHERE user_id = $1 AND status IN ('joined','active') LIMIT 1",
+            [req.user.id]
+          );
+          if (linkedContact) contactContext = linkedContact;
+        } catch(e) {}
+      }
+
+      if (contactContext && !canisterData.hasProfile) {
+        // Pre-populate gaps with known contact data
+        if (contactContext.stakeholder_type && canisterData.gaps) {
+          canisterData.gaps = canisterData.gaps.filter(function(g) { return g.indexOf('stakeholder type') === -1; });
+        }
+        if (contactContext.canonical_themes && contactContext.canonical_themes.length > 0 && canisterData.gaps) {
+          canisterData.gaps = canisterData.gaps.filter(function(g) { return g.indexOf('themes') === -1; });
+        }
+        // Add pre-population note to canister data
+        canisterData.contactPrePopulation = {
+          name: contactContext.name,
+          company: contactContext.company_name,
+          role: contactContext.role_title,
+          stakeholder_type: contactContext.stakeholder_type,
+          themes: contactContext.canonical_themes,
+          geography: contactContext.geography
+        };
+      }
+
       var stablePrompt = buildNevSystemPromptStable(canisterData);
+
+      // Append contact context to system prompt if available
+      if (canisterData.contactPrePopulation) {
+        var cp = canisterData.contactPrePopulation;
+        stablePrompt += '\n\n---\n\nPRE-POPULATED CONTEXT (from community invite):\n' +
+          'This person was invited by their community. You already know:\n' +
+          (cp.name ? '- Name: ' + cp.name + '\n' : '') +
+          (cp.company ? '- Company: ' + cp.company + '\n' : '') +
+          (cp.role ? '- Role: ' + cp.role + '\n' : '') +
+          (cp.stakeholder_type ? '- Likely stakeholder type: ' + cp.stakeholder_type + '\n' : '') +
+          (cp.themes && cp.themes.length ? '- Likely themes: ' + cp.themes.join(', ') + '\n' : '') +
+          (cp.geography ? '- Geography: ' + cp.geography + '\n' : '') +
+          '\nUse this to start the conversation with specific context. Confirm what you know rather than re-asking. Ask sharpening questions instead of basics.';
+      }
 
       systemBlocks = [
         {

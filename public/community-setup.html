@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Community Setup — EventMedium</title>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+:root{
+  --bg:#ffffff;--bg2:#f8f8fa;--bg3:#f0f0f4;
+  --heading:#1a1a2e;--accent:#6366f1;--accent2:#4f46e5;--accent-light:rgba(99,102,241,0.08);
+  --text:#1a1a2e;--text2:#555;--text3:#999;
+  --border:rgba(0,0,0,0.06);--border2:rgba(0,0,0,0.1);
+  --green:#059669;--greenL:rgba(5,150,105,0.08);
+  --amber:#d97706;--amberL:rgba(217,119,6,0.08);
+  --red:#dc2626;--redL:rgba(220,38,38,0.08);
+  --blue:#2563eb;--blueL:rgba(37,99,235,0.08);
+  --purple:#7c3aed;--orange:#ea580c;
+  --sans:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+  --max:1380px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--sans);background:var(--bg2);color:var(--text);min-height:100vh}
+
+/* ── Header ── */
+.header{background:linear-gradient(135deg,var(--bg) 0%,var(--bg2) 100%);border-bottom:1px solid var(--border);padding:28px 36px 24px}
+.header-inner{max-width:var(--max);margin:0 auto}
+.header-row{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px}
+.logo{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;color:var(--heading);text-decoration:none;margin-bottom:6px}
+.logo .ld{width:20px;height:20px;border-radius:5px;background:linear-gradient(135deg,var(--accent),var(--accent2))}
+.logo em{color:var(--accent);font-style:normal}
+.title{font-size:22px;font-weight:700;letter-spacing:-0.03em;color:var(--heading)}
+.subtitle{font-size:13px;color:var(--text3);margin-top:3px}
+.pill{display:inline-block;padding:3px 12px;border-radius:20px;font-size:11px;font-weight:600}
+.pill-green{background:var(--greenL);color:var(--green)}
+.pill-accent{background:var(--accent-light);color:var(--accent)}
+.pill-amber{background:var(--amberL);color:var(--amber)}
+.pill-red{background:var(--redL);color:var(--red)}
+
+/* ── Buttons ── */
+.btn-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border2);border-radius:8px;padding:8px 16px;cursor:pointer;font-size:13px;font-weight:600;font-family:var(--sans);background:var(--bg);color:var(--text2);transition:all 0.2s;text-decoration:none}
+.btn:hover{border-color:rgba(99,102,241,0.3);color:var(--accent)}
+.btn-pri{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn-pri:hover{background:var(--accent2);border-color:var(--accent2);color:#fff}
+.btn-pri:disabled{opacity:0.5;cursor:not-allowed}
+.btn-back{border-color:rgba(99,102,241,0.3);background:linear-gradient(135deg,rgba(99,102,241,0.04),rgba(79,70,229,0.08));color:var(--accent)}
+.btn-back:hover{background:linear-gradient(135deg,rgba(99,102,241,0.08),rgba(79,70,229,0.14));border-color:var(--accent);color:var(--accent)}
+.btn-sm{padding:5px 12px;font-size:12px;border-radius:6px}
+.btn-danger{color:var(--red);border-color:rgba(220,38,38,0.2)}
+.btn-danger:hover{background:var(--redL);border-color:var(--red);color:var(--red)}
+.btn-green{background:var(--green);color:#fff;border-color:var(--green)}
+.btn-green:hover{background:#047857;border-color:#047857;color:#fff}
+
+/* ── Body ── */
+.body{max-width:var(--max);margin:0 auto;padding:28px 36px}
+
+/* ── Cards ── */
+.card{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:24px;transition:border-color 0.2s}
+.card:hover{border-color:rgba(99,102,241,0.1)}
+.card-t{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:20px}
+
+/* ── Tabs ── */
+.tabs{display:flex;border-bottom:2px solid var(--border2);margin-bottom:24px}
+.tab{padding:10px 22px 12px;font-size:14px;font-weight:500;cursor:pointer;border:none;background:transparent;color:var(--text3);font-family:var(--sans);border-bottom:2px solid transparent;margin-bottom:-2px;transition:all 0.15s}
+.tab.active{font-weight:700;color:var(--accent);border-bottom-color:var(--accent)}
+.tab:hover{color:var(--heading)}
+.tab-content{display:none}.tab-content.active{display:block}
+
+/* ── Form ── */
+.form-row{margin-bottom:16px}
+.form-row label{display:block;font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:5px}
+.form-row input,.form-row textarea,.form-row select{width:100%;padding:9px 12px;border:1px solid var(--border2);border-radius:8px;font-size:14px;font-family:var(--sans);color:var(--text);background:#fff;outline:none;transition:border-color 0.15s}
+.form-row input:focus,.form-row textarea:focus,.form-row select:focus{border-color:var(--accent)}
+.form-row textarea{resize:vertical;min-height:80px}
+.form-2col{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+/* ── Theme chips ── */
+.theme-grid{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.theme-chip{padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;border:1.5px solid var(--border2);background:var(--bg2);color:var(--text2);transition:all 0.15s;user-select:none;display:inline-block}
+.theme-chip.selected{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+/* ── Search/select ── */
+.search-box{background:var(--bg);border:1px solid var(--border2);border-radius:8px;padding:8px 14px;font-size:13px;font-family:var(--sans);color:var(--text);outline:none;transition:border-color 0.2s;width:200px}
+.search-box:focus{border-color:var(--accent)}
+.sel{background:var(--bg);border:1px solid var(--border2);border-radius:8px;padding:8px 14px;font-size:13px;font-family:var(--sans);color:var(--text);outline:none;cursor:pointer}
+.sel:focus{border-color:var(--accent)}
+
+/* ── Skeleton ── */
+.skel{border-radius:4px;background:linear-gradient(90deg,var(--bg3) 25%,var(--bg2) 50%,var(--bg3) 75%);background-size:400% 100%;animation:shimmer 1.5s ease-in-out infinite}
+@keyframes shimmer{0%{background-position:100% 50%}100%{background-position:0 50%}}
+
+/* ── Empty state ── */
+.empty-vis{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:160px;border:2px dashed var(--border2);border-radius:10px;gap:6px;color:var(--text3);font-size:13px;text-align:center;padding:32px}
+.empty-vis strong{display:block;font-size:14px;color:var(--text2);margin-bottom:4px}
+
+/* ── Modal ── */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:500;display:none;align-items:center;justify-content:center;padding:24px}
+.modal-bg.open{display:flex}
+.modal{background:#fff;border-radius:14px;padding:32px;width:100%;max-width:580px;max-height:90vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,0.18)}
+.modal h3{font-size:17px;font-weight:700;color:var(--heading);margin-bottom:20px}
+.modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:24px}
+.modal-cancel{padding:9px 18px;border:1px solid var(--border2);border-radius:8px;font-size:13px;font-weight:600;background:var(--bg);color:var(--text2);cursor:pointer;font-family:var(--sans)}
+.modal-submit{padding:9px 22px;border:none;border-radius:8px;font-size:13px;font-weight:600;background:var(--accent);color:#fff;cursor:pointer;font-family:var(--sans);transition:background 0.15s}
+.modal-submit:hover{background:var(--accent2)}
+.modal-submit:disabled{opacity:0.5;cursor:not-allowed}
+
+/* ── Tables ── */
+.tbl-head{display:grid;padding:0 0 10px;border-bottom:2px solid var(--border2);margin-bottom:2px;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3)}
+.tbl-row{display:grid;padding:10px 0;border-bottom:1px solid var(--border);align-items:center;font-size:13px;transition:background 0.12s}
+.tbl-row:last-child{border-bottom:none}
+.tbl-row:hover{background:var(--bg2)}
+
+/* ── Pagination ── */
+.pager{display:flex;gap:4px;margin-top:16px;justify-content:flex-end;align-items:center;flex-wrap:wrap}
+.pg{min-width:32px;height:32px;border-radius:6px;border:1px solid var(--border2);background:var(--bg);cursor:pointer;font-size:13px;font-family:var(--sans);color:var(--text2);padding:0 8px;display:inline-flex;align-items:center;justify-content:center;transition:all 0.15s}
+.pg:hover{border-color:rgba(99,102,241,0.3);color:var(--accent)}
+.pg.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.pg:disabled{opacity:0.3;cursor:default}
+
+/* ── Progress stepper ── */
+.stepper{display:flex;align-items:center;justify-content:center;gap:0;margin-bottom:32px}
+.step-item{display:flex;align-items:center;gap:0}
+.step-circle{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;border:2px solid var(--border2);background:var(--bg);color:var(--text3);transition:all 0.25s;flex-shrink:0}
+.step-circle.active{border-color:var(--accent);background:var(--accent);color:#fff}
+.step-circle.done{border-color:var(--green);background:var(--green);color:#fff}
+.step-label{font-size:11px;font-weight:600;color:var(--text3);margin-left:8px;white-space:nowrap;transition:color 0.2s}
+.step-label.active{color:var(--accent)}
+.step-label.done{color:var(--green)}
+.step-line{width:48px;height:2px;background:var(--border2);margin:0 12px;flex-shrink:0;transition:background 0.25s}
+.step-line.done{background:var(--green)}
+
+/* ── Wizard panel ── */
+.wizard-panel{display:none}
+.wizard-panel.active{display:block}
+.wizard-nav{display:flex;justify-content:space-between;align-items:center;margin-top:32px;padding-top:24px;border-top:1px solid var(--border)}
+
+/* ── Drop zone ── */
+.drop-zone{border:2px dashed var(--border2);border-radius:12px;padding:48px 32px;text-align:center;cursor:pointer;transition:all 0.2s;background:var(--bg)}
+.drop-zone:hover,.drop-zone.dragover{border-color:var(--accent);background:var(--accent-light)}
+.drop-zone-icon{margin-bottom:12px;color:var(--text3)}
+.drop-zone-text{font-size:14px;font-weight:600;color:var(--text2);margin-bottom:4px}
+.drop-zone-sub{font-size:12px;color:var(--text3)}
+.drop-zone-file{margin-top:12px;font-size:13px;font-weight:600;color:var(--accent);display:none}
+
+/* ── CRM buttons ── */
+.crm-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:480px}
+.crm-btn{display:flex;flex-direction:column;align-items:center;gap:10px;padding:28px 20px;border:1.5px solid var(--border2);border-radius:12px;background:var(--bg);cursor:pointer;transition:all 0.2s;font-family:var(--sans)}
+.crm-btn:hover{border-color:var(--accent);box-shadow:0 2px 12px rgba(99,102,241,0.08)}
+.crm-btn-name{font-size:14px;font-weight:700;color:var(--heading)}
+.crm-btn-sub{font-size:11px;color:var(--text3)}
+
+/* ── Mapping table ── */
+.map-table{width:100%;border-collapse:collapse}
+.map-table th{text-align:left;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);padding:8px 12px;border-bottom:2px solid var(--border2)}
+.map-table td{padding:10px 12px;border-bottom:1px solid var(--border);font-size:13px}
+.map-table tr:hover td{background:var(--bg2)}
+.map-table select{padding:6px 10px;border:1px solid var(--border2);border-radius:6px;font-size:12px;font-family:var(--sans);background:#fff;color:var(--text);outline:none}
+.map-table select:focus{border-color:var(--accent)}
+.map-table .sample{font-size:11px;color:var(--text3);margin-top:2px}
+
+/* ── Summary bar ── */
+.summary-bar{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:24px}
+.summary-stat{display:flex;align-items:center;gap:8px;padding:10px 18px;border-radius:10px;border:1px solid var(--border);background:var(--bg)}
+.summary-stat .num{font-size:20px;font-weight:700;line-height:1}
+.summary-stat .lbl{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px}
+
+/* ── Bar ── */
+.bar-track{position:relative;height:6px;background:var(--bg3);border-radius:3px;overflow:hidden}
+.bar-fill{position:absolute;left:0;top:0;height:100%;border-radius:3px;transition:width 0.4s ease}
+
+/* ── Enrich progress ── */
+.enrich-bar{margin-bottom:24px;padding:16px 20px;border-radius:10px;border:1px solid var(--border);background:var(--bg)}
+.enrich-label{font-size:12px;font-weight:600;color:var(--text2);margin-bottom:8px;display:flex;justify-content:space-between}
+
+/* ── Contact table ── */
+.contact-cols{grid-template-columns:32px 1.4fr 1.2fr 100px 1fr 90px 60px}
+.contact-cols-invite{grid-template-columns:32px 1.4fr 1.2fr 100px 1fr 90px}
+
+/* ── Inline edit ── */
+.inline-sel{padding:3px 8px;border:1px solid var(--border2);border-radius:5px;font-size:11px;font-family:var(--sans);background:#fff;color:var(--text);cursor:pointer}
+.inline-sel:focus{border-color:var(--accent)}
+
+/* ── Invite section ── */
+.invite-count{font-size:28px;font-weight:700;color:var(--heading);text-align:center;margin-bottom:4px}
+.invite-lbl{font-size:13px;color:var(--text3);text-align:center;margin-bottom:24px}
+
+/* ── Send progress ── */
+.send-progress{display:none;text-align:center;padding:32px}
+.send-progress .ring{width:64px;height:64px;border:4px solid var(--bg3);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 16px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── Responsive ── */
+@media(max-width:900px){
+  .header{padding:20px 16px 16px}
+  .body{padding:20px 16px}
+  .stepper{flex-wrap:wrap;gap:4px}
+  .step-line{width:24px;margin:0 6px}
+  .step-label{display:none}
+  .form-2col{grid-template-columns:1fr}
+  .crm-grid{grid-template-columns:1fr}
+  .contact-cols,.contact-cols-invite{grid-template-columns:32px 1fr 1fr 80px 60px}
+}
+@media(max-width:500px){
+  .summary-bar{flex-direction:column}
+}
+</style>
+</head>
+<body>
+
+<!-- ── Header ── -->
+<div class="header">
+  <div class="header-inner">
+    <a href="/" class="logo"><span class="ld"></span>Event <em>Medium</em></a>
+    <div class="header-row">
+      <div>
+        <div class="title">Community Setup</div>
+        <div class="subtitle">Get your community up and running in a few steps</div>
+      </div>
+      <div class="btn-row">
+        <a href="/community-dashboard.html" class="btn"><i data-lucide="arrow-left" style="width:14px;height:14px"></i> Dashboard</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Body ── -->
+<div class="body">
+
+  <!-- ── Stepper ── -->
+  <div class="stepper" id="stepper">
+    <div class="step-item">
+      <div class="step-circle active" data-step="1">1</div>
+      <span class="step-label active">Profile</span>
+    </div>
+    <div class="step-line"></div>
+    <div class="step-item">
+      <div class="step-circle" data-step="2">2</div>
+      <span class="step-label">Add Contacts</span>
+    </div>
+    <div class="step-line"></div>
+    <div class="step-item">
+      <div class="step-circle" data-step="3">3</div>
+      <span class="step-label">Field Mapping</span>
+    </div>
+    <div class="step-line"></div>
+    <div class="step-item">
+      <div class="step-circle" data-step="4">4</div>
+      <span class="step-label">Review</span>
+    </div>
+    <div class="step-line"></div>
+    <div class="step-item">
+      <div class="step-circle" data-step="5">5</div>
+      <span class="step-label">Send Invites</span>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- STEP 1 — Community Profile                     -->
+  <!-- ══════════════════════════════════════════════ -->
+  <div class="wizard-panel active" id="step1">
+    <div class="card">
+      <div class="card-t">Community Profile</div>
+      <div class="form-row">
+        <label>Community Name</label>
+        <input type="text" id="cpName" placeholder="e.g. Fintech Founders Network">
+      </div>
+      <div class="form-2col">
+        <div class="form-row">
+          <label>Type</label>
+          <select id="cpType">
+            <option value="">Select type...</option>
+            <option value="alumni_network">Alumni Network</option>
+            <option value="industry_association">Industry Association</option>
+            <option value="research_institution">Research Institution</option>
+            <option value="startup_ecosystem">Startup Ecosystem</option>
+            <option value="private_club">Private Club</option>
+            <option value="corporate_network">Corporate Network</option>
+            <option value="event_community">Event Community</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>Region</label>
+          <input type="text" id="cpRegion" placeholder="e.g. Europe, APAC, Global">
+        </div>
+      </div>
+      <div class="form-row">
+        <label>Primary Themes</label>
+        <div class="theme-grid" id="cpThemes"></div>
+      </div>
+      <div class="form-row">
+        <label>Description</label>
+        <textarea id="cpDesc" placeholder="Briefly describe your community's purpose and focus..."></textarea>
+      </div>
+    </div>
+    <div class="wizard-nav">
+      <div></div>
+      <button class="btn btn-pri" onclick="saveStep1()"><i data-lucide="arrow-right" style="width:14px;height:14px"></i> Continue</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- STEP 2 — Add Contacts                          -->
+  <!-- ══════════════════════════════════════════════ -->
+  <div class="wizard-panel" id="step2">
+    <div class="card">
+      <div class="card-t">Add Contacts</div>
+      <div class="tabs" id="contactTabs">
+        <button class="tab active" data-tab="upload">Upload File</button>
+        <button class="tab" data-tab="crm">Connect CRM</button>
+        <button class="tab" data-tab="manual">Add Manually</button>
+      </div>
+
+      <!-- Upload tab -->
+      <div class="tab-content active" id="tab-upload">
+        <div class="drop-zone" id="dropZone">
+          <div class="drop-zone-icon"><i data-lucide="upload-cloud" style="width:40px;height:40px"></i></div>
+          <div class="drop-zone-text">Drag and drop your file here</div>
+          <div class="drop-zone-sub">or click to browse — .csv, .xlsx, .xls supported</div>
+          <div class="drop-zone-file" id="dropFileName"></div>
+          <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" style="display:none">
+        </div>
+        <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center">
+          <a href="#" id="downloadTemplate" class="btn btn-sm"><i data-lucide="download" style="width:13px;height:13px"></i> Download template</a>
+          <button class="btn btn-pri" id="uploadBtn" style="display:none" onclick="uploadFile()"><i data-lucide="upload" style="width:14px;height:14px"></i> Upload</button>
+        </div>
+        <div id="uploadStatus" style="margin-top:12px"></div>
+      </div>
+
+      <!-- CRM tab -->
+      <div class="tab-content" id="tab-crm">
+        <p style="font-size:13px;color:var(--text2);margin-bottom:20px">Connect your CRM to automatically sync contacts into EventMedium.</p>
+        <div class="crm-grid">
+          <button class="crm-btn" onclick="syncCRM('hubspot')">
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="16" fill="#FF7A59"/><text x="16" y="21" text-anchor="middle" fill="#fff" font-size="12" font-weight="700">HS</text></svg>
+            <span class="crm-btn-name">HubSpot</span>
+            <span class="crm-btn-sub">Sync contacts from HubSpot</span>
+          </button>
+          <button class="crm-btn" onclick="syncCRM('salesforce')">
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="16" fill="#00A1E0"/><text x="16" y="21" text-anchor="middle" fill="#fff" font-size="12" font-weight="700">SF</text></svg>
+            <span class="crm-btn-name">Salesforce</span>
+            <span class="crm-btn-sub">Sync contacts from Salesforce</span>
+          </button>
+        </div>
+        <div id="crmStatus" style="margin-top:16px"></div>
+      </div>
+
+      <!-- Manual tab -->
+      <div class="tab-content" id="tab-manual">
+        <div class="form-2col">
+          <div class="form-row"><label>Name</label><input type="text" id="manName" placeholder="Full name"></div>
+          <div class="form-row"><label>Email</label><input type="email" id="manEmail" placeholder="email@company.com"></div>
+        </div>
+        <div class="form-2col">
+          <div class="form-row"><label>Company</label><input type="text" id="manCompany" placeholder="Company name"></div>
+          <div class="form-row"><label>Role</label><input type="text" id="manRole" placeholder="Job title"></div>
+        </div>
+        <div class="form-row"><label>Country</label><input type="text" id="manCountry" placeholder="e.g. United Kingdom"></div>
+        <button class="btn btn-pri" onclick="addManualContact()"><i data-lucide="plus" style="width:14px;height:14px"></i> Add contact</button>
+        <div id="manualStatus" style="margin-top:12px"></div>
+        <div id="manualList" style="margin-top:16px"></div>
+      </div>
+    </div>
+    <div class="wizard-nav">
+      <button class="btn btn-back" onclick="goStep(1)"><i data-lucide="arrow-left" style="width:14px;height:14px"></i> Back</button>
+      <button class="btn btn-pri" onclick="finishStep2()"><i data-lucide="arrow-right" style="width:14px;height:14px"></i> Continue</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- STEP 3 — Field Mapping                          -->
+  <!-- ══════════════════════════════════════════════ -->
+  <div class="wizard-panel" id="step3">
+    <div class="card">
+      <div class="card-t">Field Mapping</div>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:20px">Map your uploaded columns to EventMedium fields. Any unmapped columns will be skipped.</p>
+      <div style="overflow-x:auto">
+        <table class="map-table" id="mappingTable">
+          <thead><tr><th>Detected Column</th><th>Sample Data</th><th>Map To</th></tr></thead>
+          <tbody id="mappingBody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="wizard-nav">
+      <button class="btn btn-back" onclick="goStep(2)"><i data-lucide="arrow-left" style="width:14px;height:14px"></i> Back</button>
+      <div class="btn-row">
+        <button class="btn" onclick="saveMapping()"><i data-lucide="save" style="width:14px;height:14px"></i> Save mapping</button>
+        <button class="btn btn-pri" onclick="saveMappingAndContinue()"><i data-lucide="arrow-right" style="width:14px;height:14px"></i> Continue</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- STEP 4 — Review & Enrich                        -->
+  <!-- ══════════════════════════════════════════════ -->
+  <div class="wizard-panel" id="step4">
+    <!-- Summary bar -->
+    <div class="summary-bar" id="summaryBar">
+      <div class="summary-stat"><span class="num" id="sumImported" style="color:var(--green)">0</span><span class="lbl">Imported</span></div>
+      <div class="summary-stat"><span class="num" id="sumDuplicates" style="color:var(--amber)">0</span><span class="lbl">Duplicates</span></div>
+      <div class="summary-stat"><span class="num" id="sumFailed" style="color:var(--red)">0</span><span class="lbl">Failed</span></div>
+    </div>
+
+    <!-- Enrichment progress -->
+    <div class="enrich-bar" id="enrichBar" style="display:none">
+      <div class="enrich-label">
+        <span>Enriching contacts...</span>
+        <span id="enrichPct">0%</span>
+      </div>
+      <div class="bar-track"><div class="bar-fill" id="enrichFill" style="width:0%;background:var(--accent)"></div></div>
+    </div>
+
+    <!-- Filters -->
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center">
+      <input type="text" class="search-box" id="reviewSearch" placeholder="Search contacts..." style="flex:1;min-width:180px;max-width:300px">
+      <select class="sel" id="filterType"><option value="">All types</option></select>
+      <select class="sel" id="filterTheme"><option value="">All themes</option></select>
+    </div>
+
+    <!-- Contact table -->
+    <div class="card" style="padding:16px">
+      <div class="tbl-head contact-cols">
+        <span></span><span>Name / Company</span><span>Email</span><span>Type</span><span>Themes</span><span>Jurisdiction</span><span></span>
+      </div>
+      <div id="contactTableBody"></div>
+      <div class="pager" id="reviewPager"></div>
+    </div>
+    <div class="wizard-nav">
+      <button class="btn btn-back" onclick="goStep(2)"><i data-lucide="arrow-left" style="width:14px;height:14px"></i> Back</button>
+      <button class="btn btn-pri" onclick="goStep(5)"><i data-lucide="arrow-right" style="width:14px;height:14px"></i> Continue to Invites</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- STEP 5 — Send Invites                           -->
+  <!-- ══════════════════════════════════════════════ -->
+  <div class="wizard-panel" id="step5">
+    <div class="card" id="inviteCard">
+      <div class="invite-count" id="inviteCount">0</div>
+      <div class="invite-lbl">contacts ready to invite</div>
+
+      <div class="form-row">
+        <label>Personal Note (optional)</label>
+        <textarea id="inviteNote" placeholder="Add a personal message that will be included in each invite..."></textarea>
+      </div>
+
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:20px">
+        <button class="btn" onclick="previewInvite()"><i data-lucide="eye" style="width:14px;height:14px"></i> Preview an invite</button>
+        <button class="btn btn-pri" onclick="selectContactsFirst()"><i data-lucide="users" style="width:14px;height:14px"></i> Select contacts first</button>
+        <button class="btn btn-green" onclick="sendToAll()"><i data-lucide="send" style="width:14px;height:14px"></i> Send to all</button>
+      </div>
+
+      <!-- Select contacts sub-panel -->
+      <div id="selectPanel" style="display:none;margin-top:24px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <label style="font-size:12px;font-weight:600;color:var(--text2)"><input type="checkbox" id="selectAll" style="margin-right:6px"> Select all</label>
+          <span id="selectedCount" style="font-size:12px;color:var(--text3)">0 selected</span>
+        </div>
+        <div id="inviteContactList"></div>
+        <div style="margin-top:16px;text-align:right">
+          <button class="btn btn-green" onclick="sendSelected()"><i data-lucide="send" style="width:14px;height:14px"></i> Send to selected</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Send progress -->
+    <div class="send-progress" id="sendProgress">
+      <div class="ring"></div>
+      <div style="font-size:15px;font-weight:600;color:var(--heading)" id="sendProgressText">Sending invites...</div>
+      <div style="font-size:13px;color:var(--text3);margin-top:4px" id="sendProgressSub"></div>
+    </div>
+
+    <!-- Done state -->
+    <div id="sendDone" style="display:none;text-align:center;padding:48px 24px">
+      <div style="width:64px;height:64px;border-radius:50%;background:var(--greenL);display:flex;align-items:center;justify-content:center;margin:0 auto 16px"><i data-lucide="check" style="width:32px;height:32px;color:var(--green)"></i></div>
+      <div style="font-size:20px;font-weight:700;color:var(--heading);margin-bottom:6px">Invites Sent!</div>
+      <div style="font-size:13px;color:var(--text3);margin-bottom:24px" id="sendDoneSub"></div>
+      <a class="btn btn-pri" id="dashboardLink" href="/community-dashboard.html"><i data-lucide="layout-dashboard" style="width:14px;height:14px"></i> Go to Dashboard</a>
+    </div>
+
+    <div class="wizard-nav" id="step5Nav">
+      <button class="btn btn-back" onclick="goStep(4)"><i data-lucide="arrow-left" style="width:14px;height:14px"></i> Back</button>
+      <div></div>
+    </div>
+  </div>
+
+</div><!-- /body -->
+
+<!-- ── Preview Modal ── -->
+<div class="modal-bg" id="previewModal">
+  <div class="modal">
+    <h3>Invite Preview</h3>
+    <div id="previewContent" style="font-size:13px;color:var(--text2);line-height:1.7;background:var(--bg2);border-radius:10px;padding:20px;border:1px solid var(--border)"></div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeModal('previewModal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Config ──
+var TOKEN = localStorage.getItem('auth_token');
+var COMMUNITY_ID = new URLSearchParams(window.location.search).get('community');
+var BASE = '/api/community/' + COMMUNITY_ID + '/setup';
+var THEMES = ['AI','Fintech','Cybersecurity','Enterprise SaaS','Web3','Quantum','Robotics','IoT','Hardware','Climate','Health','Education','Media & Entertainment','Real Estate','Food & Agriculture','Supply Chain','Space','Defence','Growth & GTM','Impact & Social','Venture & Capital','Data & Analytics','Privacy & Regulation','Infrastructure & Cloud','Marketplace & Commerce','Travel & Mobility'];
+var STAKEHOLDER_TYPES = ['investor','founder','operator','advisor','corporate','government','academic','media','service_provider'];
+var EM_FIELDS = ['email','first_name','last_name','name','company_name','role_title','company_country','company_domain','linkedin_url','owner_notes','skip'];
+
+var currentStep = 1;
+var needsMapping = false;
+var uploadSource = '';
+var contacts = [];
+var reviewPage = 1;
+var reviewLimit = 25;
+var enrichInterval = null;
+var manualContacts = [];
+var selectedFile = null;
+
+// ── Auth check ──
+if (!TOKEN) { window.location.href = '/auth.html'; }
+if (!COMMUNITY_ID) { alert('Missing community parameter'); }
+
+// ── Helpers ──
+function esc(s) { var d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+function headers() { return { 'Authorization': 'Bearer ' + TOKEN, 'Content-Type': 'application/json' }; }
+function headersPlain() { return { 'Authorization': 'Bearer ' + TOKEN }; }
+
+async function api(method, path, body) {
+  var opts = { method: method, headers: headers() };
+  if (body !== undefined) opts.body = JSON.stringify(body);
+  var r = await fetch(BASE + path, opts);
+  if (!r.ok) { var e = await r.text(); throw new Error(e); }
+  return r.json();
+}
+
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function showStatus(elId, msg, type) {
+  var el = document.getElementById(elId);
+  var bg = type === 'error' ? 'var(--redL)' : type === 'success' ? 'var(--greenL)' : 'var(--accent-light)';
+  var color = type === 'error' ? 'var(--red)' : type === 'success' ? 'var(--green)' : 'var(--accent)';
+  el.innerHTML = '<div style="padding:10px 14px;border-radius:8px;background:' + bg + ';color:' + color + ';font-size:13px;font-weight:600">' + esc(msg) + '</div>';
+}
+
+// ── Stepper ──
+function updateStepper() {
+  var circles = document.querySelectorAll('.step-circle');
+  var labels = document.querySelectorAll('.step-label');
+  var lines = document.querySelectorAll('.step-line');
+  circles.forEach(function(c, i) {
+    var s = i + 1;
+    c.className = 'step-circle';
+    labels[i].className = 'step-label';
+    if (s < currentStep) { c.classList.add('done'); c.innerHTML = '<i data-lucide="check" style="width:16px;height:16px"></i>'; labels[i].classList.add('done'); }
+    else if (s === currentStep) { c.classList.add('active'); c.textContent = s; labels[i].classList.add('active'); }
+    else { c.textContent = s; }
+  });
+  lines.forEach(function(l, i) {
+    l.className = 'step-line';
+    if (i + 1 < currentStep) l.classList.add('done');
+  });
+  lucide.createIcons();
+}
+
+function goStep(n) {
+  // Skip mapping step if not needed
+  if (n === 3 && !needsMapping) n = 4;
+  currentStep = n;
+  document.querySelectorAll('.wizard-panel').forEach(function(p) { p.classList.remove('active'); });
+  document.getElementById('step' + n).classList.add('active');
+  updateStepper();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  if (n === 4) loadReviewContacts();
+  if (n === 5) loadInviteCount();
+}
+
+// ── Step 1: Community Profile ──
+var selectedThemes = [];
+
+function renderThemeChips() {
+  var grid = document.getElementById('cpThemes');
+  grid.innerHTML = THEMES.map(function(t) {
+    var sel = selectedThemes.indexOf(t) >= 0 ? ' selected' : '';
+    return '<span class="theme-chip' + sel + '" data-theme="' + esc(t) + '">' + esc(t) + '</span>';
+  }).join('');
+  grid.querySelectorAll('.theme-chip').forEach(function(chip) {
+    chip.addEventListener('click', function() {
+      var th = this.dataset.theme;
+      var idx = selectedThemes.indexOf(th);
+      if (idx >= 0) selectedThemes.splice(idx, 1);
+      else selectedThemes.push(th);
+      this.classList.toggle('selected');
+    });
+  });
+}
+
+async function saveStep1() {
+  var name = document.getElementById('cpName').value.trim();
+  var type = document.getElementById('cpType').value;
+  var region = document.getElementById('cpRegion').value.trim();
+  var desc = document.getElementById('cpDesc').value.trim();
+  if (!name) { alert('Please enter a community name'); return; }
+  try {
+    await fetch('/api/community/' + COMMUNITY_ID, {
+      method: 'PATCH',
+      headers: headers(),
+      body: JSON.stringify({ name: name, type: type, region: region, primary_themes: selectedThemes, description: desc })
+    });
+    goStep(2);
+  } catch(e) {
+    alert('Error saving profile: ' + e.message);
+  }
+}
+
+// ── Step 2: Add Contacts ──
+
+// Tabs
+document.getElementById('contactTabs').addEventListener('click', function(e) {
+  if (!e.target.classList.contains('tab')) return;
+  this.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+  e.target.classList.add('active');
+  document.querySelectorAll('#step2 .tab-content').forEach(function(tc) { tc.classList.remove('active'); });
+  document.getElementById('tab-' + e.target.dataset.tab).classList.add('active');
+});
+
+// Drop zone
+var dropZone = document.getElementById('dropZone');
+var fileInput = document.getElementById('fileInput');
+
+dropZone.addEventListener('click', function() { fileInput.click(); });
+dropZone.addEventListener('dragover', function(e) { e.preventDefault(); this.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', function() { this.classList.remove('dragover'); });
+dropZone.addEventListener('drop', function(e) {
+  e.preventDefault();
+  this.classList.remove('dragover');
+  if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', function() { if (this.files.length) handleFile(this.files[0]); });
+
+function handleFile(file) {
+  var ext = file.name.split('.').pop().toLowerCase();
+  if (['csv','xlsx','xls'].indexOf(ext) < 0) { alert('Please upload a .csv, .xlsx, or .xls file'); return; }
+  selectedFile = file;
+  var fn = document.getElementById('dropFileName');
+  fn.style.display = 'block';
+  fn.textContent = file.name + ' (' + (file.size / 1024).toFixed(1) + ' KB)';
+  document.getElementById('uploadBtn').style.display = '';
+}
+
+async function uploadFile() {
+  if (!selectedFile) return;
+  var btn = document.getElementById('uploadBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<i data-lucide="loader" style="width:14px;height:14px;animation:spin 0.8s linear infinite"></i> Uploading...';
+
+  try {
+    var text = await selectedFile.text();
+    var r = await fetch(BASE + '/contacts/upload?source=csv_upload', {
+      method: 'POST',
+      headers: headers(),
+      body: JSON.stringify({ data: text, filename: selectedFile.name })
+    });
+    var data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Upload failed');
+
+    needsMapping = data.needs_mapping === true;
+    uploadSource = data.source || 'csv_upload';
+    if (needsMapping) {
+      showStatus('uploadStatus', 'Uploaded! Some columns need mapping.', 'info');
+    } else {
+      showStatus('uploadStatus', 'Uploaded and processed ' + (data.imported || 0) + ' contacts.', 'success');
+    }
+  } catch(e) {
+    showStatus('uploadStatus', 'Upload failed: ' + e.message, 'error');
+  }
+  btn.disabled = false;
+  btn.innerHTML = '<i data-lucide="upload" style="width:14px;height:14px"></i> Upload';
+  lucide.createIcons();
+}
+
+// Download template
+document.getElementById('downloadTemplate').addEventListener('click', function(e) {
+  e.preventDefault();
+  window.open(BASE + '/contacts/template?token=' + TOKEN, '_blank');
+});
+
+// CRM sync
+async function syncCRM(provider) {
+  try {
+    showStatus('crmStatus', 'Connecting to ' + provider + '...', 'info');
+    var r = await api('POST', '/contacts/sync-crm', { provider: provider });
+    showStatus('crmStatus', 'Synced ' + (r.imported || 0) + ' contacts from ' + provider + '.', 'success');
+  } catch(e) {
+    showStatus('crmStatus', 'Sync failed: ' + e.message, 'error');
+  }
+}
+
+// Manual contact
+async function addManualContact() {
+  var name = document.getElementById('manName').value.trim();
+  var email = document.getElementById('manEmail').value.trim();
+  var company = document.getElementById('manCompany').value.trim();
+  var role = document.getElementById('manRole').value.trim();
+  var country = document.getElementById('manCountry').value.trim();
+  if (!name || !email) { alert('Name and email are required'); return; }
+  try {
+    var r = await api('POST', '/contacts/manual', { name: name, email: email, company_name: company, role_title: role, company_country: country });
+    manualContacts.push(r.contact || { name: name, email: email, company_name: company });
+    showStatus('manualStatus', 'Added ' + name, 'success');
+    document.getElementById('manName').value = '';
+    document.getElementById('manEmail').value = '';
+    document.getElementById('manCompany').value = '';
+    document.getElementById('manRole').value = '';
+    document.getElementById('manCountry').value = '';
+    renderManualList();
+  } catch(e) {
+    showStatus('manualStatus', 'Error: ' + e.message, 'error');
+  }
+}
+
+function renderManualList() {
+  var el = document.getElementById('manualList');
+  if (!manualContacts.length) { el.innerHTML = ''; return; }
+  el.innerHTML = '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px">Added contacts (' + manualContacts.length + ')</div>' +
+    manualContacts.map(function(c, i) {
+      return '<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px">' +
+        '<span>' + esc(c.name) + ' <span style="color:var(--text3)">' + esc(c.email) + '</span></span>' +
+        '<button class="btn btn-sm btn-danger" onclick="removeManual(' + i + ')"><i data-lucide="x" style="width:12px;height:12px"></i></button></div>';
+    }).join('');
+  lucide.createIcons();
+}
+
+function removeManual(i) { manualContacts.splice(i, 1); renderManualList(); }
+
+function finishStep2() {
+  if (needsMapping) {
+    loadFieldMapping();
+    goStep(3);
+  } else {
+    goStep(4);
+  }
+}
+
+// ── Step 3: Field Mapping ──
+async function loadFieldMapping() {
+  var src = uploadSource || 'csv_upload';
+  try {
+    var r = await api('GET', '/contacts/field-mapping/' + src);
+    var columns = r.columns || [];
+    var body = document.getElementById('mappingBody');
+    body.innerHTML = columns.map(function(col) {
+      var opts = EM_FIELDS.map(function(f) {
+        var sel = col.suggested === f ? ' selected' : '';
+        return '<option value="' + f + '"' + sel + '>' + f.replace(/_/g, ' ') + '</option>';
+      }).join('');
+      return '<tr data-col="' + esc(col.name) + '">' +
+        '<td><strong>' + esc(col.name) + '</strong></td>' +
+        '<td><div class="sample">' + esc((col.samples || []).slice(0, 3).join(', ')) + '</div></td>' +
+        '<td><select class="map-sel">' + '<option value="">-- skip --</option>' + opts + '</select></td></tr>';
+    }).join('');
+  } catch(e) {
+    document.getElementById('mappingBody').innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--text3);padding:24px">Could not load field mapping</td></tr>';
+  }
+}
+
+async function saveMapping() {
+  var rows = document.querySelectorAll('#mappingBody tr');
+  var mapping = {};
+  rows.forEach(function(r) {
+    var col = r.dataset.col;
+    var val = r.querySelector('.map-sel').value;
+    if (val) mapping[col] = val;
+  });
+  var src = uploadSource || 'csv_upload';
+  try {
+    await api('POST', '/contacts/field-mapping/' + src, { mapping: mapping });
+    showStatus('uploadStatus', 'Mapping saved.', 'success');
+  } catch(e) {
+    alert('Error saving mapping: ' + e.message);
+  }
+}
+
+async function saveMappingAndContinue() {
+  await saveMapping();
+  goStep(4);
+}
+
+// ── Step 4: Review & Enrich ──
+async function loadReviewContacts() {
+  var search = document.getElementById('reviewSearch').value.trim();
+  var typeF = document.getElementById('filterType').value;
+  var themeF = document.getElementById('filterTheme').value;
+  var q = '?page=' + reviewPage + '&limit=' + reviewLimit;
+  if (search) q += '&search=' + encodeURIComponent(search);
+  if (typeF) q += '&stakeholder_type=' + encodeURIComponent(typeF);
+  if (themeF) q += '&canonical_theme=' + encodeURIComponent(themeF);
+
+  var tbody = document.getElementById('contactTableBody');
+  tbody.innerHTML = '<div class="skel" style="height:200px;border-radius:8px;margin-top:8px"></div>';
+
+  try {
+    var r = await api('GET', '/contacts' + q);
+    contacts = r.contacts || r.data || [];
+    var total = r.total || contacts.length;
+    var batch = r.batch || {};
+
+    // Update summary
+    document.getElementById('sumImported').textContent = batch.imported || total || 0;
+    document.getElementById('sumDuplicates').textContent = batch.duplicates || 0;
+    document.getElementById('sumFailed').textContent = batch.failed || 0;
+
+    // Enrichment polling
+    if (batch.enrichment_status === 'processing') {
+      startEnrichPolling();
+    }
+
+    renderContactTable(contacts);
+    renderPager(total);
+    populateFilters(r);
+  } catch(e) {
+    tbody.innerHTML = '<div class="empty-vis"><strong>Could not load contacts</strong><span>' + esc(e.message) + '</span></div>';
+  }
+}
+
+function renderContactTable(list) {
+  var tbody = document.getElementById('contactTableBody');
+  if (!list.length) {
+    tbody.innerHTML = '<div class="empty-vis" style="margin-top:12px"><strong>No contacts yet</strong><span>Upload a file or add contacts manually</span></div>';
+    return;
+  }
+  tbody.innerHTML = list.map(function(c) {
+    var themes = [];
+    try { themes = typeof c.canonical_themes === 'string' ? JSON.parse(c.canonical_themes) : (c.canonical_themes || []); } catch(e) {}
+    if (!Array.isArray(themes)) themes = [];
+    var themeChips = themes.slice(0, 2).map(function(t) { return '<span class="theme-chip" style="font-size:10px;padding:2px 7px">' + esc(t) + '</span>'; }).join('');
+    if (themes.length > 2) themeChips += '<span style="font-size:10px;color:var(--text3)">+' + (themes.length - 2) + '</span>';
+
+    return '<div class="tbl-row contact-cols" data-id="' + (c.id || '') + '">' +
+      '<span style="text-align:center"><input type="checkbox" class="contact-check" value="' + (c.id || '') + '"></span>' +
+      '<span><strong style="font-size:13px;color:var(--heading)">' + esc(c.name || ((c.first_name || '') + ' ' + (c.last_name || '')).trim()) + '</strong>' +
+        '<div style="font-size:11px;color:var(--text3)">' + esc(c.company_name || '') + '</div></span>' +
+      '<span style="font-size:12px;color:var(--text2)">' + esc(c.email || '') + '</span>' +
+      '<span>' + renderTypeSelect(c) + '</span>' +
+      '<span>' + themeChips + '</span>' +
+      '<span><span class="pill pill-accent" style="font-size:10px">' + esc(c.company_country || c.jurisdiction || '') + '</span></span>' +
+      '<span style="text-align:right"><button class="btn btn-sm btn-danger" onclick="deleteContact(\'' + (c.id || '') + '\')"><i data-lucide="trash-2" style="width:12px;height:12px"></i></button></span>' +
+    '</div>';
+  }).join('');
+  lucide.createIcons();
+}
+
+function renderTypeSelect(c) {
+  var val = c.stakeholder_type || '';
+  var html = '<select class="inline-sel" onchange="updateContactField(\'' + c.id + '\',\'stakeholder_type\',this.value)">';
+  html += '<option value="">--</option>';
+  STAKEHOLDER_TYPES.forEach(function(t) {
+    html += '<option value="' + t + '"' + (val === t ? ' selected' : '') + '>' + t.replace(/_/g, ' ') + '</option>';
+  });
+  html += '</select>';
+  return html;
+}
+
+async function updateContactField(contactId, field, value) {
+  var body = {};
+  body[field] = value;
+  try {
+    await api('PATCH', '/contacts/' + contactId, body);
+  } catch(e) {
+    alert('Error updating: ' + e.message);
+  }
+}
+
+async function deleteContact(contactId) {
+  if (!confirm('Delete this contact?')) return;
+  try {
+    await fetch(BASE + '/contacts/' + contactId, { method: 'DELETE', headers: headersPlain() });
+    loadReviewContacts();
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+function renderPager(total) {
+  var pages = Math.ceil(total / reviewLimit);
+  if (pages <= 1) { document.getElementById('reviewPager').innerHTML = ''; return; }
+  var html = '<button class="pg" onclick="reviewGoPage(' + (reviewPage - 1) + ')"' + (reviewPage <= 1 ? ' disabled' : '') + '>&laquo;</button>';
+  for (var i = 1; i <= pages && i <= 10; i++) {
+    html += '<button class="pg' + (i === reviewPage ? ' on' : '') + '" onclick="reviewGoPage(' + i + ')">' + i + '</button>';
+  }
+  html += '<button class="pg" onclick="reviewGoPage(' + (reviewPage + 1) + ')"' + (reviewPage >= pages ? ' disabled' : '') + '>&raquo;</button>';
+  document.getElementById('reviewPager').innerHTML = html;
+}
+
+function reviewGoPage(p) { if (p < 1) return; reviewPage = p; loadReviewContacts(); }
+
+function populateFilters(r) {
+  var typeEl = document.getElementById('filterType');
+  if (typeEl.options.length <= 1) {
+    STAKEHOLDER_TYPES.forEach(function(t) {
+      var o = document.createElement('option'); o.value = t; o.textContent = t.replace(/_/g, ' '); typeEl.appendChild(o);
+    });
+  }
+  var themeEl = document.getElementById('filterTheme');
+  if (themeEl.options.length <= 1) {
+    THEMES.forEach(function(t) {
+      var o = document.createElement('option'); o.value = t; o.textContent = t; themeEl.appendChild(o);
+    });
+  }
+}
+
+// Enrichment polling
+function startEnrichPolling() {
+  var bar = document.getElementById('enrichBar');
+  bar.style.display = '';
+  if (enrichInterval) clearInterval(enrichInterval);
+  enrichInterval = setInterval(async function() {
+    try {
+      var r = await api('GET', '/status');
+      var pct = r.enrichment_progress || 0;
+      document.getElementById('enrichPct').textContent = pct + '%';
+      document.getElementById('enrichFill').style.width = pct + '%';
+      if (pct >= 100 || r.enrichment_status === 'complete') {
+        clearInterval(enrichInterval);
+        enrichInterval = null;
+        bar.style.display = 'none';
+        loadReviewContacts();
+      }
+    } catch(e) { /* keep polling */ }
+  }, 3000);
+}
+
+// Search/filter handlers
+document.getElementById('reviewSearch').addEventListener('input', debounce(function() { reviewPage = 1; loadReviewContacts(); }, 300));
+document.getElementById('filterType').addEventListener('change', function() { reviewPage = 1; loadReviewContacts(); });
+document.getElementById('filterTheme').addEventListener('change', function() { reviewPage = 1; loadReviewContacts(); });
+
+function debounce(fn, ms) { var t; return function() { clearTimeout(t); var a = arguments, ctx = this; t = setTimeout(function() { fn.apply(ctx, a); }, ms); }; }
+
+// ── Step 5: Send Invites ──
+async function loadInviteCount() {
+  try {
+    var r = await api('GET', '/contacts?status=ready&limit=1');
+    var total = r.total || 0;
+    document.getElementById('inviteCount').textContent = total;
+  } catch(e) {}
+}
+
+async function previewInvite() {
+  var note = document.getElementById('inviteNote').value.trim();
+  try {
+    var r = await api('POST', '/contacts/invite', { preview: true, personal_note: note });
+    document.getElementById('previewContent').innerHTML = esc(r.preview || r.message || 'Preview not available').replace(/\n/g, '<br>');
+    openModal('previewModal');
+  } catch(e) {
+    alert('Could not generate preview: ' + e.message);
+  }
+}
+
+function selectContactsFirst() {
+  var panel = document.getElementById('selectPanel');
+  if (panel.style.display === 'none') {
+    panel.style.display = '';
+    loadInviteContactList();
+  } else {
+    panel.style.display = 'none';
+  }
+}
+
+async function loadInviteContactList() {
+  try {
+    var r = await api('GET', '/contacts?status=ready&limit=500');
+    var list = r.contacts || r.data || [];
+    var el = document.getElementById('inviteContactList');
+    el.innerHTML = list.map(function(c) {
+      return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px">' +
+        '<input type="checkbox" class="invite-check" value="' + (c.id || '') + '" checked>' +
+        '<span style="flex:1"><strong>' + esc(c.name || '') + '</strong> <span style="color:var(--text3)">' + esc(c.email || '') + '</span></span>' +
+        '<span style="font-size:11px;color:var(--text3)">' + esc(c.company_name || '') + '</span></div>';
+    }).join('');
+    updateSelectedCount();
+  } catch(e) {}
+}
+
+document.getElementById('selectAll').addEventListener('change', function() {
+  var checked = this.checked;
+  document.querySelectorAll('.invite-check').forEach(function(cb) { cb.checked = checked; });
+  updateSelectedCount();
+});
+
+document.addEventListener('change', function(e) {
+  if (e.target.classList.contains('invite-check')) updateSelectedCount();
+});
+
+function updateSelectedCount() {
+  var n = document.querySelectorAll('.invite-check:checked').length;
+  document.getElementById('selectedCount').textContent = n + ' selected';
+}
+
+async function sendToAll() {
+  if (!confirm('Send invites to all contacts?')) return;
+  await doSendInvites({ all: true });
+}
+
+async function sendSelected() {
+  var ids = [];
+  document.querySelectorAll('.invite-check:checked').forEach(function(cb) { ids.push(cb.value); });
+  if (!ids.length) { alert('No contacts selected'); return; }
+  await doSendInvites({ contact_ids: ids });
+}
+
+async function doSendInvites(payload) {
+  payload.personal_note = document.getElementById('inviteNote').value.trim();
+  document.getElementById('inviteCard').style.display = 'none';
+  document.getElementById('step5Nav').style.display = 'none';
+  var prog = document.getElementById('sendProgress');
+  prog.style.display = '';
+
+  try {
+    var r = await api('POST', '/contacts/invite', payload);
+    prog.style.display = 'none';
+    var done = document.getElementById('sendDone');
+    done.style.display = '';
+    document.getElementById('sendDoneSub').textContent = (r.sent || 0) + ' invites sent successfully';
+    document.getElementById('dashboardLink').href = '/community-dashboard.html?community=' + COMMUNITY_ID;
+    lucide.createIcons();
+  } catch(e) {
+    prog.style.display = 'none';
+    document.getElementById('inviteCard').style.display = '';
+    document.getElementById('step5Nav').style.display = '';
+    alert('Error sending invites: ' + e.message);
+  }
+}
+
+// ── Init ──
+renderThemeChips();
+
+// Load existing setup status
+(async function() {
+  try {
+    var r = await api('GET', '/status');
+    if (r.community) {
+      if (r.community.name) document.getElementById('cpName').value = r.community.name;
+      if (r.community.type) document.getElementById('cpType').value = r.community.type;
+      if (r.community.region) document.getElementById('cpRegion').value = r.community.region;
+      if (r.community.description) document.getElementById('cpDesc').value = r.community.description;
+      if (r.community.primary_themes) {
+        var t = r.community.primary_themes;
+        if (typeof t === 'string') try { t = JSON.parse(t); } catch(e) { t = []; }
+        if (Array.isArray(t)) {
+          selectedThemes = t;
+          renderThemeChips();
+        }
+      }
+    }
+    if (r.current_step && r.current_step > 1) {
+      goStep(r.current_step);
+    }
+  } catch(e) { /* fresh setup */ }
+})();
+
+// Update dashboard link
+if (COMMUNITY_ID) {
+  var dLink = document.querySelector('a[href="/community-dashboard.html"]');
+  if (dLink) dLink.href = '/community-dashboard.html?community=' + COMMUNITY_ID;
+}
+
+lucide.createIcons();
+</script>
+<script src="/js/nav.js"></script>
+</body>
+</html>

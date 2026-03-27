@@ -263,5 +263,82 @@ router.post('/location', authenticateToken, async function(req, res) {
   }
 });
 
+// ══════════════════════════════════════════════════
+// INVITE TOKEN HANDLING
+// ══════════════════════════════════════════════════
+
+// GET /api/auth/invite/:token — verify invite token and return context
+router.get('/invite/:token', async function(req, res) {
+  try {
+    var invite = await dbGet(
+      'SELECT ci.*, cc.email, cc.name, cc.first_name, cc.company_name, cc.role_title, cc.community_id FROM contact_invites ci JOIN community_contacts cc ON cc.id = ci.contact_id WHERE ci.invite_token = $1',
+      [req.params.token]
+    );
+    if (!invite) return res.status(404).json({ error: 'Invite not found or expired' });
+
+    // Check expiry (30 days)
+    var sentAt = new Date(invite.sent_at);
+    if (Date.now() - sentAt.getTime() > 30 * 86400000) {
+      return res.status(410).json({ error: 'Invite expired' });
+    }
+
+    if (invite.status === 'joined') {
+      return res.json({ status: 'already_joined', email: invite.email });
+    }
+
+    // Update clicked_at
+    if (!invite.clicked_at) {
+      await dbRun("UPDATE contact_invites SET clicked_at = NOW(), status = 'clicked' WHERE id = $1", [invite.id]);
+    }
+
+    // Get community name
+    var community = await dbGet('SELECT name FROM communities WHERE id = $1', [invite.community_id]);
+
+    res.json({
+      status: 'valid',
+      email: invite.email,
+      name: invite.name,
+      first_name: invite.first_name,
+      company_name: invite.company_name,
+      role_title: invite.role_title,
+      community_name: community ? community.name : 'a community',
+      community_id: invite.community_id,
+      contact_id: invite.contact_id
+    });
+  } catch (err) {
+    console.error('Invite lookup error:', err);
+    res.status(500).json({ error: 'Failed to verify invite' });
+  }
+});
+
+// POST /api/auth/invite/:token/complete — link user to contact after registration
+router.post('/invite/:token/complete', authenticateToken, async function(req, res) {
+  try {
+    var invite = await dbGet(
+      'SELECT ci.*, cc.community_id FROM contact_invites ci JOIN community_contacts cc ON cc.id = ci.contact_id WHERE ci.invite_token = $1',
+      [req.params.token]
+    );
+    if (!invite) return res.status(404).json({ error: 'Invite not found' });
+
+    // Link contact to user
+    await dbRun(
+      "UPDATE community_contacts SET user_id = $1, status = 'joined', joined_at = NOW(), updated_at = NOW() WHERE id = $2",
+      [req.user.id, invite.contact_id]
+    );
+    await dbRun("UPDATE contact_invites SET status = 'joined' WHERE id = $1", [invite.id]);
+
+    // Add to community as member
+    await dbRun(
+      "INSERT INTO community_members (community_id, user_id, role) VALUES ($1, $2, 'member') ON CONFLICT (community_id, user_id) DO NOTHING",
+      [invite.community_id, req.user.id]
+    );
+
+    res.json({ status: 'linked', community_id: invite.community_id });
+  } catch (err) {
+    console.error('Invite complete error:', err);
+    res.status(500).json({ error: 'Failed to complete invite' });
+  }
+});
+
 // Export both router and createSession (needed by OAuth routes)
 module.exports = { router, createSession };
