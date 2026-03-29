@@ -179,6 +179,9 @@ URLS = URLS.filter(function(u) {
   return true;
 });
 
+// Export for weekly_harvest.js to import
+module.exports = { URLS: URLS };
+
 var stats = { total: URLS.length, success: 0, duplicate: 0, failed: 0, events: [] };
 
 async function run() {
