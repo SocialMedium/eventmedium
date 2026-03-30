@@ -6,15 +6,32 @@ var d = require('../lib/event_dedup');
 var { normalizeThemes } = require('../lib/theme_taxonomy');
 var { dbRun, dbGet } = require('../db');
 
+// Focus on major conferences and summits in key regions
 var QS = [
-  'FinTech conference 2026', 'AI summit 2026', 'Climate Tech conference 2026',
-  'Cybersecurity summit 2026', 'HealthTech conference 2026', 'SaaS conference 2026',
-  'Robotics expo 2026', 'SpaceTech conference 2026', 'EdTech summit 2026',
-  'Gaming conference 2026', 'Web3 conference 2026', 'IoT summit 2026',
-  'Privacy conference 2026', 'GovTech summit 2026', 'PropTech conference 2026'
+  // Theme × Region queries — conferences and summits only
+  'FinTech conference 2026 Europe', 'FinTech summit 2026 USA',
+  'AI conference 2026 London', 'AI summit 2026 Singapore',
+  'Climate Tech conference 2026', 'CleanTech summit 2026 Europe',
+  'Cybersecurity conference 2026 Europe', 'Cybersecurity summit 2026 USA',
+  'HealthTech conference 2026', 'BioTech summit 2026',
+  'SaaS conference 2026 Europe', 'Enterprise SaaS summit 2026',
+  'Robotics expo 2026', 'SpaceTech conference 2026',
+  'EdTech conference 2026 Europe', 'EdTech summit 2026 USA',
+  'Web3 conference 2026', 'Blockchain summit 2026 Asia',
+  'IoT conference 2026', 'Privacy conference 2026 Europe',
+  'GovTech summit 2026', 'PropTech conference 2026 London',
+  'tech conference 2026 Australia', 'tech summit 2026 Singapore',
+  'tech conference 2026 Dubai', 'startup conference 2026 Europe'
 ];
 
-var BL = ['best-', 'top-', 'biggest', 'guide', 'list-of', 'blog', 'splunk', 'panorama', 'bizzabo.com/blog'];
+// Block list pages, blog posts, aggregator sites
+var BL = [
+  'best-', 'top-', 'biggest', 'guide', 'list-of', 'blog', '/blog/',
+  'splunk.com', 'panorama', 'bizzabo.com/blog', 'meetup.com',
+  'eventbrite.com', 'lu.ma', 'medium.com', 'forbes.com', 'wikipedia',
+  'conferences-to-attend', 'events-in-', 'conferences-in-',
+  'reddit.com', 'quora.com', 'youtube.com'
+];
 
 async function run() {
   var added = 0, dupes = 0, failed = 0, skipped = 0;
