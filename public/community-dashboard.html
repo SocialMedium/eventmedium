@@ -715,7 +715,7 @@ function renderHeader() {
   document.getElementById('editCommBtn').style.display = 'inline-flex';
   document.getElementById('delCommBtn').style.display = 'inline-flex';
   var nm = document.getElementById('netMapBtn');
-  nm.href = '/network-graph.html?mode=community&id=' + c.id;
+  nm.href = '/network.html?mode=community&id=' + c.id;
   nm.style.display = 'inline-flex';
   if (typeof lucide !== 'undefined') lucide.createIcons();
 }
