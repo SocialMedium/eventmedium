@@ -17,47 +17,40 @@ router.get('/', optionalAuth, async function(req, res) {
     var idx = 1;
 
     if (theme) {
-      conditions.push('themes::text ILIKE $' + idx);
+      conditions.push('e.themes::text ILIKE $' + idx);
       params.push('%' + theme + '%');
       idx++;
     }
     if (city) {
-      conditions.push('city ILIKE $' + idx);
+      conditions.push('e.city ILIKE $' + idx);
       params.push('%' + city + '%');
       idx++;
     }
     if (country) {
-      conditions.push('country ILIKE $' + idx);
+      conditions.push('e.country ILIKE $' + idx);
       params.push('%' + country + '%');
       idx++;
     }
     if (search) {
-      conditions.push('(name ILIKE $' + idx + ' OR description ILIKE $' + idx + ')');
+      conditions.push('(e.name ILIKE $' + idx + ' OR e.description ILIKE $' + idx + ')');
       params.push('%' + search + '%');
       idx++;
     }
     if (upcoming === 'true') {
-      conditions.push('(event_date >= CURRENT_DATE OR event_date IS NULL)');
+      conditions.push('(e.event_date >= CURRENT_DATE OR e.event_date IS NULL)');
     }
 
-    conditions.push('(community_id IS NULL OR is_public = true)');
+    conditions.push('(e.community_id IS NULL OR e.is_public = true)');
     var where = ' WHERE ' + conditions.join(' AND ');
-    var lim = parseInt(limit) || 100;
+    var lim = parseInt(limit) || 500;
     var off = parseInt(offset) || 0;
 
     var events = await dbAll(
-      'SELECT * FROM events' + where + ' ORDER BY event_date ASC NULLS LAST LIMIT $' + idx + ' OFFSET $' + (idx + 1),
-      params.concat([lim, off])
+      'SELECT e.*, COALESCE(rc.reg_count, 0) AS registration_count FROM events e' +
+      ' LEFT JOIN (SELECT event_id, COUNT(*) AS reg_count FROM event_registrations WHERE status = $' + idx + ' GROUP BY event_id) rc ON rc.event_id = e.id' +
+      where + ' ORDER BY e.event_date ASC NULLS LAST LIMIT $' + (idx + 1) + ' OFFSET $' + (idx + 2),
+      params.concat(['active', lim, off])
     );
-
-    // Get registration counts
-    for (var i = 0; i < events.length; i++) {
-      var count = await dbGet(
-        'SELECT COUNT(*) as count FROM event_registrations WHERE event_id = $1 AND status = $2',
-        [events[i].id, 'active']
-      );
-      events[i].registration_count = parseInt(count.count);
-    }
 
     res.json({ events: events });
   } catch (err) {
