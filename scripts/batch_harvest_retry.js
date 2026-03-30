@@ -58,10 +58,10 @@ async function run() {
     try {
       var extracted = await harvestEvent(url);
 
-      // Filter stale
+      // Filter stale — only accept 2026+
       if (extracted.event_date) {
         var eventYear = new Date(extracted.event_date).getFullYear();
-        if (eventYear < 2025) {
+        if (eventYear < 2026) {
           stats.failed++;
           console.log(prefix, ' STALE', extracted.name, '(', extracted.event_date, ')');
           continue;

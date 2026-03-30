@@ -42,10 +42,10 @@ async function harvestAndStore(url) {
   try {
     var extracted = await harvestEvent(url);
 
-    // Filter stale events
+    // Filter stale events — only accept 2026+
     if (extracted.event_date) {
       var eventYear = new Date(extracted.event_date).getFullYear();
-      if (eventYear < 2025) {
+      if (eventYear < 2026) {
         stats.stale++;
         return;
       }

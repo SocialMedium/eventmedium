@@ -49,7 +49,7 @@ async function run() {
       try {
         var ex = await hv.harvestEvent(r.url);
         if (!ex.name || ex.name.length < 5) { skipped++; continue; }
-        if (ex.event_date && new Date(ex.event_date).getFullYear() < 2025) { skipped++; continue; }
+        if (ex.event_date && new Date(ex.event_date).getFullYear() < 2026) { skipped++; continue; }
 
         var dp = await d.findDuplicate(ex.name, ex.event_date, ex.city);
         if (dp) { dupes++; continue; }

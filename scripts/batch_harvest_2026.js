@@ -215,10 +215,10 @@ async function run() {
 
       var themes = normalizeThemes(extracted.themes || []);
 
-      // Filter stale events — reject anything before 2025
+      // Filter stale events — only accept 2026+
       if (extracted.event_date) {
         var eventYear = new Date(extracted.event_date).getFullYear();
-        if (eventYear < 2025) {
+        if (eventYear < 2026) {
           stats.failed++;
           console.log(prefix, ' STALE', extracted.name, '(', extracted.event_date, ')');
           continue;
