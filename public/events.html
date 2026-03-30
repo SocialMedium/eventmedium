@@ -387,10 +387,11 @@ async function loadEvents() {
 
 function sortEvents() {
   var sort = document.getElementById('sortSelect').value;
+  var MAX_TIME = 8640000000000000;
   allEvents.sort(function(a, b) {
     if (sort === 'popular') return (b.registrations || 0) - (a.registrations || 0);
-    var da = a.event_date ? new Date(a.event_date).getTime() : 0;
-    var db = b.event_date ? new Date(b.event_date).getTime() : 0;
+    var da = a.event_date ? new Date(a.event_date).getTime() : MAX_TIME;
+    var db = b.event_date ? new Date(b.event_date).getTime() : MAX_TIME;
     return sort === 'date_desc' ? db - da : da - db;
   });
 }

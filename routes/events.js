@@ -130,7 +130,7 @@ router.get('/recommended', authenticateToken, async function(req, res) {
        AND e.id NOT IN (SELECT event_id FROM event_registrations WHERE user_id = $1 AND status = 'active')
        AND (e.community_id IS NULL OR COALESCE(e.is_public, false) = true
             OR e.community_id IN (SELECT community_id FROM community_members WHERE user_id = $1))
-       ORDER BY e.event_date ASC
+       ORDER BY e.event_date ASC NULLS LAST
        LIMIT 100`,
       [req.user.id]
     );
