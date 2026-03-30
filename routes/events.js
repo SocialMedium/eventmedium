@@ -37,16 +37,16 @@ router.get('/', optionalAuth, async function(req, res) {
       idx++;
     }
     if (upcoming === 'true') {
-      conditions.push('event_date >= CURRENT_DATE');
+      conditions.push('(event_date >= CURRENT_DATE OR event_date IS NULL)');
     }
 
     conditions.push('(community_id IS NULL OR is_public = true)');
     var where = ' WHERE ' + conditions.join(' AND ');
-    var lim = parseInt(limit) || 50;
+    var lim = parseInt(limit) || 100;
     var off = parseInt(offset) || 0;
 
     var events = await dbAll(
-      'SELECT * FROM events' + where + ' ORDER BY event_date ASC LIMIT $' + idx + ' OFFSET $' + (idx + 1),
+      'SELECT * FROM events' + where + ' ORDER BY event_date ASC NULLS LAST LIMIT $' + idx + ' OFFSET $' + (idx + 1),
       params.concat([lim, off])
     );
 
