@@ -21,45 +21,46 @@ function firstCity(geo) {
 router.get('/graph-data', authenticateToken, async function(req, res) {
   try {
     var canonicalThemes = getCanonicalThemes();
+    var communityId = req.query.community_id ? parseInt(req.query.community_id) : null;
 
-    var [canisterRow, eventRow, matchRow, meetingRow, themeRows, stakeholderRows, edgeRows, globalGeoRows, myEventsRows, themeGeoRows] = await Promise.all([
-      dbGet('SELECT COUNT(DISTINCT user_id) AS count FROM stakeholder_profiles'),
-      dbGet('SELECT COUNT(*) AS count FROM events'),
-      dbGet("SELECT COUNT(*) AS count FROM event_matches WHERE status = 'accepted'"),
-      dbGet('SELECT COUNT(*) AS count FROM match_feedback WHERE did_meet = true'),
-      dbAll('SELECT themes FROM stakeholder_profiles WHERE themes IS NOT NULL'),
-      dbAll('SELECT stakeholder_type, COUNT(*) as count FROM stakeholder_profiles GROUP BY stakeholder_type'),
-      dbAll(`SELECT em.event_id, sp_a.stakeholder_type AS type_a, sp_b.stakeholder_type AS type_b,
-                    em.score_total, em.score_theme, e.city, e.country, em.user_a_id, em.user_b_id
-             FROM event_matches em
-             JOIN stakeholder_profiles sp_a ON sp_a.user_id = em.user_a_id
-             JOIN stakeholder_profiles sp_b ON sp_b.user_id = em.user_b_id
-             JOIN events e ON e.id = em.event_id
-             WHERE em.status IN ('accepted', 'revealed') LIMIT 500`),
-      // Layer 1: Global node density from stakeholder geography
-      dbAll(`SELECT geography, COUNT(*) AS canister_count,
-                    array_agg(DISTINCT stakeholder_type) AS types
-             FROM stakeholder_profiles
-             WHERE geography IS NOT NULL AND geography != ''
-             GROUP BY geography ORDER BY canister_count DESC`),
-      // Layer 2: My communities (user's registered events)
-      dbAll(`SELECT e.id, e.name, e.city, e.country, e.event_date, e.themes,
-                    COUNT(er2.user_id) AS total_members
-             FROM event_registrations er
-             JOIN events e ON e.id = er.event_id
-             LEFT JOIN event_registrations er2 ON er2.event_id = e.id
-             WHERE er.user_id = $1
-             GROUP BY e.id, e.name, e.city, e.country, e.event_date, e.themes
-             ORDER BY e.event_date DESC`, [req.user.id]),
-      // Layer 3: Theme geo concentration
-      dbAll(`SELECT geography, themes FROM stakeholder_profiles
-             WHERE geography IS NOT NULL AND geography != '' AND themes IS NOT NULL`)
-    ]);
+    // Community filter clause for stakeholder_profiles queries
+    var communityFilter = '';
+    var communityParams = [];
+    if (communityId) {
+      communityFilter = ' AND sp.user_id IN (SELECT user_id FROM event_registrations WHERE event_id = $1)';
+      communityParams = [communityId];
+    }
+
+    var queries = [
+      // Stats — filtered when community selected
+      communityId
+        ? dbGet('SELECT COUNT(DISTINCT sp.user_id) AS count FROM stakeholder_profiles sp WHERE sp.user_id IN (SELECT user_id FROM event_registrations WHERE event_id = $1)', [communityId])
+        : dbGet('SELECT COUNT(DISTINCT user_id) AS count FROM stakeholder_profiles'),
+      communityId
+        ? dbGet('SELECT 1 AS count')
+        : dbGet('SELECT COUNT(*) AS count FROM events'),
+      communityId
+        ? dbGet("SELECT COUNT(*) AS count FROM event_matches WHERE status = 'accepted' AND event_id = $1", [communityId])
+        : dbGet("SELECT COUNT(*) AS count FROM event_matches WHERE status = 'accepted'"),
+      communityId
+        ? dbGet('SELECT COUNT(*) AS count FROM match_feedback mf JOIN event_matches em ON em.id = mf.match_id WHERE mf.did_meet = true AND em.event_id = $1', [communityId])
+        : dbGet('SELECT COUNT(*) AS count FROM match_feedback WHERE did_meet = true'),
+      // Themes — filtered
+      dbAll('SELECT themes FROM stakeholder_profiles sp WHERE themes IS NOT NULL' + communityFilter, communityParams),
+      // Stakeholder types — filtered
+      dbAll('SELECT sp.stakeholder_type, COUNT(*) as count FROM stakeholder_profiles sp WHERE sp.stakeholder_type IS NOT NULL' + communityFilter + ' GROUP BY sp.stakeholder_type', communityParams),
+      // Global geo nodes — filtered
+      dbAll('SELECT sp.geography, COUNT(*) AS canister_count, array_agg(DISTINCT sp.stakeholder_type) AS types FROM stakeholder_profiles sp WHERE sp.geography IS NOT NULL AND sp.geography != \'\'' + communityFilter + ' GROUP BY sp.geography ORDER BY canister_count DESC', communityParams),
+      // User's communities (always unfiltered — for the dropdown)
+      dbAll('SELECT e.id, e.name FROM event_registrations er JOIN events e ON e.id = er.event_id WHERE er.user_id = $1 ORDER BY e.name ASC', [req.user.id])
+    ];
+
+    var [canisterRow, eventRow, matchRow, meetingRow, themeRows, stakeholderRows, globalGeoRows, myCommunitiesRows] = await Promise.all(queries);
 
     // Stats
     var stats = {
       canisters: parseInt(canisterRow.count) || 0,
-      events: parseInt(eventRow.count) || 0,
+      events: communityId ? 1 : (parseInt(eventRow.count) || 0),
       matches: parseInt(matchRow.count) || 0,
       meetings: parseInt(meetingRow.count) || 0
     };
@@ -81,28 +82,7 @@ router.get('/graph-data', authenticateToken, async function(req, res) {
       return { type: r.stakeholder_type || 'other', count: parseInt(r.count) || 0 };
     });
 
-    // Anonymised graph nodes + links
-    var nodeMap = {};
-    var nodeCounter = 0;
-    function getNodeId(userId, type, eventId, city) {
-      if (!nodeMap[userId]) {
-        nodeCounter++;
-        nodeMap[userId] = { id: nodeCounter, type: type || 'other', event_id: eventId, city: city || null };
-      }
-      return nodeMap[userId].id;
-    }
-    var links = edgeRows.map(function(row) {
-      var srcId = getNodeId(row.user_a_id, row.type_a, row.event_id, row.city);
-      var tgtId = getNodeId(row.user_b_id, row.type_b, row.event_id, row.city);
-      return {
-        source: srcId, target: tgtId,
-        score: Math.round((parseFloat(row.score_total) || 0) * 100) / 100,
-        theme_score: Math.round((parseFloat(row.score_theme) || 0) * 100) / 100
-      };
-    });
-    var nodes = Object.values(nodeMap);
-
-    // ── Map Layer 1: Global nodes from stakeholder geography ──
+    // Geo nodes with coords
     var globalNodes = globalGeoRows.map(function(r) {
       var label = firstCity(r.geography);
       var coords = getCityCoords(label);
@@ -115,55 +95,17 @@ router.get('/graph-data', authenticateToken, async function(req, res) {
       };
     }).filter(function(n) { return n.label; });
 
-    // ── Map Layer 2: My communities (user's events) ──
-    var myCommunitiesNodes = myEventsRows.map(function(r) {
-      var coords = getCityCoords(r.city);
-      return {
-        event_id: r.id,
-        name: r.name,
-        city: r.city || null,
-        country: r.country || null,
-        lat: coords ? coords[0] : null,
-        lng: coords ? coords[1] : null,
-        total_members: parseInt(r.total_members) || 0,
-        themes: safeJson(r.themes)
-      };
-    });
-
-    // ── Map Layer 3: Thematic concentration ──
-    // Build: { themeName: { geoLabel: count } }
-    var themeGeoMap = {};
-    canonicalThemes.forEach(function(t) { themeGeoMap[t] = {}; });
-    themeGeoRows.forEach(function(row) {
-      var label = firstCity(row.geography);
-      if (!label) return;
-      var arr = safeJson(row.themes);
-      arr.forEach(function(t) {
-        if (themeGeoMap[t]) {
-          themeGeoMap[t][label] = (themeGeoMap[t][label] || 0) + 1;
-        }
-      });
-    });
-    var themeNodes = {};
-    canonicalThemes.forEach(function(t) {
-      themeNodes[t] = Object.keys(themeGeoMap[t]).map(function(label) {
-        var coords = getCityCoords(label);
-        return {
-          label: label,
-          lat: coords ? coords[0] : null,
-          lng: coords ? coords[1] : null,
-          count: themeGeoMap[t][label]
-        };
-      }).filter(function(n) { return n.lat; })
-        .sort(function(a, b) { return b.count - a.count; });
+    // Communities for dropdown
+    var myCommunities = myCommunitiesRows.map(function(r) {
+      return { id: r.id, name: r.name };
     });
 
     res.json({
-      stats: stats, themes: themes, stakeholders: stakeholders,
-      graph: { nodes: nodes, links: links },
+      stats: stats,
+      themes: themes,
+      stakeholders: stakeholders,
       globalNodes: globalNodes,
-      myCommunitiesNodes: myCommunitiesNodes,
-      themeNodes: themeNodes
+      myCommunities: myCommunities
     });
   } catch(err) {
     console.error('[Network] graph-data error:', err);
