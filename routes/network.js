@@ -14,7 +14,17 @@ function safeJson(v) {
 
 function firstCity(geo) {
   if (!geo) return null;
-  return geo.split(',')[0].trim();
+  // Handle postgres array format: {"Spain","UK"}
+  var cleaned = geo.replace(/^\{|\}$/g, '').replace(/"/g, '');
+  // Return first meaningful segment
+  var parts = cleaned.split(/[,;]/);
+  for (var i = 0; i < parts.length; i++) {
+    var part = parts[i].trim().replace(/\s*\(.*?\)/g, '').trim();
+    if (part && part.toLowerCase() !== 'global' && part.toLowerCase() !== 'remote' && part.length < 40) {
+      return part;
+    }
+  }
+  return null;
 }
 
 // ── GET /api/network/graph-data ── aggregated network visualisation data ──────
