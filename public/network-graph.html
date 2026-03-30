@@ -15,7 +15,7 @@
   --font:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
 }
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:var(--font);color:var(--txt);background:var(--bg);-webkit-font-smoothing:antialiased}
+body{font-family:var(--font);color:var(--txt);background:var(--bg);-webkit-font-smoothing:antialiased;overflow-x:hidden}
 
 /* Nav */
 .nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,0.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--bdr);padding:0 24px}
@@ -29,105 +29,113 @@ body{font-family:var(--font);color:var(--txt);background:var(--bg);-webkit-font-
 .nav-cta{padding:8px 20px;background:var(--p);color:white;font-size:14px;font-weight:600;border-radius:8px;text-decoration:none;transition:all 0.2s}
 .nav-cta:hover{background:var(--pD)}
 
-/* Page */
-.page{max-width:1140px;margin:0 auto;padding:88px 24px 60px}
+/* Page canvas */
+.page{max-width:1140px;margin:0 auto;padding:88px 24px 60px;opacity:0;transition:opacity 0.6s ease}
+.page.loaded{opacity:1}
 
 /* Page header */
-.page-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;flex-wrap:wrap;gap:16px}
-.page-top h1{font-size:28px;font-weight:700}
+.page-top{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:32px;flex-wrap:wrap;gap:16px}
+.page-title{font-size:26px;font-weight:700;letter-spacing:-0.5px;color:var(--txt)}
+.page-meta{font-size:13px;color:var(--txtL);font-weight:500;display:flex;align-items:center;gap:8px}
+.page-meta .dot{width:3px;height:3px;border-radius:50%;background:var(--txtXL);display:inline-block}
 .page-controls{display:flex;gap:10px;align-items:center}
 .ctrl-select{padding:9px 14px;border:1px solid var(--bdr);border-radius:10px;font-size:13px;font-family:var(--font);background:var(--card);color:var(--txt);cursor:pointer;transition:border 0.2s}
 .ctrl-select:focus{outline:none;border-color:var(--p);box-shadow:0 0 0 3px var(--pL)}
 
-/* Headline stats */
-.headline-stats{display:flex;gap:24px;align-items:center;padding:18px 24px;background:var(--card);border:1px solid var(--bdr);border-radius:14px;margin-bottom:28px;flex-wrap:wrap}
-.hl-stat{display:flex;align-items:baseline;gap:6px}
-.hl-num{font-size:26px;font-weight:800;color:var(--txt)}
-.hl-label{font-size:13px;color:var(--txtL);font-weight:500;text-transform:uppercase;letter-spacing:0.3px}
-.hl-dot{width:4px;height:4px;border-radius:50%;background:var(--bdr);flex-shrink:0}
+/* Filter pills */
+.filter-bar{display:flex;gap:8px;align-items:center;margin-bottom:24px;min-height:32px;flex-wrap:wrap}
+.filter-pill{display:inline-flex;align-items:center;gap:6px;padding:5px 14px;background:var(--p);color:white;font-size:12px;font-weight:600;border-radius:20px;animation:fadeIn 0.2s ease}
+.filter-pill button{background:none;border:none;color:rgba(255,255,255,0.8);cursor:pointer;font-size:14px;line-height:1;padding:0;margin-left:2px}
+.filter-pill button:hover{color:white}
+@keyframes fadeIn{from{opacity:0;transform:scale(0.9)}to{opacity:1;transform:scale(1)}}
 
-/* Section cards */
-.section-card{background:var(--card);border:1px solid var(--bdr);border-radius:16px;padding:24px;margin-bottom:24px;transition:all 0.3s}
-.section-card:hover{box-shadow:var(--shadowL)}
-.section-title{font-size:15px;font-weight:700;margin-bottom:18px;display:flex;align-items:center;gap:8px;color:var(--txt)}
-.section-title i{width:18px;height:18px;color:var(--p)}
+/* Map section */
+.map-wrap{background:var(--card);border:1px solid var(--bdr);border-radius:16px;padding:24px 24px 20px;margin-bottom:28px;overflow:hidden;position:relative}
+.map-wrap svg{width:100%;height:auto;display:block}
+.map-label{position:absolute;top:20px;left:24px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--txtXL)}
 
-/* Two-col grid */
-.two-col{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px}
+/* City bubbles */
+.city-bubble{cursor:pointer;transition:all 0.3s ease}
+.city-bubble circle{transition:all 0.3s ease}
+.city-bubble:hover circle{filter:brightness(1.1)}
+.city-bubble.dimmed circle{opacity:0.15}
+.city-bubble.dimmed text{opacity:0.2}
+.city-label{font-size:9px;font-weight:600;fill:var(--txt);pointer-events:none;text-anchor:middle}
 
-/* Horizontal bar chart */
-.bar-list{display:flex;flex-direction:column;gap:10px}
-.bar-row{display:flex;align-items:center;gap:12px}
-.bar-label{width:120px;font-size:13px;font-weight:500;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0}
-.bar-track{flex:1;height:22px;background:var(--bg);border-radius:6px;overflow:hidden;position:relative}
-.bar-fill{height:100%;border-radius:6px;transition:width 0.5s ease;min-width:2px}
-.bar-count{font-size:12px;font-weight:600;color:var(--txtL);width:36px;text-align:right;flex-shrink:0}
-.bar-row .bar-fill.theme-fill{background:var(--pL);border:1px solid rgba(0,102,255,0.15)}
-.bar-row .bar-fill.stakeholder-fill{border:1px solid rgba(0,0,0,0.06)}
-.show-more-btn{margin-top:10px;padding:6px 14px;background:var(--bg);border:1px solid var(--bdr);border-radius:8px;font-size:12px;font-weight:600;color:var(--txtL);cursor:pointer;font-family:var(--font);transition:all 0.2s}
-.show-more-btn:hover{border-color:var(--p);color:var(--p);background:var(--pL)}
+/* Pulse animation */
+@keyframes pulse-ring{0%{r:0;opacity:0.5}100%{r:20;opacity:0}}
+.pulse-ring{fill:none;stroke-width:1.5;animation:pulse-ring 2.5s ease-out infinite}
 
-/* Geo grid */
-.geo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px}
-.geo-card{background:var(--bg);border:1px solid var(--bdr);border-radius:12px;padding:18px;transition:all 0.2s}
-.geo-card:hover{border-color:var(--p);box-shadow:var(--shadow)}
-.geo-city{font-size:15px;font-weight:700;margin-bottom:6px}
-.geo-meta{font-size:12px;color:var(--txtL);margin-bottom:8px;display:flex;gap:12px}
-.geo-themes{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px}
-.theme-chip{padding:2px 8px;background:var(--pL);color:var(--p);font-size:10px;font-weight:600;border-radius:5px;white-space:nowrap}
-.geo-archetypes{font-size:11px;color:var(--txtXL);font-weight:500}
-.archetype-tag{font-weight:600;margin-right:4px}
+/* Corridor arcs */
+.corridor-arc{fill:none;stroke-width:1;opacity:0.2;transition:opacity 0.3s}
+.corridor-arc.highlighted{opacity:0.5;stroke-width:1.5}
+.corridor-arc.dimmed{opacity:0.04}
 
-/* Stakeholder type colors */
-.st-founder{color:#6366f1}
-.st-investor{color:#10b981}
-.st-researcher{color:#3b82f6}
-.st-corporate{color:#ec4899}
-.st-advisor{color:#f59e0b}
-.st-operator{color:#8b5cf6}
+/* Tooltip */
+.tooltip{position:fixed;z-index:200;background:rgba(26,29,41,0.92);backdrop-filter:blur(8px);color:white;padding:12px 16px;border-radius:10px;font-size:12px;pointer-events:none;opacity:0;transition:opacity 0.15s;max-width:220px;line-height:1.5}
+.tooltip.visible{opacity:1}
+.tooltip strong{font-weight:700;font-size:13px;display:block;margin-bottom:4px}
+.tooltip .tt-row{display:flex;justify-content:space-between;gap:12px;color:rgba(255,255,255,0.7)}
+.tooltip .tt-row span:last-child{font-weight:600;color:white}
+.tooltip .tt-themes{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}
+.tooltip .tt-chip{padding:2px 7px;border-radius:4px;font-size:10px;font-weight:600}
 
-/* Stakeholder bar fills */
-.sf-founder{background:rgba(99,102,241,0.15)}
-.sf-investor{background:rgba(16,185,129,0.15)}
-.sf-researcher{background:rgba(59,130,246,0.15)}
-.sf-corporate{background:rgba(236,72,153,0.15)}
-.sf-advisor{background:rgba(245,158,11,0.15)}
-.sf-operator{background:rgba(139,92,246,0.15)}
+/* Theme bubbles section */
+.bubbles-wrap{background:var(--card);border:1px solid var(--bdr);border-radius:16px;padding:24px;margin-bottom:28px;position:relative}
+.bubbles-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--txtXL);margin-bottom:16px}
+.bubbles-svg{width:100%;display:block}
+.theme-bubble{cursor:pointer;transition:all 0.3s ease}
+.theme-bubble circle{transition:all 0.3s ease}
+.theme-bubble:hover circle{filter:brightness(0.92)}
+.theme-bubble.active circle{stroke-width:3;stroke:var(--txt)}
+.theme-bubble.dimmed circle{opacity:0.15}
+.theme-bubble.dimmed text{opacity:0.15}
+.theme-bubble-label{font-weight:600;pointer-events:none;fill:white;text-anchor:middle}
+.theme-bubble-count{font-weight:700;pointer-events:none;fill:rgba(255,255,255,0.8);text-anchor:middle}
 
-/* Events list */
-.event-row{display:flex;align-items:center;gap:16px;padding:12px 16px;border-radius:10px;transition:background 0.15s}
-.event-row:hover{background:var(--bg)}
-.event-row+.event-row{border-top:1px solid var(--bdr)}
-.ev-date{width:60px;font-size:13px;font-weight:600;color:var(--p);flex-shrink:0;white-space:nowrap}
-.ev-name{flex:1;font-size:14px;font-weight:600;color:var(--txt);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ev-city{font-size:13px;color:var(--txtL);width:100px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ev-themes{display:flex;gap:5px;flex-shrink:0;flex-wrap:nowrap;overflow:hidden;max-width:200px}
-.ev-reg{font-size:12px;color:var(--txtXL);width:60px;text-align:right;flex-shrink:0;white-space:nowrap}
+/* Bottom row */
+.bottom-row{display:grid;grid-template-columns:300px 1fr;gap:24px;margin-bottom:28px}
 
-/* Skeletons */
-.skeleton{animation:pulse 1.5s ease-in-out infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
-.skel-line{height:14px;background:var(--bdr);border-radius:6px;margin-bottom:10px}
-.skel-line.w60{width:60%}
-.skel-line.w80{width:80%}
-.skel-line.w40{width:40%}
-.skel-bar{height:22px;background:var(--bdr);border-radius:6px;margin-bottom:10px}
-.skel-card{background:var(--bdr);border-radius:12px;height:140px}
+/* Stakeholder donut */
+.donut-wrap{background:var(--card);border:1px solid var(--bdr);border-radius:16px;padding:24px;display:flex;flex-direction:column}
+.donut-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--txtXL);margin-bottom:16px}
+.donut-svg-wrap{flex:1;display:flex;align-items:center;justify-content:center;position:relative}
+.donut-svg{display:block}
+.donut-center-text{font-size:28px;font-weight:800;fill:var(--txt);text-anchor:middle;dominant-baseline:central}
+.donut-center-sub{font-size:10px;font-weight:600;fill:var(--txtXL);text-anchor:middle;text-transform:uppercase;letter-spacing:0.5px}
+.donut-legend{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:16px}
+.donut-legend-item{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500;color:var(--txtL);cursor:pointer;transition:opacity 0.2s}
+.donut-legend-item:hover{opacity:0.7}
+.donut-legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.donut-legend-count{font-weight:700;color:var(--txt)}
 
-/* Empty state */
-.empty-msg{text-align:center;padding:40px 24px;color:var(--txtL);font-size:14px}
+/* Donut segment hover */
+.donut-segment{transition:opacity 0.3s;cursor:pointer}
+.donut-segment:hover{opacity:0.8}
 
+/* Events timeline */
+.events-wrap{background:var(--card);border:1px solid var(--bdr);border-radius:16px;padding:24px;display:flex;flex-direction:column}
+.events-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--txtXL);margin-bottom:16px}
+.events-list{display:flex;flex-direction:column;gap:0;flex:1;overflow-y:auto;max-height:380px}
+.ev-row{display:flex;align-items:center;gap:14px;padding:10px 12px;border-radius:10px;transition:background 0.15s;border-left:3px solid transparent}
+.ev-row:hover{background:var(--bg)}
+.ev-row.has-regs{border-left-color:var(--ok)}
+.ev-row+.ev-row{border-top:1px solid rgba(0,0,0,0.04)}
+.ev-date{width:52px;font-size:12px;font-weight:700;color:var(--p);flex-shrink:0;white-space:nowrap;letter-spacing:-0.2px}
+.ev-name{flex:1;font-size:13px;font-weight:600;color:var(--txt);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ev-city{font-size:12px;color:var(--txtL);width:80px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ev-themes{display:flex;gap:4px;flex-shrink:0;flex-wrap:nowrap;overflow:hidden;max-width:160px}
+.ev-reg{font-size:11px;color:var(--txtXL);width:40px;text-align:right;flex-shrink:0;white-space:nowrap;font-weight:500}
+.theme-chip{padding:2px 7px;border-radius:5px;font-size:10px;font-weight:600;white-space:nowrap}
+
+/* Responsive */
 @media(max-width:768px){
   .nav-links .nav-link{display:none}
   .page{padding:80px 16px 40px}
-  .two-col{grid-template-columns:1fr}
-  .geo-grid{grid-template-columns:1fr}
+  .bottom-row{grid-template-columns:1fr}
   .page-top{flex-direction:column;align-items:flex-start}
-  .headline-stats{flex-direction:column;gap:12px;align-items:flex-start}
-  .hl-dot{display:none}
   .ev-themes{display:none}
-  .ev-city{width:80px}
-  .bar-label{width:90px}
+  .ev-city{width:60px}
 }
 </style>
 </head>
@@ -150,10 +158,16 @@ body{font-family:var(--font);color:var(--txt);background:var(--bg);-webkit-font-
   </div>
 </nav>
 
-<div class="page">
+<div class="tooltip" id="tooltip"></div>
+
+<div class="page" id="page">
+
   <!-- Header -->
   <div class="page-top">
-    <h1>Network Intelligence</h1>
+    <div>
+      <span class="page-title">Network Intelligence</span>
+      <div class="page-meta" id="pageMeta" style="margin-top:6px"></div>
+    </div>
     <div class="page-controls">
       <select class="ctrl-select" id="scopeToggle">
         <option value="global">Global</option>
@@ -165,379 +179,656 @@ body{font-family:var(--font);color:var(--txt);background:var(--bg);-webkit-font-
     </div>
   </div>
 
-  <!-- Headline stats -->
-  <div class="headline-stats" id="headlineStats">
-    <div class="skeleton">
-      <div class="skel-line w60" style="height:26px;width:500px;max-width:100%"></div>
+  <!-- Active filters -->
+  <div class="filter-bar" id="filterBar"></div>
+
+  <!-- World Map -->
+  <div class="map-wrap">
+    <span class="map-label">Global Network</span>
+    <svg id="worldMap" viewBox="0 0 960 480" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="arcGrad" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="var(--p)" stop-opacity="0.4"/>
+          <stop offset="100%" stop-color="var(--s)" stop-opacity="0.4"/>
+        </linearGradient>
+      </defs>
+      <!-- Continents -->
+      <g class="continents" fill="#f0f0f4" stroke="#e2e4e8" stroke-width="0.5">
+        <path d="M120,80 L180,60 L230,80 L280,90 L280,130 L260,180 L230,200 L180,230 L150,250 L130,230 L100,200 L90,160 L100,120 Z"/>
+        <path d="M150,250 L180,240 L200,260 L190,280 L170,290 L150,280 Z"/>
+        <path d="M200,290 L230,280 L260,300 L280,340 L270,380 L250,420 L220,440 L200,430 L180,400 L170,350 L180,310 Z"/>
+        <path d="M440,60 L480,55 L520,60 L540,80 L530,100 L540,120 L520,140 L490,130 L460,140 L440,120 L430,90 Z"/>
+        <path d="M440,180 L480,170 L520,180 L540,200 L550,240 L540,300 L520,340 L500,360 L470,360 L450,340 L440,300 L430,240 L440,200 Z"/>
+        <path d="M540,130 L580,120 L600,140 L590,170 L570,180 L540,180 Z"/>
+        <path d="M520,50 L600,30 L700,35 L780,50 L800,60 L780,80 L700,90 L620,100 L560,90 L540,70 Z"/>
+        <path d="M600,170 L630,160 L650,180 L640,220 L620,250 L600,240 L590,210 Z"/>
+        <path d="M660,200 L690,190 L720,200 L730,230 L710,250 L680,240 L660,220 Z"/>
+        <path d="M660,80 L720,70 L770,80 L790,100 L780,130 L750,150 L720,160 L690,150 L670,130 L660,100 Z"/>
+        <path d="M800,100 L810,90 L820,100 L815,120 L800,130 L795,115 Z"/>
+        <path d="M740,320 L790,310 L830,320 L840,350 L830,380 L800,390 L760,380 L740,350 Z"/>
+        <path d="M860,380 L865,370 L870,380 L868,395 L860,395 Z"/>
+      </g>
+      <!-- Corridors layer -->
+      <g id="corridorsLayer"></g>
+      <!-- Cities layer -->
+      <g id="citiesLayer"></g>
+    </svg>
+  </div>
+
+  <!-- Theme Bubbles -->
+  <div class="bubbles-wrap">
+    <span class="bubbles-label">Thematic Landscape</span>
+    <svg id="bubblesSvg" class="bubbles-svg" viewBox="0 0 1092 280"></svg>
+  </div>
+
+  <!-- Bottom row: Donut + Events -->
+  <div class="bottom-row">
+    <div class="donut-wrap">
+      <span class="donut-label">Stakeholder Composition</span>
+      <div class="donut-svg-wrap">
+        <svg class="donut-svg" id="donutSvg" viewBox="0 0 200 200" width="200" height="200"></svg>
+      </div>
+      <div class="donut-legend" id="donutLegend"></div>
+    </div>
+    <div class="events-wrap">
+      <span class="events-label">Upcoming Events</span>
+      <div class="events-list" id="eventsList"></div>
     </div>
   </div>
 
-  <!-- Thematic + Stakeholder (two-col) -->
-  <div class="two-col">
-    <div class="section-card" id="thematicCard">
-      <div class="section-title"><i data-lucide="tag"></i> Thematic Composition</div>
-      <div id="thematicBars" class="bar-list">
-        <div class="skeleton"><div class="skel-bar w80"></div><div class="skel-bar w60"></div><div class="skel-bar w40"></div><div class="skel-bar" style="width:30%"></div></div>
-      </div>
-    </div>
-    <div class="section-card" id="stakeholderCard">
-      <div class="section-title"><i data-lucide="users"></i> Stakeholder Mix</div>
-      <div id="stakeholderBars" class="bar-list">
-        <div class="skeleton"><div class="skel-bar w80"></div><div class="skel-bar w60"></div><div class="skel-bar w40"></div><div class="skel-bar" style="width:30%"></div></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Geographic Distribution -->
-  <div class="section-card" id="geoSection">
-    <div class="section-title"><i data-lucide="map-pin"></i> Geographic Distribution</div>
-    <div id="geoGrid" class="geo-grid">
-      <div class="skeleton" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px">
-        <div class="skel-card"></div><div class="skel-card"></div><div class="skel-card"></div><div class="skel-card"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Upcoming Events -->
-  <div class="section-card" id="eventsSection">
-    <div class="section-title"><i data-lucide="calendar"></i> Upcoming Events by Theme</div>
-    <div id="eventsList">
-      <div class="skeleton"><div class="skel-bar w80"></div><div class="skel-bar w60"></div><div class="skel-bar w80"></div><div class="skel-bar w60"></div></div>
-    </div>
-  </div>
 </div>
 
 <script>
+// ── Constants ──────────────────────────────────────
+var THEME_COLORS = {
+  'AI':'#6366f1','FinTech':'#10b981','Climate Tech':'#22c55e',
+  'Cybersecurity':'#ef4444','HealthTech':'#ec4899','Robotics':'#8b5cf6',
+  'SpaceTech':'#06b6d4','Gaming':'#f97316','EdTech':'#eab308',
+  'Privacy':'#64748b','Enterprise SaaS':'#3b82f6','Open Source':'#14b8a6',
+  'IoT':'#a855f7','Hardware':'#78716c','Regulation':'#6b7280',
+  'Connectivity':'#0ea5e9'
+};
+var STAKEHOLDER_COLORS = {
+  founder:'#6366f1',investor:'#10b981',researcher:'#3b82f6',
+  corporate:'#ec4899',advisor:'#f59e0b',operator:'#8b5cf6'
+};
+var CITY_COORDS = {
+  'Bangalore':{lat:12.97,lng:77.59},'New York':{lat:40.71,lng:-74.01},
+  'Paris':{lat:48.86,lng:2.35},'Tel Aviv':{lat:32.08,lng:34.78},
+  'London':{lat:51.51,lng:-0.13},'São Paulo':{lat:-23.55,lng:-46.63},
+  'Seoul':{lat:37.57,lng:126.98},'Berlin':{lat:52.52,lng:13.40},
+  'Dubai':{lat:25.20,lng:55.27},'Sydney':{lat:-33.87,lng:151.21},
+  'Singapore':{lat:1.35,lng:103.82},'San Francisco':{lat:37.77,lng:-122.42},
+  'Tokyo':{lat:35.68,lng:139.69},'Amsterdam':{lat:52.37,lng:4.90},
+  'Las Vegas':{lat:36.17,lng:-115.14},'Austin':{lat:30.27,lng:-97.74},
+  'Miami':{lat:25.76,lng:-80.19},'Munich':{lat:48.14,lng:11.58},
+  'Barcelona':{lat:41.39,lng:2.17},'Helsinki':{lat:60.17,lng:24.94},
+  'Lisbon':{lat:38.72,lng:-9.14},'Toronto':{lat:43.65,lng:-79.38},
+  'Cannes':{lat:43.55,lng:7.02},'Boston':{lat:42.36,lng:-71.06},
+  'San Diego':{lat:32.72,lng:-117.16},'San Jose':{lat:37.34,lng:-121.89},
+  'Zurich':{lat:47.37,lng:8.54},'Hong Kong':{lat:22.32,lng:114.17},
+  'Melbourne':{lat:-37.81,lng:144.96},'Vancouver':{lat:49.28,lng:-123.12},
+  'Madrid':{lat:40.42,lng:-3.70},'Bangkok':{lat:13.76,lng:100.50},
+  'New York City':{lat:40.71,lng:-74.01},'NY':{lat:40.71,lng:-74.01},
+  'Salt Lake City':{lat:40.76,lng:-111.89},'Cologne':{lat:50.94,lng:6.96},
+  'Glasgow':{lat:55.86,lng:-4.25},'Orlando':{lat:28.54,lng:-81.38},
+  'Anaheim':{lat:33.84,lng:-117.91},'Antalya':{lat:36.90,lng:30.70},
+  'Detroit':{lat:42.33,lng:-83.05},'Nuremberg':{lat:49.45,lng:11.08},
+  'Rio de Janeiro':{lat:-22.91,lng:-43.17},'Kuala Lumpur':{lat:3.14,lng:101.69}
+};
+
 // ── State ──────────────────────────────────────────
 var graphData = null;
 var communitiesData = null;
 var currentScope = 'global';
 var currentCommunityId = '';
+var activeThemeFilter = null;
+var activeCityFilter = null;
 
-var STAKEHOLDER_COLORS = {
-  founder:'#6366f1', investor:'#10b981', researcher:'#3b82f6',
-  corporate:'#ec4899', advisor:'#f59e0b', operator:'#8b5cf6'
-};
-var STAKEHOLDER_ABBR = {
-  founder:'F', investor:'I', researcher:'R',
-  corporate:'C', advisor:'A', operator:'O'
-};
-var STAKEHOLDER_FILL_CLASS = {
-  founder:'sf-founder', investor:'sf-investor', researcher:'sf-researcher',
-  corporate:'sf-corporate', advisor:'sf-advisor', operator:'sf-operator'
-};
+// ── Helpers ────────────────────────────────────────
+function escapeHtml(s){var d=document.createElement('div');d.appendChild(document.createTextNode(s));return d.innerHTML;}
+function lngToX(lng){return (lng+180)*(960/360);}
+function latToY(lat){return (90-lat)*(480/180);}
+function themeColor(t){return THEME_COLORS[t]||'#94a3b8';}
+function stakeholderColor(t){return STAKEHOLDER_COLORS[(t||'').toLowerCase()]||'#94a3b8';}
 
-// ── Data loading ───────────────────────────────────
-async function loadData() {
-  var token = localStorage.getItem('auth_token');
-  var headers = token ? { 'Authorization': 'Bearer ' + token } : {};
-
-  try {
-    var results = await Promise.all([
-      fetch('/api/network/graph').then(function(r) { return r.ok ? r.json() : null; }).catch(function() { return null; }),
-      token ? fetch('/api/network/communities', { headers: headers }).then(function(r) { return r.ok ? r.json() : null; }).catch(function() { return null; }) : Promise.resolve(null)
-    ]);
-
-    graphData = results[0];
-    communitiesData = results[1];
-
-    if (communitiesData && communitiesData.communities) {
-      populateCommunities(communitiesData.communities);
-    }
-
-    renderAll();
-  } catch (err) {
-    console.error('Failed to load network data:', err);
+function cityKey(name){
+  if(!name) return null;
+  var n=name.trim();
+  if(CITY_COORDS[n]) return n;
+  // Try matching partial
+  var keys=Object.keys(CITY_COORDS);
+  for(var i=0;i<keys.length;i++){
+    if(n.toLowerCase().indexOf(keys[i].toLowerCase())!==-1||keys[i].toLowerCase().indexOf(n.toLowerCase())!==-1) return keys[i];
   }
+  return null;
 }
 
-function populateCommunities(communities) {
-  var sel = document.getElementById('communitySelect');
-  communities.forEach(function(c) {
-    var opt = document.createElement('option');
-    opt.value = c.id;
-    opt.textContent = c.name;
-    sel.appendChild(opt);
+// ── Tooltip ────────────────────────────────────────
+var tooltipEl=document.getElementById('tooltip');
+function showTooltip(html,e){
+  tooltipEl.innerHTML=html;
+  tooltipEl.classList.add('visible');
+  positionTooltip(e);
+}
+function positionTooltip(e){
+  var x=e.clientX+14,y=e.clientY-10;
+  var w=tooltipEl.offsetWidth,h=tooltipEl.offsetHeight;
+  if(x+w>window.innerWidth-16) x=e.clientX-w-14;
+  if(y+h>window.innerHeight-16) y=e.clientY-h+10;
+  tooltipEl.style.left=x+'px';tooltipEl.style.top=y+'px';
+}
+function hideTooltip(){tooltipEl.classList.remove('visible');}
+
+// ── Data loading ───────────────────────────────────
+async function loadData(){
+  var token=localStorage.getItem('auth_token');
+  var headers=token?{'Authorization':'Bearer '+token}:{};
+  try{
+    var results=await Promise.all([
+      fetch('/api/network/graph').then(function(r){return r.ok?r.json():null;}).catch(function(){return null;}),
+      token?fetch('/api/network/communities',{headers:headers}).then(function(r){return r.ok?r.json():null;}).catch(function(){return null;}):Promise.resolve(null)
+    ]);
+    graphData=results[0];
+    communitiesData=results[1];
+    if(communitiesData&&communitiesData.communities){
+      populateCommunities(communitiesData.communities);
+    }
+    renderAll();
+    document.getElementById('page').classList.add('loaded');
+  }catch(err){console.error('Failed to load network data:',err);}
+}
+
+function populateCommunities(communities){
+  var sel=document.getElementById('communitySelect');
+  communities.forEach(function(c){
+    var opt=document.createElement('option');
+    opt.value=c.id;opt.textContent=c.name;sel.appendChild(opt);
   });
 }
 
 // ── Filtering ──────────────────────────────────────
-function getFilteredMembers() {
-  if (!graphData) return [];
-  var members = graphData.members || [];
-  if (currentScope === 'community' && communitiesData && communitiesData.nodes) {
-    var communityNodeIds = {};
-    var nodes = communitiesData.nodes || [];
-    nodes.forEach(function(n) {
-      if (!currentCommunityId || String(n.community_id) === currentCommunityId) {
-        communityNodeIds[n.id] = true;
-      }
+function getFilteredMembers(){
+  if(!graphData) return [];
+  var members=graphData.members||[];
+  if(currentScope==='community'&&communitiesData&&communitiesData.nodes){
+    var ids={};
+    (communitiesData.nodes||[]).forEach(function(n){
+      if(!currentCommunityId||String(n.community_id)===currentCommunityId) ids[n.id]=true;
     });
-    members = members.filter(function(m) { return communityNodeIds[m.id]; });
+    members=members.filter(function(m){return ids[m.id];});
   }
   return members;
 }
+function getFilteredEvents(){if(!graphData) return [];return graphData.events||[];}
+function getFilteredGeoClusters(){if(!graphData) return [];return graphData.geo_clusters||[];}
+function getFilteredCorridors(){if(!graphData) return [];return graphData.corridors||[];}
 
-function getFilteredEvents() {
-  if (!graphData) return [];
-  return graphData.events || [];
+function parseThemes(t){
+  if(!t) return [];
+  if(typeof t==='string'){try{t=JSON.parse(t);}catch(e){return [];}}
+  return t.map(function(x){return (typeof x==='string'?x:(x.theme||x.name||'')).trim();}).filter(Boolean);
 }
 
-function getFilteredGeoClusters() {
-  if (!graphData) return [];
-  return graphData.geo_clusters || [];
+// ── Compute theme counts from members ──────────────
+function computeThemeCounts(members){
+  var counts={};
+  members.forEach(function(m){
+    parseThemes(m.themes).forEach(function(t){counts[t]=(counts[t]||0)+1;});
+  });
+  return Object.keys(counts).map(function(k){return{name:k,count:counts[k]};})
+    .sort(function(a,b){return b.count-a.count;});
 }
 
-// ── Render all sections ────────────────────────────
-function renderAll() {
-  renderHeadline();
-  renderThematic();
-  renderStakeholder();
-  renderGeo();
+// ── Compute stakeholder counts ─────────────────────
+function computeStakeholderCounts(members){
+  var counts={};
+  members.forEach(function(m){
+    var t=(m.stakeholder_type||'unknown').toLowerCase();
+    counts[t]=(counts[t]||0)+1;
+  });
+  return Object.keys(counts).map(function(k){return{name:k,count:counts[k]};})
+    .sort(function(a,b){return b.count-a.count;});
+}
+
+// ── Render all ─────────────────────────────────────
+function renderAll(){
+  renderMeta();
+  renderFilters();
+  renderMap();
+  renderBubbles();
+  renderDonut();
   renderEvents();
-  if (typeof lucide !== 'undefined') lucide.createIcons();
+  if(typeof lucide!=='undefined') lucide.createIcons();
 }
 
-// ── Headline stats ─────────────────────────────────
-function renderHeadline() {
-  var el = document.getElementById('headlineStats');
-  if (!graphData) { el.innerHTML = '<span class="empty-msg">No data available</span>'; return; }
+// ── Page meta ──────────────────────────────────────
+function renderMeta(){
+  var el=document.getElementById('pageMeta');
+  if(!graphData){el.innerHTML='';return;}
+  var members=getFilteredMembers();
+  var events=getFilteredEvents();
+  var meta=graphData.meta||{};
+  var mc=currentScope==='global'?(meta.total_members||members.length):members.length;
+  var ec=currentScope==='global'?(meta.total_events||events.length):events.length;
+  el.innerHTML=mc+' members <span class="dot"></span> '+ec+' events';
+}
 
-  var members = getFilteredMembers();
-  var events = getFilteredEvents();
-  var geo = getFilteredGeoClusters();
-  var meta = graphData.meta || {};
-
-  var memberCount = currentScope === 'global' ? (meta.total_members || members.length) : members.length;
-  var eventCount = currentScope === 'global' ? (meta.total_events || events.length) : events.length;
-  var cityCount = geo.length;
-
-  var commCount = 0;
-  if (communitiesData && communitiesData.communities) {
-    commCount = communitiesData.communities.length;
+// ── Filter bar ─────────────────────────────────────
+function renderFilters(){
+  var bar=document.getElementById('filterBar');
+  var html='';
+  if(activeThemeFilter){
+    html+='<span class="filter-pill" style="background:'+themeColor(activeThemeFilter)+'">'+
+      escapeHtml(activeThemeFilter)+
+      '<button onclick="clearThemeFilter()">&times;</button></span>';
   }
-
-  el.innerHTML =
-    '<div class="hl-stat"><span class="hl-num">' + memberCount + '</span><span class="hl-label">Members</span></div>' +
-    '<div class="hl-dot"></div>' +
-    '<div class="hl-stat"><span class="hl-num">' + eventCount + '</span><span class="hl-label">Events</span></div>' +
-    '<div class="hl-dot"></div>' +
-    '<div class="hl-stat"><span class="hl-num">' + cityCount + '</span><span class="hl-label">Cities</span></div>' +
-    (commCount > 0 ? '<div class="hl-dot"></div><div class="hl-stat"><span class="hl-num">' + commCount + '</span><span class="hl-label">Communities</span></div>' : '');
+  if(activeCityFilter){
+    html+='<span class="filter-pill">'+escapeHtml(activeCityFilter)+
+      '<button onclick="clearCityFilter()">&times;</button></span>';
+  }
+  bar.innerHTML=html;
 }
 
-// ── Thematic composition ───────────────────────────
-function renderThematic() {
-  var container = document.getElementById('thematicBars');
-  var members = getFilteredMembers();
+function clearThemeFilter(){activeThemeFilter=null;renderAll();}
+function clearCityFilter(){activeCityFilter=null;renderAll();}
 
-  // Count themes
-  var themeCounts = {};
-  members.forEach(function(m) {
-    var themes = m.themes || [];
-    if (typeof themes === 'string') { try { themes = JSON.parse(themes); } catch(e) { themes = []; } }
-    themes.forEach(function(t) {
-      var name = (typeof t === 'string' ? t : (t.theme || t.name || '')).trim();
-      if (name) themeCounts[name] = (themeCounts[name] || 0) + 1;
+// ── Map rendering ──────────────────────────────────
+function renderMap(){
+  var clusters=getFilteredGeoClusters();
+  var corridors=getFilteredCorridors();
+  var members=getFilteredMembers();
+
+  // Build city data from clusters
+  var cityData=[];
+  clusters.forEach(function(c){
+    var ck=cityKey(c.city);
+    if(!ck||!CITY_COORDS[ck]) return;
+    var coord=CITY_COORDS[ck];
+    var themes=c.top_themes||[];
+    var dominantTheme=themes.length>0?(typeof themes[0]==='string'?themes[0]:(themes[0].theme||themes[0].name||'')):'';
+    cityData.push({
+      city:c.city, key:ck,
+      x:lngToX(coord.lng), y:latToY(coord.lat),
+      memberCount:c.member_count||0, eventCount:c.event_count||0,
+      dominantTheme:dominantTheme,
+      themes:themes.map(function(t){return typeof t==='string'?t:(t.theme||t.name||'');}),
+      archetypes:c.archetype_breakdown||[],
+      matches:c.total_matches||0
     });
   });
 
-  var sorted = Object.keys(themeCounts).map(function(k) { return { name: k, count: themeCounts[k] }; });
-  sorted.sort(function(a, b) { return b.count - a.count; });
-
-  if (sorted.length === 0) {
-    container.innerHTML = '<div class="empty-msg">No theme data available</div>';
-    return;
-  }
-
-  var max = sorted[0].count;
-  var showCount = 8;
-  var html = '';
-
-  sorted.slice(0, showCount).forEach(function(item) {
-    var pct = Math.round((item.count / max) * 100);
-    html += '<div class="bar-row">' +
-      '<span class="bar-label" title="' + item.name + '">' + item.name + '</span>' +
-      '<div class="bar-track"><div class="bar-fill theme-fill" style="width:' + pct + '%"></div></div>' +
-      '<span class="bar-count">' + item.count + '</span>' +
-    '</div>';
+  // Also add event cities that aren't in clusters
+  var events=getFilteredEvents();
+  var eventCityCounts={};
+  events.forEach(function(e){
+    var c=e.city;if(!c) return;
+    var ck2=cityKey(c);if(!ck2) return;
+    eventCityCounts[ck2]=(eventCityCounts[ck2]||0)+1;
   });
-
-  if (sorted.length > showCount) {
-    html += '<button class="show-more-btn" onclick="toggleThemes(this)">Show ' + (sorted.length - showCount) + ' more</button>';
-    html += '<div class="bar-list extra-themes" style="display:none;margin-top:10px">';
-    sorted.slice(showCount).forEach(function(item) {
-      var pct = Math.round((item.count / max) * 100);
-      html += '<div class="bar-row">' +
-        '<span class="bar-label" title="' + item.name + '">' + item.name + '</span>' +
-        '<div class="bar-track"><div class="bar-fill theme-fill" style="width:' + pct + '%"></div></div>' +
-        '<span class="bar-count">' + item.count + '</span>' +
-      '</div>';
+  var existingKeys={};
+  cityData.forEach(function(d){existingKeys[d.key]=true;});
+  Object.keys(eventCityCounts).forEach(function(ck){
+    if(existingKeys[ck]) return;
+    var coord=CITY_COORDS[ck];
+    if(!coord) return;
+    cityData.push({
+      city:ck,key:ck,
+      x:lngToX(coord.lng),y:latToY(coord.lat),
+      memberCount:0,eventCount:eventCityCounts[ck],
+      dominantTheme:'',themes:[],archetypes:[],matches:0
     });
-    html += '</div>';
-  }
-
-  container.innerHTML = html;
-}
-
-function toggleThemes(btn) {
-  var extra = btn.nextElementSibling;
-  if (extra.style.display === 'none') {
-    extra.style.display = 'flex';
-    btn.textContent = 'Show less';
-  } else {
-    extra.style.display = 'none';
-    btn.textContent = btn.textContent;
-    var count = extra.querySelectorAll('.bar-row').length;
-    btn.textContent = 'Show ' + count + ' more';
-  }
-}
-
-// ── Stakeholder mix ────────────────────────────────
-function renderStakeholder() {
-  var container = document.getElementById('stakeholderBars');
-  var members = getFilteredMembers();
-
-  var typeCounts = {};
-  members.forEach(function(m) {
-    var t = (m.stakeholder_type || 'unknown').toLowerCase();
-    typeCounts[t] = (typeCounts[t] || 0) + 1;
   });
 
-  var sorted = Object.keys(typeCounts).map(function(k) { return { name: k, count: typeCounts[k] }; });
-  sorted.sort(function(a, b) { return b.count - a.count; });
+  // Mark cities with events for pulse
+  var eventCityKeys={};
+  events.forEach(function(e){
+    var ck3=cityKey(e.city);if(ck3) eventCityKeys[ck3]=true;
+  });
 
-  if (sorted.length === 0) {
-    container.innerHTML = '<div class="empty-msg">No stakeholder data available</div>';
+  // Radius scale
+  var maxMembers=Math.max.apply(null,cityData.map(function(d){return d.memberCount;}).concat([1]));
+  function radius(count){return Math.max(4,Math.sqrt(count/maxMembers)*22);}
+
+  // Render corridors
+  var corrLayer=document.getElementById('corridorsLayer');
+  var corrHtml='';
+  corridors.forEach(function(c){
+    var fromKey=cityKey(c.from);
+    var toKey=cityKey(c.to);
+    if(!fromKey||!toKey||!CITY_COORDS[fromKey]||!CITY_COORDS[toKey]) return;
+    var x1=lngToX(CITY_COORDS[fromKey].lng),y1=latToY(CITY_COORDS[fromKey].lat);
+    var x2=lngToX(CITY_COORDS[toKey].lng),y2=latToY(CITY_COORDS[toKey].lat);
+    var midX=(x1+x2)/2,midY=Math.min(y1,y2)-30-Math.abs(x2-x1)*0.08;
+    var dimmed=false;
+    if(activeCityFilter){
+      dimmed=(fromKey!==cityKey(activeCityFilter)&&toKey!==cityKey(activeCityFilter));
+    }
+    if(activeThemeFilter) dimmed=true; // dim corridors when filtering by theme
+    var cls='corridor-arc'+(dimmed?' dimmed':'');
+    var strokeW=Math.max(0.8,Math.min(3,(c.match_count||1)*0.3));
+    corrHtml+='<path class="'+cls+'" d="M'+x1+','+y1+' Q'+midX+','+midY+' '+x2+','+y2+'" stroke="url(#arcGrad)" stroke-width="'+strokeW+'"/>';
+  });
+  corrLayer.innerHTML=corrHtml;
+
+  // Render cities
+  var citiesLayer=document.getElementById('citiesLayer');
+  var citiesHtml='';
+
+  // Sort so smaller bubbles render on top
+  cityData.sort(function(a,b){return b.memberCount-a.memberCount;});
+
+  cityData.forEach(function(d){
+    var r=radius(d.memberCount);
+    var color=d.dominantTheme?themeColor(d.dominantTheme):'#94a3b8';
+    var dimmed=false;
+    if(activeCityFilter&&cityKey(activeCityFilter)!==d.key) dimmed=true;
+    if(activeThemeFilter){
+      var hasTheme=d.themes.indexOf(activeThemeFilter)!==-1;
+      if(!hasTheme) dimmed=true;
+    }
+    var cls='city-bubble'+(dimmed?' dimmed':'');
+    var hasEvents=eventCityKeys[d.key];
+
+    citiesHtml+='<g class="'+cls+'" data-city="'+escapeHtml(d.city)+'" data-key="'+d.key+'">';
+    // Pulse ring for event cities
+    if(hasEvents&&!dimmed){
+      citiesHtml+='<circle class="pulse-ring" cx="'+d.x+'" cy="'+d.y+'" r="'+r+'" stroke="'+color+'"/>';
+    }
+    // Glow
+    if(!dimmed&&d.memberCount>3){
+      citiesHtml+='<circle cx="'+d.x+'" cy="'+d.y+'" r="'+(r+6)+'" fill="'+color+'" opacity="0.08"/>';
+    }
+    // Main circle
+    citiesHtml+='<circle cx="'+d.x+'" cy="'+d.y+'" r="'+r+'" fill="'+color+'" opacity="0.75"/>';
+    // Label for larger cities
+    if(r>7){
+      citiesHtml+='<text class="city-label" x="'+d.x+'" y="'+(d.y+r+12)+'">'+escapeHtml(d.city)+'</text>';
+    }
+    citiesHtml+='</g>';
+  });
+  citiesLayer.innerHTML=citiesHtml;
+
+  // Attach events
+  document.querySelectorAll('.city-bubble').forEach(function(el){
+    var cityName=el.getAttribute('data-city');
+    var data=cityData.find(function(d){return d.city===cityName;});
+    el.addEventListener('mouseenter',function(e){
+      if(!data) return;
+      var html='<strong>'+escapeHtml(data.city)+'</strong>';
+      html+='<div class="tt-row"><span>Members</span><span>'+data.memberCount+'</span></div>';
+      html+='<div class="tt-row"><span>Events</span><span>'+data.eventCount+'</span></div>';
+      if(data.matches) html+='<div class="tt-row"><span>Matches</span><span>'+data.matches+'</span></div>';
+      if(data.themes.length){
+        html+='<div class="tt-themes">';
+        data.themes.slice(0,4).forEach(function(t){
+          html+='<span class="tt-chip" style="background:'+themeColor(t)+';color:white">'+escapeHtml(t)+'</span>';
+        });
+        html+='</div>';
+      }
+      showTooltip(html,e);
+    });
+    el.addEventListener('mousemove',positionTooltip);
+    el.addEventListener('mouseleave',hideTooltip);
+    el.addEventListener('click',function(){
+      if(activeCityFilter===cityName) activeCityFilter=null;
+      else activeCityFilter=cityName;
+      renderAll();
+    });
+  });
+}
+
+// ── Theme bubbles (pack layout) ────────────────────
+function renderBubbles(){
+  var members=getFilteredMembers();
+  var themes=computeThemeCounts(members);
+  if(themes.length===0){document.getElementById('bubblesSvg').innerHTML='';return;}
+
+  var svgW=1092,svgH=280;
+  var cx=svgW/2,cy=svgH/2;
+
+  // Filter by city if active
+  if(activeCityFilter){
+    var cityMembers=members.filter(function(m){
+      var geo=m.geography||'';
+      var ck=cityKey(geo.split(',')[0].trim());
+      return ck===cityKey(activeCityFilter);
+    });
+    themes=computeThemeCounts(cityMembers);
+    if(themes.length===0){document.getElementById('bubblesSvg').innerHTML='<text x="'+cx+'" y="'+cy+'" text-anchor="middle" fill="var(--txtXL)" font-size="13">No theme data for this city</text>';return;}
+  }
+
+  // Scale factor
+  var maxCount=themes[0].count;
+  var scaleFactor=themes.length<=4?8:themes.length<=8?6.5:5;
+  function bubbleR(count){return Math.max(18,Math.sqrt(count)*scaleFactor);}
+
+  // Simple spiral packing
+  var placed=[];
+  themes.forEach(function(t,i){
+    var r=bubbleR(t.count);
+    if(i===0){
+      placed.push({x:cx,y:cy,r:r,theme:t.name,count:t.count});
+      return;
+    }
+    // Spiral outward to find position
+    var angle=i*2.4; // golden angle-ish
+    var dist=0;
+    var bestX=cx,bestY=cy;
+    var found=false;
+    for(var step=0;step<500;step++){
+      dist+=0.8;
+      var a=angle+step*0.3;
+      var tx=cx+Math.cos(a)*dist;
+      var ty=cy+Math.sin(a)*dist;
+      var overlap=false;
+      for(var j=0;j<placed.length;j++){
+        var dx=tx-placed[j].x,dy=ty-placed[j].y;
+        var minDist=r+placed[j].r+3;
+        if(dx*dx+dy*dy<minDist*minDist){overlap=true;break;}
+      }
+      if(!overlap){
+        // Check bounds
+        if(tx-r>=0&&tx+r<=svgW&&ty-r>=4&&ty+r<=svgH-4){
+          bestX=tx;bestY=ty;found=true;break;
+        }
+      }
+    }
+    if(!found){bestX=cx+Math.cos(angle)*dist;bestY=cy+Math.sin(angle)*dist;}
+    placed.push({x:bestX,y:bestY,r:r,theme:t.name,count:t.count});
+  });
+
+  // Render
+  var html='';
+  placed.forEach(function(b){
+    var color=themeColor(b.theme);
+    var dimmed=false;
+    if(activeThemeFilter&&activeThemeFilter!==b.theme) dimmed=true;
+    if(activeCityFilter) dimmed=false; // show all themes in city context
+    var isActive=activeThemeFilter===b.theme;
+    var cls='theme-bubble'+(dimmed?' dimmed':'')+(isActive?' active':'');
+    var fontSize=Math.max(9,Math.min(13,b.r*0.35));
+    var countSize=Math.max(8,Math.min(11,b.r*0.28));
+
+    html+='<g class="'+cls+'" data-theme="'+escapeHtml(b.theme)+'">';
+    // Subtle glow
+    if(!dimmed) html+='<circle cx="'+b.x+'" cy="'+b.y+'" r="'+(b.r+4)+'" fill="'+color+'" opacity="0.08"/>';
+    html+='<circle cx="'+b.x+'" cy="'+b.y+'" r="'+b.r+'" fill="'+color+'" opacity="'+(dimmed?0.15:0.82)+'"/>';
+    if(b.r>22){
+      html+='<text class="theme-bubble-label" x="'+b.x+'" y="'+(b.y-3)+'" font-size="'+fontSize+'">'+escapeHtml(b.theme)+'</text>';
+      html+='<text class="theme-bubble-count" x="'+b.x+'" y="'+(b.y+fontSize-1)+'" font-size="'+countSize+'">'+b.count+'</text>';
+    }else if(b.r>16){
+      html+='<text class="theme-bubble-label" x="'+b.x+'" y="'+(b.y+3)+'" font-size="'+Math.max(8,fontSize-1)+'">'+escapeHtml(b.theme)+'</text>';
+    }
+    html+='</g>';
+  });
+  document.getElementById('bubblesSvg').innerHTML=html;
+
+  // Attach click events
+  document.querySelectorAll('.theme-bubble').forEach(function(el){
+    var themeName=el.getAttribute('data-theme');
+    el.addEventListener('click',function(){
+      if(activeThemeFilter===themeName) activeThemeFilter=null;
+      else activeThemeFilter=themeName;
+      renderAll();
+    });
+    el.addEventListener('mouseenter',function(e){
+      var t=themes.find(function(x){return x.name===themeName;});
+      if(!t) return;
+      showTooltip('<strong>'+escapeHtml(themeName)+'</strong><div class="tt-row"><span>Members</span><span>'+t.count+'</span></div>',e);
+    });
+    el.addEventListener('mousemove',positionTooltip);
+    el.addEventListener('mouseleave',hideTooltip);
+  });
+}
+
+// ── Stakeholder donut ──────────────────────────────
+function renderDonut(){
+  var members=getFilteredMembers();
+
+  // Apply filters
+  if(activeThemeFilter){
+    members=members.filter(function(m){return parseThemes(m.themes).indexOf(activeThemeFilter)!==-1;});
+  }
+  if(activeCityFilter){
+    members=members.filter(function(m){
+      var geo=m.geography||'';
+      var ck=cityKey(geo.split(',')[0].trim());
+      return ck===cityKey(activeCityFilter);
+    });
+  }
+
+  var types=computeStakeholderCounts(members);
+  var total=members.length;
+
+  var svg=document.getElementById('donutSvg');
+  var legend=document.getElementById('donutLegend');
+
+  if(total===0){
+    svg.innerHTML='<text x="100" y="100" text-anchor="middle" fill="var(--txtXL)" font-size="12">No data</text>';
+    legend.innerHTML='';
     return;
   }
 
-  var max = sorted[0].count;
-  var html = '';
+  var R=80,r=54,cx=100,cy=100;
+  var circumference=2*Math.PI*((R+r)/2);
+  var midR=(R+r)/2;
+  var strokeW=R-r;
 
-  sorted.forEach(function(item) {
-    var pct = Math.round((item.count / max) * 100);
-    var displayName = item.name.charAt(0).toUpperCase() + item.name.slice(1) + 's';
-    var fillClass = STAKEHOLDER_FILL_CLASS[item.name] || '';
-    var color = STAKEHOLDER_COLORS[item.name] || '#94a3b8';
-    html += '<div class="bar-row">' +
-      '<span class="bar-label" style="color:' + color + '">' + displayName + '</span>' +
-      '<div class="bar-track"><div class="bar-fill stakeholder-fill ' + fillClass + '" style="width:' + pct + '%"></div></div>' +
-      '<span class="bar-count">' + item.count + '</span>' +
-    '</div>';
+  var html='';
+  var offset=0;
+
+  types.forEach(function(t){
+    var pct=t.count/total;
+    var dashLen=pct*circumference;
+    var gap=circumference-dashLen;
+    var color=stakeholderColor(t.name);
+    var rotation=-90+(offset/total)*360;
+
+    html+='<circle class="donut-segment" cx="'+cx+'" cy="'+cy+'" r="'+midR+'" '+
+      'fill="none" stroke="'+color+'" stroke-width="'+strokeW+'" '+
+      'stroke-dasharray="'+dashLen+' '+gap+'" '+
+      'transform="rotate('+rotation+' '+cx+' '+cy+')" '+
+      'data-type="'+escapeHtml(t.name)+'" data-count="'+t.count+'"/>';
+    offset+=t.count;
   });
 
-  container.innerHTML = html;
+  // Center text
+  html+='<text class="donut-center-text" x="'+cx+'" y="'+(cy-2)+'">'+total+'</text>';
+  html+='<text class="donut-center-sub" x="'+cx+'" y="'+(cy+14)+'">members</text>';
+
+  svg.innerHTML=html;
+
+  // Legend
+  var legHtml='';
+  types.forEach(function(t){
+    var color=stakeholderColor(t.name);
+    var label=t.name.charAt(0).toUpperCase()+t.name.slice(1)+'s';
+    legHtml+='<span class="donut-legend-item" data-type="'+escapeHtml(t.name)+'">'+
+      '<span class="donut-legend-dot" style="background:'+color+'"></span>'+
+      label+' <span class="donut-legend-count">'+t.count+'</span></span>';
+  });
+  legend.innerHTML=legHtml;
+
+  // Hover interactions on segments
+  document.querySelectorAll('.donut-segment').forEach(function(el){
+    el.addEventListener('mouseenter',function(e){
+      var typeName=el.getAttribute('data-type');
+      var count=el.getAttribute('data-count');
+      var label=typeName.charAt(0).toUpperCase()+typeName.slice(1)+'s';
+      var pct=Math.round((parseInt(count)/total)*100);
+      showTooltip('<strong>'+label+'</strong><div class="tt-row"><span>Count</span><span>'+count+'</span></div><div class="tt-row"><span>Share</span><span>'+pct+'%</span></div>',e);
+    });
+    el.addEventListener('mousemove',positionTooltip);
+    el.addEventListener('mouseleave',hideTooltip);
+  });
 }
 
-// ── Geographic distribution ────────────────────────
-function renderGeo() {
-  var container = document.getElementById('geoGrid');
-  var clusters = getFilteredGeoClusters();
+// ── Events timeline ────────────────────────────────
+function renderEvents(){
+  var container=document.getElementById('eventsList');
+  var events=getFilteredEvents();
 
-  // Sort by member_count descending
-  clusters.sort(function(a, b) { return (b.member_count || 0) - (a.member_count || 0); });
+  // Filter future events
+  var now=new Date();
+  var upcoming=events.filter(function(e){
+    if(!e.event_date) return false;
+    return new Date(e.event_date)>=now;
+  });
+  upcoming.sort(function(a,b){return new Date(a.event_date)-new Date(b.event_date);});
 
-  if (clusters.length === 0) {
-    container.innerHTML = '<div class="empty-msg">No geographic data available</div>';
+  // Apply active filters
+  if(activeThemeFilter){
+    upcoming=upcoming.filter(function(e){
+      return parseThemes(e.themes).indexOf(activeThemeFilter)!==-1;
+    });
+  }
+  if(activeCityFilter){
+    upcoming=upcoming.filter(function(e){
+      var ck=cityKey(e.city);
+      return ck===cityKey(activeCityFilter);
+    });
+  }
+
+  if(upcoming.length===0){
+    container.innerHTML='<div style="text-align:center;padding:40px 0;color:var(--txtXL);font-size:13px">No upcoming events'+(activeThemeFilter||activeCityFilter?' matching filters':'')+'</div>';
     return;
   }
 
-  var html = '';
-  clusters.slice(0, 12).forEach(function(c) {
-    var themes = c.top_themes || [];
-    var themeChips = themes.slice(0, 3).map(function(t) {
-      var name = typeof t === 'string' ? t : (t.theme || t.name || '');
-      return '<span class="theme-chip">' + escapeHtml(name) + '</span>';
+  var html='';
+  upcoming.slice(0,12).forEach(function(e){
+    var d=new Date(e.event_date);
+    var dateStr=d.toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+    var themes=parseThemes(e.themes);
+    var themeChips=themes.slice(0,2).map(function(t){
+      return '<span class="theme-chip" style="background:'+themeColor(t)+'22;color:'+themeColor(t)+'">'+escapeHtml(t)+'</span>';
     }).join('');
+    var location=e.city?escapeHtml(e.city):(e.country?escapeHtml(e.country):'');
+    var regCount=e.registered_count||0;
+    var hasRegs=regCount>0;
 
-    var archetypes = c.archetype_breakdown || [];
-    var archetypeStr = archetypes.map(function(a) {
-      var type = (a.type || '').toLowerCase();
-      var abbr = STAKEHOLDER_ABBR[type] || type.charAt(0).toUpperCase();
-      var cls = 'st-' + type;
-      return '<span class="archetype-tag ' + cls + '">' + (a.count || 0) + abbr + '</span>';
-    }).join(' ');
-
-    html += '<div class="geo-card">' +
-      '<div class="geo-city">' + escapeHtml(c.city || 'Unknown') + '</div>' +
-      '<div class="geo-meta">' +
-        '<span>' + (c.member_count || 0) + ' members</span>' +
-        '<span>' + (c.event_count || 0) + ' events</span>' +
-      '</div>' +
-      (themeChips ? '<div class="geo-themes">' + themeChips + '</div>' : '') +
-      (archetypeStr ? '<div class="geo-archetypes">' + archetypeStr + '</div>' : '') +
+    html+='<div class="ev-row'+(hasRegs?' has-regs':'')+'">'+
+      '<span class="ev-date">'+dateStr+'</span>'+
+      '<span class="ev-name" title="'+escapeHtml(e.name||'')+'">'+escapeHtml(e.name||'Untitled')+'</span>'+
+      '<span class="ev-city">'+location+'</span>'+
+      '<span class="ev-themes">'+themeChips+'</span>'+
+      '<span class="ev-reg">'+regCount+'</span>'+
     '</div>';
   });
 
-  container.innerHTML = html;
-}
-
-// ── Upcoming events ────────────────────────────────
-function renderEvents() {
-  var container = document.getElementById('eventsList');
-  var events = getFilteredEvents();
-
-  // Filter to future events and sort by date
-  var now = new Date();
-  var upcoming = events.filter(function(e) {
-    if (!e.event_date) return false;
-    return new Date(e.event_date) >= now;
-  });
-  upcoming.sort(function(a, b) { return new Date(a.event_date) - new Date(b.event_date); });
-
-  if (upcoming.length === 0) {
-    container.innerHTML = '<div class="empty-msg">No upcoming events</div>';
-    return;
-  }
-
-  var html = '';
-  upcoming.slice(0, 10).forEach(function(e) {
-    var d = new Date(e.event_date);
-    var dateStr = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-
-    var themes = e.themes || [];
-    if (typeof themes === 'string') { try { themes = JSON.parse(themes); } catch(ex) { themes = []; } }
-    var themeChips = themes.slice(0, 3).map(function(t) {
-      var name = typeof t === 'string' ? t : (t.theme || t.name || '');
-      return '<span class="theme-chip">' + escapeHtml(name) + '</span>';
-    }).join('');
-
-    var location = '';
-    if (e.city) location = escapeHtml(e.city);
-    if (e.country && !e.city) location = escapeHtml(e.country);
-
-    var regCount = e.registered_count || 0;
-
-    html += '<div class="event-row">' +
-      '<span class="ev-date">' + dateStr + '</span>' +
-      '<span class="ev-name" title="' + escapeHtml(e.name || '') + '">' + escapeHtml(e.name || 'Untitled') + '</span>' +
-      '<span class="ev-city">' + location + '</span>' +
-      '<span class="ev-themes">' + themeChips + '</span>' +
-      '<span class="ev-reg">' + regCount + ' reg</span>' +
-    '</div>';
-  });
-
-  container.innerHTML = html;
-}
-
-// ── Helpers ────────────────────────────────────────
-function escapeHtml(str) {
-  var div = document.createElement('div');
-  div.appendChild(document.createTextNode(str));
-  return div.innerHTML;
+  container.innerHTML=html;
 }
 
 // ── Controls ───────────────────────────────────────
-document.getElementById('scopeToggle').addEventListener('change', function() {
-  currentScope = this.value;
-  var commSelect = document.getElementById('communitySelect');
-  commSelect.style.display = currentScope === 'community' ? '' : 'none';
+document.getElementById('scopeToggle').addEventListener('change',function(){
+  currentScope=this.value;
+  document.getElementById('communitySelect').style.display=currentScope==='community'?'':'none';
+  activeThemeFilter=null;activeCityFilter=null;
   renderAll();
 });
-
-document.getElementById('communitySelect').addEventListener('change', function() {
-  currentCommunityId = this.value;
+document.getElementById('communitySelect').addEventListener('change',function(){
+  currentCommunityId=this.value;
+  activeThemeFilter=null;activeCityFilter=null;
   renderAll();
 });
 
