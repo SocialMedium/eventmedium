@@ -137,8 +137,11 @@
     if (navMatches) navMatches.style.display = '';
     if (navInbox) navInbox.style.display = '';
     if (navCanister) navCanister.style.display = '';
-    // CTA becomes My Canister, hide separate login
-    if (navCta) { navCta.textContent = 'My Canister'; navCta.href = '/canister.html'; }
+    // If canister link already exists, hide the CTA; otherwise repurpose it
+    if (navCta) {
+      if (navCanister) { navCta.style.display = 'none'; }
+      else { navCta.textContent = 'My Canister'; navCta.href = '/canister.html'; }
+    }
     if (navLogin) navLogin.style.display = 'none';
   } else {
     // Hide app links for unauthenticated users
