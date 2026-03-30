@@ -239,19 +239,25 @@ h1,h2,h3,.stat-value{font-family:'Syne',sans-serif}
   function themeColor(name) { return FAMILY_COLORS[THEME_FAMILIES[name] || 'tech'] || '#3b82f6'; }
 
   // ── Auth check ──
-  fetch('/api/auth/me', { credentials: 'include' }).then(function(r) {
-    if (!r.ok) { window.location.href = '/auth.html'; return; }
-    return r.json();
-  }).then(function(user) {
-    if (!user) return;
-    loadData();
-  }).catch(function() {
-    window.location.href = '/auth.html';
-  });
+  var token = localStorage.getItem('auth_token');
+  if (!token) { window.location.href = '/auth.html'; }
+  else {
+    var authHeaders = { 'Authorization': 'Bearer ' + token };
+    fetch('/api/auth/me', { headers: authHeaders }).then(function(r) {
+      if (!r.ok) { localStorage.removeItem('auth_token'); window.location.href = '/auth.html'; return; }
+      return r.json();
+    }).then(function(user) {
+      if (!user) return;
+      loadData();
+    }).catch(function() {
+      window.location.href = '/auth.html';
+    });
+  }
 
   function loadData() {
+    var authHeaders = { 'Authorization': 'Bearer ' + token };
     document.getElementById('loading-state').style.display = '';
-    fetch('/api/network/graph-data', { credentials: 'include' }).then(function(r) {
+    fetch('/api/network/graph-data', { headers: authHeaders }).then(function(r) {
       if (!r.ok) throw new Error('Network response ' + r.status);
       return r.json();
     }).then(function(data) {
