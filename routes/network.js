@@ -51,8 +51,15 @@ router.get('/graph-data', authenticateToken, async function(req, res) {
       dbAll('SELECT sp.stakeholder_type, COUNT(*) as count FROM stakeholder_profiles sp WHERE sp.stakeholder_type IS NOT NULL' + communityFilter + ' GROUP BY sp.stakeholder_type', communityParams),
       // Global geo nodes — filtered
       dbAll('SELECT sp.geography, COUNT(*) AS canister_count, array_agg(DISTINCT sp.stakeholder_type) AS types FROM stakeholder_profiles sp WHERE sp.geography IS NOT NULL AND sp.geography != \'\'' + communityFilter + ' GROUP BY sp.geography ORDER BY canister_count DESC', communityParams),
-      // User's communities (always unfiltered — for the dropdown)
-      dbAll('SELECT e.id, e.name FROM event_registrations er JOIN events e ON e.id = er.event_id WHERE er.user_id = $1 ORDER BY e.name ASC', [req.user.id])
+      // User's communities (events with >1 member where user is registered)
+      dbAll(`SELECT e.id, e.name, COUNT(er2.user_id) AS member_count
+             FROM event_registrations er
+             JOIN events e ON e.id = er.event_id
+             JOIN event_registrations er2 ON er2.event_id = e.id
+             WHERE er.user_id = $1
+             GROUP BY e.id, e.name
+             HAVING COUNT(er2.user_id) > 1
+             ORDER BY COUNT(er2.user_id) DESC`, [req.user.id])
     ];
 
     var [canisterRow, eventRow, matchRow, meetingRow, themeRows, stakeholderRows, globalGeoRows, myCommunitiesRows] = await Promise.all(queries);
@@ -97,7 +104,7 @@ router.get('/graph-data', authenticateToken, async function(req, res) {
 
     // Communities for dropdown
     var myCommunities = myCommunitiesRows.map(function(r) {
-      return { id: r.id, name: r.name };
+      return { id: r.id, name: r.name, member_count: parseInt(r.member_count) || 0 };
     });
 
     res.json({
