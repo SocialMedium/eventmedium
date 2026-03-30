@@ -21,45 +21,45 @@ function firstCity(geo) {
 router.get('/graph-data', authenticateToken, async function(req, res) {
   try {
     var canonicalThemes = getCanonicalThemes();
-    var communityId = req.query.community_id ? parseInt(req.query.community_id) : null;
+    var communityId = req.query.community_id ? parseInt(req.query.community_id, 10) : null;
 
-    // Community filter clause for stakeholder_profiles queries
+    // Community filter clause — uses community_members table
     var communityFilter = '';
     var communityParams = [];
     if (communityId) {
-      communityFilter = ' AND sp.user_id IN (SELECT user_id FROM event_registrations WHERE event_id = $1)';
+      communityFilter = ' AND sp.user_id IN (SELECT user_id FROM community_members WHERE community_id = $1)';
       communityParams = [communityId];
     }
 
     var queries = [
       // Stats — filtered when community selected
       communityId
-        ? dbGet('SELECT COUNT(DISTINCT sp.user_id) AS count FROM stakeholder_profiles sp WHERE sp.user_id IN (SELECT user_id FROM event_registrations WHERE event_id = $1)', [communityId])
+        ? dbGet('SELECT COUNT(DISTINCT sp.user_id) AS count FROM stakeholder_profiles sp WHERE sp.user_id IN (SELECT user_id FROM community_members WHERE community_id = $1)', [communityId])
         : dbGet('SELECT COUNT(DISTINCT user_id) AS count FROM stakeholder_profiles'),
       communityId
         ? dbGet('SELECT 1 AS count')
         : dbGet('SELECT COUNT(*) AS count FROM events'),
       communityId
-        ? dbGet("SELECT COUNT(*) AS count FROM event_matches WHERE status = 'accepted' AND event_id = $1", [communityId])
+        ? dbGet("SELECT COUNT(*) AS count FROM event_matches em WHERE em.status = 'accepted' AND (em.user_a_id IN (SELECT user_id FROM community_members WHERE community_id = $1) OR em.user_b_id IN (SELECT user_id FROM community_members WHERE community_id = $1))", [communityId])
         : dbGet("SELECT COUNT(*) AS count FROM event_matches WHERE status = 'accepted'"),
       communityId
-        ? dbGet('SELECT COUNT(*) AS count FROM match_feedback mf JOIN event_matches em ON em.id = mf.match_id WHERE mf.did_meet = true AND em.event_id = $1', [communityId])
+        ? dbGet('SELECT COUNT(*) AS count FROM match_feedback mf JOIN event_matches em ON em.id = mf.match_id WHERE mf.did_meet = true AND (em.user_a_id IN (SELECT user_id FROM community_members WHERE community_id = $1) OR em.user_b_id IN (SELECT user_id FROM community_members WHERE community_id = $1))', [communityId])
         : dbGet('SELECT COUNT(*) AS count FROM match_feedback WHERE did_meet = true'),
       // Themes — filtered
       dbAll('SELECT themes FROM stakeholder_profiles sp WHERE themes IS NOT NULL' + communityFilter, communityParams),
       // Stakeholder types — filtered
       dbAll('SELECT sp.stakeholder_type, COUNT(*) as count FROM stakeholder_profiles sp WHERE sp.stakeholder_type IS NOT NULL' + communityFilter + ' GROUP BY sp.stakeholder_type', communityParams),
-      // Global geo nodes — filtered
+      // Geo nodes — member locations, filtered
       dbAll('SELECT sp.geography, COUNT(*) AS canister_count, array_agg(DISTINCT sp.stakeholder_type) AS types FROM stakeholder_profiles sp WHERE sp.geography IS NOT NULL AND sp.geography != \'\'' + communityFilter + ' GROUP BY sp.geography ORDER BY canister_count DESC', communityParams),
-      // User's communities (events with >1 member where user is registered)
-      dbAll(`SELECT e.id, e.name, COUNT(er2.user_id) AS member_count
-             FROM event_registrations er
-             JOIN events e ON e.id = er.event_id
-             JOIN event_registrations er2 ON er2.event_id = e.id
-             WHERE er.user_id = $1
-             GROUP BY e.id, e.name
-             HAVING COUNT(er2.user_id) > 1
-             ORDER BY COUNT(er2.user_id) DESC`, [req.user.id])
+      // User's communities from communities table
+      dbAll(`SELECT c.id, c.name, COUNT(cm2.user_id) AS member_count
+             FROM community_members cm
+             JOIN communities c ON c.id = cm.community_id
+             JOIN community_members cm2 ON cm2.community_id = c.id
+             WHERE cm.user_id = $1
+             GROUP BY c.id, c.name
+             HAVING COUNT(cm2.user_id) > 1
+             ORDER BY COUNT(cm2.user_id) DESC`, [req.user.id])
     ];
 
     var [canisterRow, eventRow, matchRow, meetingRow, themeRows, stakeholderRows, globalGeoRows, myCommunitiesRows] = await Promise.all(queries);
@@ -67,7 +67,7 @@ router.get('/graph-data', authenticateToken, async function(req, res) {
     // Stats
     var stats = {
       canisters: parseInt(canisterRow.count) || 0,
-      events: communityId ? 1 : (parseInt(eventRow.count) || 0),
+      events: parseInt(eventRow.count) || 0,
       matches: parseInt(matchRow.count) || 0,
       meetings: parseInt(meetingRow.count) || 0
     };
