@@ -80,14 +80,20 @@ h1,h2,h3,.stat-value{font-family:'Syne',sans-serif}
 .custom-legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
 
 /* ── Map ── */
+.map-controls{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.map-layer-btn{padding:8px 18px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:20px;color:rgba(224,230,240,0.6);font-size:13px;font-weight:500;cursor:pointer;transition:all 0.2s;font-family:inherit}
+.map-layer-btn:hover{color:#e0e6f0;background:rgba(255,255,255,0.06)}
+.map-layer-btn.active{color:#00f5ff;border-color:#00f5ff;box-shadow:0 0 12px rgba(0,245,255,0.15)}
+.map-layer-btn.disabled{opacity:0.4;cursor:default}
+.theme-pills{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.theme-pill{padding:5px 12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:14px;color:rgba(224,230,240,0.5);font-size:11px;cursor:pointer;transition:all 0.2s;font-family:inherit}
+.theme-pill:hover{color:#e0e6f0}
+.theme-pill.active{border-color:currentColor;color:#e0e6f0;background:rgba(255,255,255,0.06)}
 .map-wrap{border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,0.04)}
 #geo-map{height:400px;width:100%;background:#080c14}
 .leaflet-container{background:#080c14 !important}
-.city-scroll{display:flex;gap:16px;overflow-x:auto;padding:16px 0;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,0.1) transparent}
-.city-scroll::-webkit-scrollbar{height:4px}
-.city-scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:2px}
-.city-tag{flex-shrink:0;padding:8px 16px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:10px;font-size:13px;color:rgba(224,230,240,0.6);white-space:nowrap}
-.city-tag strong{color:#00f5ff}
+.map-summary{padding:14px 0;font-size:13px;color:rgba(224,230,240,0.5);text-align:center}
+.map-summary strong{color:#00f5ff}
 
 /* ── Responsive ── */
 @media(max-width:768px){
@@ -195,10 +201,16 @@ h1,h2,h3,.stat-value{font-family:'Syne',sans-serif}
   <!-- Section 4: Geo Map -->
   <div class="section">
     <div class="section-title">Geographic Presence</div>
+    <div class="map-controls" id="map-controls">
+      <button class="map-layer-btn active" data-layer="global">&#x1F310; Global Network</button>
+      <button class="map-layer-btn" data-layer="communities" id="btn-communities">&#x1F3DB; My Communities</button>
+      <button class="map-layer-btn" data-layer="themes">&#x25C9; Thematic</button>
+    </div>
+    <div class="theme-pills" id="theme-pills" style="display:none"></div>
     <div class="map-wrap">
       <div id="geo-map"></div>
     </div>
-    <div class="city-scroll" id="city-scroll"></div>
+    <div class="map-summary" id="map-summary"></div>
   </div>
 
 </div>
@@ -276,7 +288,7 @@ h1,h2,h3,.stat-value{font-family:'Syne',sans-serif}
     renderForceGraph(data.graph);
     renderBubbles(data.themes);
     renderDonut(data.stakeholders);
-    renderMap(data.geoNodes);
+    renderMap(data);
   }
 
   // ── Animated Counters ──
@@ -533,8 +545,8 @@ h1,h2,h3,.stat-value{font-family:'Syne',sans-serif}
     });
   }
 
-  // ── Leaflet Map ──
-  function renderMap(geoNodes) {
+  // ── Leaflet Map with 3 Layers ──
+  function renderMap(data) {
     var map = L.map('geo-map', { scrollWheelZoom: false }).setView([20, 0], 2);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
@@ -542,29 +554,155 @@ h1,h2,h3,.stat-value{font-family:'Syne',sans-serif}
       maxZoom: 19
     }).addTo(map);
 
-    geoNodes.forEach(function(g) {
-      if (g.lat == null || g.lng == null) return;
-      var radius = Math.sqrt(g.attendees) * 3 + 6;
-      L.circleMarker([g.lat, g.lng], {
-        radius: radius,
-        color: '#00f5ff',
-        fillColor: '#00f5ff',
-        fillOpacity: 0.35,
-        weight: 1,
-        opacity: 0.7
-      }).addTo(map).bindPopup(
-        '<strong>' + g.city + '</strong>, ' + g.country + '<br>' +
-        g.events + ' events &middot; ' + g.attendees + ' attendees'
+    var globalLayer = L.layerGroup();
+    var communitiesLayer = L.layerGroup();
+    var themeLayer = L.layerGroup();
+    var activeLayer = 'global';
+    var activeTheme = null;
+    var summaryEl = document.getElementById('map-summary');
+
+    // ── Layer 1: Global Network ──
+    var globalWithCoords = (data.globalNodes || []).filter(function(n) { return n.lat != null; });
+    globalWithCoords.forEach(function(n) {
+      var r = Math.max(6, Math.min(28, Math.sqrt(n.canister_count) * 4));
+      // Halo
+      L.circleMarker([n.lat, n.lng], {
+        radius: r + 8, fillColor: '#00f5ff', fillOpacity: 0.06,
+        color: '#00f5ff', weight: 1, opacity: 0.2
+      }).addTo(globalLayer);
+      // Core
+      L.circleMarker([n.lat, n.lng], {
+        radius: r, fillColor: '#00f5ff', fillOpacity: 0.75,
+        color: 'rgba(255,255,255,0.3)', weight: 1
+      }).addTo(globalLayer).bindPopup(
+        '<strong>' + n.label + '</strong><br>' +
+        '<span style="color:#00f5ff">' + n.canister_count + '</span> canister' + (n.canister_count !== 1 ? 's' : '') + '<br>' +
+        '<span style="color:#888;font-size:11px">' + (n.types || []).join(' &middot; ') + '</span>'
       );
     });
 
-    // City scroll bar
-    var scrollEl = document.getElementById('city-scroll');
-    var sorted = geoNodes.slice().sort(function(a, b) { return b.attendees - a.attendees; });
-    sorted.forEach(function(g) {
-      if (!g.city) return;
-      scrollEl.innerHTML += '<div class="city-tag"><strong>' + g.city + '</strong> — ' + g.events + ' events</div>';
+    // ── Layer 2: My Communities ──
+    var commNodes = (data.myCommunitiesNodes || []).filter(function(n) { return n.lat != null; });
+    commNodes.forEach(function(n) {
+      L.circleMarker([n.lat, n.lng], {
+        radius: 10, fillColor: '#f59e0b', fillOpacity: 0.85,
+        color: '#ffffff', weight: 2
+      }).addTo(communitiesLayer).bindPopup(
+        '<strong>' + n.name + '</strong><br>' +
+        (n.city || '') + (n.country ? ', ' + n.country : '') + '<br>' +
+        '<span style="color:#f59e0b">' + n.total_members + '</span> members<br>' +
+        '<span style="color:#888;font-size:11px">' + (n.themes || []).join(' &middot; ') + '</span>'
+      );
     });
+
+    // Communities button state
+    var btnComm = document.getElementById('btn-communities');
+    if (!commNodes.length) {
+      btnComm.classList.add('disabled');
+      btnComm.title = 'Join an event to see your network';
+    }
+
+    // ── Layer 3: Thematic ──
+    var themeNodeData = data.themeNodes || {};
+    var canonicalThemeNames = Object.keys(themeNodeData).filter(function(t) {
+      return themeNodeData[t] && themeNodeData[t].length > 0;
+    });
+    // Build theme pills
+    var pillsEl = document.getElementById('theme-pills');
+    var allThemeNames = Object.keys(themeNodeData);
+    allThemeNames.forEach(function(t) {
+      var pill = document.createElement('button');
+      pill.className = 'theme-pill';
+      pill.textContent = t;
+      pill.setAttribute('data-theme', t);
+      pill.style.color = themeColor(t);
+      pill.addEventListener('click', function() {
+        pillsEl.querySelectorAll('.theme-pill').forEach(function(p) { p.classList.remove('active'); });
+        pill.classList.add('active');
+        renderThemeLayer(t);
+      });
+      pillsEl.appendChild(pill);
+    });
+
+    function renderThemeLayer(themeName) {
+      activeTheme = themeName;
+      themeLayer.clearLayers();
+      var nodes = themeNodeData[themeName] || [];
+      var color = themeColor(themeName);
+      nodes.forEach(function(n) {
+        if (!n.lat) return;
+        var r = Math.max(5, Math.min(22, Math.sqrt(n.count) * 3.5));
+        L.circleMarker([n.lat, n.lng], {
+          radius: r, fillColor: color, fillOpacity: 0.8,
+          color: 'rgba(255,255,255,0.2)', weight: 1
+        }).addTo(themeLayer).bindPopup(
+          '<strong>' + n.label + '</strong><br>' +
+          '<span style="color:' + color + '">' + n.count + '</span> ' + themeName + ' profiles'
+        );
+      });
+      updateSummary();
+    }
+
+    // ── Layer switching ──
+    function setLayer(name) {
+      activeLayer = name;
+      map.removeLayer(globalLayer);
+      map.removeLayer(communitiesLayer);
+      map.removeLayer(themeLayer);
+      pillsEl.style.display = 'none';
+
+      if (name === 'global') {
+        globalLayer.addTo(map);
+      } else if (name === 'communities') {
+        if (!commNodes.length) return;
+        communitiesLayer.addTo(map);
+      } else if (name === 'themes') {
+        themeLayer.addTo(map);
+        pillsEl.style.display = '';
+        if (!activeTheme) {
+          // Default to first theme with data, or AI
+          var defaultTheme = canonicalThemeNames.length ? canonicalThemeNames[0] : 'AI';
+          var defaultPill = pillsEl.querySelector('[data-theme="' + defaultTheme + '"]');
+          if (defaultPill) defaultPill.classList.add('active');
+          renderThemeLayer(defaultTheme);
+        }
+      }
+      updateSummary();
+    }
+
+    function updateSummary() {
+      if (activeLayer === 'global') {
+        var totalCanisters = globalWithCoords.reduce(function(s, n) { return s + n.canister_count; }, 0);
+        var countries = {};
+        (data.globalNodes || []).forEach(function(n) { if (n.label) countries[n.label] = true; });
+        summaryEl.innerHTML = '<strong>' + totalCanisters + '</strong> canisters across <strong>' + Object.keys(countries).length + '</strong> cities';
+      } else if (activeLayer === 'communities') {
+        if (commNodes.length) {
+          var commCities = {};
+          commNodes.forEach(function(n) { if (n.city) commCities[n.city] = true; });
+          summaryEl.innerHTML = 'You are part of <strong>' + commNodes.length + '</strong> communit' + (commNodes.length === 1 ? 'y' : 'ies') + ' across <strong>' + Object.keys(commCities).length + '</strong> cities';
+        } else {
+          summaryEl.innerHTML = 'Join an event to see your community on the map';
+        }
+      } else if (activeLayer === 'themes' && activeTheme) {
+        var tnodes = themeNodeData[activeTheme] || [];
+        var top = tnodes.length ? tnodes[0].label : '—';
+        summaryEl.innerHTML = '<strong>' + activeTheme + '</strong> is active in <strong>' + tnodes.length + '</strong> cities — strongest: <strong>' + top + '</strong>';
+      }
+    }
+
+    // Wire up buttons
+    document.getElementById('map-controls').addEventListener('click', function(ev) {
+      var btn = ev.target.closest('.map-layer-btn');
+      if (!btn || btn.classList.contains('disabled')) return;
+      document.querySelectorAll('.map-layer-btn').forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      setLayer(btn.getAttribute('data-layer'));
+    });
+
+    // Init
+    globalLayer.addTo(map);
+    updateSummary();
   }
 
 })();

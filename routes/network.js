@@ -2,6 +2,7 @@ var express = require('express');
 var { dbAll, dbGet } = require('../db');
 var { authenticateToken } = require('../middleware/auth');
 var { getCanonicalThemes } = require('../lib/theme_taxonomy');
+var { getCityCoords } = require('../lib/geocode');
 var router = express.Router();
 
 function safeJson(v) {
@@ -19,14 +20,13 @@ function firstCity(geo) {
 // ── GET /api/network/graph-data ── aggregated network visualisation data ──────
 router.get('/graph-data', authenticateToken, async function(req, res) {
   try {
-    var [canisterRow, eventRow, matchRow, meetingRow, geoRows, themeRows, stakeholderRows, edgeRows] = await Promise.all([
+    var canonicalThemes = getCanonicalThemes();
+
+    var [canisterRow, eventRow, matchRow, meetingRow, themeRows, stakeholderRows, edgeRows, globalGeoRows, myEventsRows, themeGeoRows] = await Promise.all([
       dbGet('SELECT COUNT(DISTINCT user_id) AS count FROM stakeholder_profiles'),
       dbGet('SELECT COUNT(*) AS count FROM events'),
       dbGet("SELECT COUNT(*) AS count FROM event_matches WHERE status = 'accepted'"),
       dbGet('SELECT COUNT(*) AS count FROM match_feedback WHERE did_meet = true'),
-      dbAll(`SELECT e.city, e.country, COUNT(er.user_id) AS attendees, COUNT(DISTINCT e.id) AS event_count, e.themes
-             FROM events e LEFT JOIN event_registrations er ON er.event_id = e.id
-             GROUP BY e.city, e.country, e.themes ORDER BY attendees DESC`),
       dbAll('SELECT themes FROM stakeholder_profiles WHERE themes IS NOT NULL'),
       dbAll('SELECT stakeholder_type, COUNT(*) as count FROM stakeholder_profiles GROUP BY stakeholder_type'),
       dbAll(`SELECT em.event_id, sp_a.stakeholder_type AS type_a, sp_b.stakeholder_type AS type_b,
@@ -35,7 +35,25 @@ router.get('/graph-data', authenticateToken, async function(req, res) {
              JOIN stakeholder_profiles sp_a ON sp_a.user_id = em.user_a_id
              JOIN stakeholder_profiles sp_b ON sp_b.user_id = em.user_b_id
              JOIN events e ON e.id = em.event_id
-             WHERE em.status IN ('accepted', 'revealed') LIMIT 500`)
+             WHERE em.status IN ('accepted', 'revealed') LIMIT 500`),
+      // Layer 1: Global node density from stakeholder geography
+      dbAll(`SELECT geography, COUNT(*) AS canister_count,
+                    array_agg(DISTINCT stakeholder_type) AS types
+             FROM stakeholder_profiles
+             WHERE geography IS NOT NULL AND geography != ''
+             GROUP BY geography ORDER BY canister_count DESC`),
+      // Layer 2: My communities (user's registered events)
+      dbAll(`SELECT e.id, e.name, e.city, e.country, e.event_date, e.themes,
+                    COUNT(er2.user_id) AS total_members
+             FROM event_registrations er
+             JOIN events e ON e.id = er.event_id
+             LEFT JOIN event_registrations er2 ON er2.event_id = e.id
+             WHERE er.user_id = $1
+             GROUP BY e.id, e.name, e.city, e.country, e.event_date, e.themes
+             ORDER BY e.event_date DESC`, [req.user.id]),
+      // Layer 3: Theme geo concentration
+      dbAll(`SELECT geography, themes FROM stakeholder_profiles
+             WHERE geography IS NOT NULL AND geography != '' AND themes IS NOT NULL`)
     ]);
 
     // Stats
@@ -47,13 +65,10 @@ router.get('/graph-data', authenticateToken, async function(req, res) {
     };
 
     // Theme frequency from JSONB arrays
-    var canonicalThemes = getCanonicalThemes();
     var themeFreq = {};
     canonicalThemes.forEach(function(t) { themeFreq[t] = 0; });
     themeRows.forEach(function(row) {
-      var arr = row.themes;
-      if (typeof arr === 'string') { try { arr = JSON.parse(arr); } catch(e) { arr = []; } }
-      if (!Array.isArray(arr)) return;
+      var arr = safeJson(row.themes);
       arr.forEach(function(t) {
         if (themeFreq.hasOwnProperty(t)) themeFreq[t]++;
       });
@@ -66,15 +81,6 @@ router.get('/graph-data', authenticateToken, async function(req, res) {
       return { type: r.stakeholder_type || 'other', count: parseInt(r.count) || 0 };
     });
 
-    // Geo nodes
-    var geoNodes = geoRows.map(function(r) {
-      return {
-        city: r.city || null, country: r.country || null,
-        attendees: parseInt(r.attendees) || 0, events: parseInt(r.event_count) || 0,
-        lat: null, lng: null
-      };
-    }).filter(function(g) { return g.city; });
-
     // Anonymised graph nodes + links
     var nodeMap = {};
     var nodeCounter = 0;
@@ -85,7 +91,6 @@ router.get('/graph-data', authenticateToken, async function(req, res) {
       }
       return nodeMap[userId].id;
     }
-
     var links = edgeRows.map(function(row) {
       var srcId = getNodeId(row.user_a_id, row.type_a, row.event_id, row.city);
       var tgtId = getNodeId(row.user_b_id, row.type_b, row.event_id, row.city);
@@ -97,7 +102,69 @@ router.get('/graph-data', authenticateToken, async function(req, res) {
     });
     var nodes = Object.values(nodeMap);
 
-    res.json({ stats: stats, themes: themes, stakeholders: stakeholders, geoNodes: geoNodes, graph: { nodes: nodes, links: links } });
+    // ── Map Layer 1: Global nodes from stakeholder geography ──
+    var globalNodes = globalGeoRows.map(function(r) {
+      var label = firstCity(r.geography);
+      var coords = getCityCoords(label);
+      return {
+        label: label,
+        canister_count: parseInt(r.canister_count) || 0,
+        lat: coords ? coords[0] : null,
+        lng: coords ? coords[1] : null,
+        types: (r.types || []).filter(Boolean)
+      };
+    }).filter(function(n) { return n.label; });
+
+    // ── Map Layer 2: My communities (user's events) ──
+    var myCommunitiesNodes = myEventsRows.map(function(r) {
+      var coords = getCityCoords(r.city);
+      return {
+        event_id: r.id,
+        name: r.name,
+        city: r.city || null,
+        country: r.country || null,
+        lat: coords ? coords[0] : null,
+        lng: coords ? coords[1] : null,
+        total_members: parseInt(r.total_members) || 0,
+        themes: safeJson(r.themes)
+      };
+    });
+
+    // ── Map Layer 3: Thematic concentration ──
+    // Build: { themeName: { geoLabel: count } }
+    var themeGeoMap = {};
+    canonicalThemes.forEach(function(t) { themeGeoMap[t] = {}; });
+    themeGeoRows.forEach(function(row) {
+      var label = firstCity(row.geography);
+      if (!label) return;
+      var arr = safeJson(row.themes);
+      arr.forEach(function(t) {
+        if (themeGeoMap[t]) {
+          themeGeoMap[t][label] = (themeGeoMap[t][label] || 0) + 1;
+        }
+      });
+    });
+    var themeNodes = {};
+    canonicalThemes.forEach(function(t) {
+      themeNodes[t] = Object.keys(themeGeoMap[t]).map(function(label) {
+        var coords = getCityCoords(label);
+        return {
+          label: label,
+          lat: coords ? coords[0] : null,
+          lng: coords ? coords[1] : null,
+          count: themeGeoMap[t][label]
+        };
+      }).filter(function(n) { return n.lat; })
+        .sort(function(a, b) { return b.count - a.count; });
+    });
+
+    res.json({
+      stats: stats, themes: themes, stakeholders: stakeholders,
+      graph: { nodes: nodes, links: links },
+      globalNodes: globalNodes,
+      myCommunitiesNodes: myCommunitiesNodes,
+      themeNodes: themeNodes
+    });
   } catch(err) {
     console.error('[Network] graph-data error:', err);
     res.status(500).json({ error: 'Failed to load network data' });
