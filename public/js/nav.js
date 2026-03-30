@@ -94,7 +94,7 @@
     if (!isLanding) linksHTML += ''; // Events already added above
     linksHTML += '<a href="/matches.html"' + (page === 'matches' ? ' class="active"' : '') + '><i data-lucide="heart-handshake"></i> Matches</a>';
     linksHTML += '<a href="/inbox.html"' + (page === 'inbox' ? ' class="active"' : '') + '><i data-lucide="inbox"></i> Inbox</a>';
-    linksHTML += '<a href="/network-graph.html"' + (page === 'network-graph' ? ' class="active"' : '') + '><i data-lucide="share-2"></i> Network</a>';
+    linksHTML += '<a href="/network.html"' + (page === 'network' ? ' class="active"' : '') + '><i data-lucide="share-2"></i> Network</a>';
     linksHTML += '<a href="/canister.html"' + (page === 'canister' ? ' class="active"' : '') + '><i data-lucide="user"></i> My Canister</a>';
     linksHTML += '<div class="nav-drawer-divider"></div>';
     linksHTML += '<a href="#" class="nav-logout-mobile"><i data-lucide="log-out"></i> Log out</a>';

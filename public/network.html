@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Network — EventMedium</title>
+<link rel="icon" type="image/png" href="/images/em-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',system-ui,sans-serif;background:#080c14;color:#e0e6f0;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+h1,h2,h3,.stat-value{font-family:'Syne',sans-serif}
+
+/* ── Nav ── */
+.nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(8,12,20,0.85);backdrop-filter:blur(16px);border-bottom:1px solid rgba(255,255,255,0.06);padding:0 24px}
+.nav-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:56px}
+.nav-brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:#e0e6f0;font-weight:700;font-size:1.05rem}
+.nav-brand img{width:32px;height:32px;border-radius:8px}
+.nav-brand span{color:#6366f1}
+.nav-links{display:flex;align-items:center;gap:6px}
+.nav-link{padding:7px 14px;color:rgba(224,230,240,0.6);text-decoration:none;font-size:13px;font-weight:500;border-radius:8px;transition:all 0.2s}
+.nav-link:hover{color:#e0e6f0;background:rgba(255,255,255,0.05)}
+.nav-link.active{color:#00f5ff;font-weight:600}
+.nav-cta{padding:7px 18px;background:#6366f1;color:#fff;font-size:13px;font-weight:600;border-radius:8px;text-decoration:none}
+
+/* ── Layout ── */
+.page{padding-top:72px;max-width:1200px;margin:0 auto;padding-left:24px;padding-right:24px}
+.section{margin-bottom:64px}
+.section-title{font-size:1.1rem;font-weight:700;color:rgba(224,230,240,0.4);text-transform:uppercase;letter-spacing:2px;margin-bottom:28px}
+
+/* ── Loading ── */
+.skeleton{background:linear-gradient(90deg,rgba(255,255,255,0.04) 25%,rgba(255,255,255,0.08) 50%,rgba(255,255,255,0.04) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:12px}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.loading-state .skeleton-bar{height:80px;margin-bottom:16px}
+.loading-state .skeleton-graph{height:60vh;margin-bottom:16px}
+.error-banner{background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);color:#f87171;padding:16px 24px;border-radius:12px;text-align:center;font-size:14px}
+
+/* ── Hero Stats ── */
+.hero-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:24px;margin-bottom:64px;padding-top:16px}
+.stat-card{text-align:center;padding:32px 16px;border-radius:16px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.04)}
+.stat-icon{font-size:28px;margin-bottom:8px}
+.stat-value{font-size:3rem;font-weight:800;letter-spacing:-2px;background:linear-gradient(135deg,#00f5ff,#6366f1);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.stat-label{font-size:13px;color:rgba(224,230,240,0.45);font-weight:500;margin-top:4px;text-transform:uppercase;letter-spacing:1.5px}
+
+/* ── Force Graph ── */
+.graph-container{position:relative;width:100%;height:60vh;min-height:400px;border-radius:16px;overflow:hidden;background:radial-gradient(ellipse at center,rgba(99,102,241,0.04) 0%,transparent 70%)}
+.graph-container svg{width:100%;height:100%;display:block}
+.graph-legend{position:absolute;bottom:16px;left:16px;display:flex;flex-wrap:wrap;gap:12px}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:12px;color:rgba(224,230,240,0.6)}
+.legend-dot{width:10px;height:10px;border-radius:50%}
+.graph-tooltip{position:absolute;pointer-events:none;background:rgba(8,12,20,0.92);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 16px;font-size:12px;line-height:1.6;opacity:0;transition:opacity 0.15s;backdrop-filter:blur(8px)}
+.graph-tooltip strong{color:#00f5ff}
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;color:rgba(224,230,240,0.35)}
+.empty-state h3{font-size:1.4rem;margin-bottom:8px;color:rgba(224,230,240,0.5)}
+.empty-state p{font-size:14px}
+.pulse-node{width:16px;height:16px;border-radius:50%;background:#6366f1;margin-bottom:20px;animation:pulseGlow 2.5s ease-in-out infinite}
+@keyframes pulseGlow{0%,100%{box-shadow:0 0 8px 2px rgba(99,102,241,0.3)}50%{box-shadow:0 0 24px 8px rgba(99,102,241,0.6)}}
+
+/* ── Two Column ── */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:start}
+
+/* ── Theme Bubbles ── */
+.bubble-container{position:relative;width:100%;height:420px;border-radius:16px;overflow:hidden}
+.bubble-container svg{width:100%;height:100%}
+.bubble-tooltip{position:absolute;pointer-events:none;background:rgba(8,12,20,0.92);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;font-size:12px;opacity:0;transition:opacity 0.15s}
+
+/* ── Donut ── */
+.donut-wrap{display:flex;flex-direction:column;align-items:center}
+.donut-canvas-wrap{position:relative;width:280px;height:280px}
+.donut-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center}
+.donut-center-label{font-size:11px;color:rgba(224,230,240,0.4);text-transform:uppercase;letter-spacing:1px}
+.donut-center-title{font-size:16px;font-weight:700;color:#e0e6f0;font-family:'Syne',sans-serif}
+.custom-legend{display:flex;flex-wrap:wrap;gap:12px 20px;margin-top:20px;justify-content:center}
+.custom-legend-item{display:flex;align-items:center;gap:6px;font-size:12px;color:rgba(224,230,240,0.7)}
+.custom-legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+
+/* ── Map ── */
+.map-wrap{border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,0.04)}
+#geo-map{height:400px;width:100%;background:#080c14}
+.leaflet-container{background:#080c14 !important}
+.city-scroll{display:flex;gap:16px;overflow-x:auto;padding:16px 0;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,0.1) transparent}
+.city-scroll::-webkit-scrollbar{height:4px}
+.city-scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:2px}
+.city-tag{flex-shrink:0;padding:8px 16px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:10px;font-size:13px;color:rgba(224,230,240,0.6);white-space:nowrap}
+.city-tag strong{color:#00f5ff}
+
+/* ── Responsive ── */
+@media(max-width:768px){
+  .hero-stats{grid-template-columns:repeat(2,1fr);gap:12px}
+  .stat-value{font-size:2rem}
+  .two-col{grid-template-columns:1fr;gap:32px}
+  .nav-links{display:none}
+  .graph-container{height:50vh;min-height:300px}
+  .bubble-container{height:320px}
+}
+@media(max-width:480px){
+  .hero-stats{grid-template-columns:1fr 1fr;gap:8px}
+  .stat-card{padding:20px 12px}
+  .stat-value{font-size:1.6rem}
+}
+</style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-brand"><img src="/images/em-logo.png" alt="EM">Event <span>Medium</span></a>
+    <div class="nav-links">
+      <a href="/events.html" class="nav-link">Events</a>
+      <a href="/matches.html" class="nav-link">Matches</a>
+      <a href="/inbox.html" class="nav-link">Inbox</a>
+      <a href="/network.html" class="nav-link active">Network</a>
+      <a href="/canister.html" class="nav-link">My Canister</a>
+    </div>
+  </div>
+</nav>
+
+<!-- Loading State -->
+<div class="page" id="loading-state" style="display:none">
+  <div class="loading-state">
+    <div class="skeleton skeleton-bar"></div>
+    <div class="skeleton skeleton-graph"></div>
+  </div>
+</div>
+
+<!-- Error State -->
+<div class="page" id="error-state" style="display:none">
+  <div class="error-banner" id="error-message">Something went wrong loading network data.</div>
+</div>
+
+<!-- Main Content -->
+<div class="page" id="main-content" style="display:none">
+
+  <!-- Section 1: Hero Stats -->
+  <div class="hero-stats">
+    <div class="stat-card">
+      <div class="stat-icon">&#x1F52E;</div>
+      <div class="stat-value" id="stat-canisters">0</div>
+      <div class="stat-label">Canisters Built</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">&#x1F4CD;</div>
+      <div class="stat-value" id="stat-events">0</div>
+      <div class="stat-label">Events</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">&#x26A1;</div>
+      <div class="stat-value" id="stat-matches">0</div>
+      <div class="stat-label">Matches Made</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">&#x1F91D;</div>
+      <div class="stat-value" id="stat-meetings">0</div>
+      <div class="stat-label">Meetings Confirmed</div>
+    </div>
+  </div>
+
+  <!-- Section 2: Force Graph -->
+  <div class="section">
+    <div class="section-title">Match Network</div>
+    <div class="graph-container" id="force-graph">
+      <div class="graph-tooltip" id="graph-tooltip"></div>
+    </div>
+  </div>
+
+  <!-- Section 3: Two Column -->
+  <div class="section two-col">
+    <div>
+      <div class="section-title">Theme Landscape</div>
+      <div class="bubble-container" id="bubble-chart">
+        <div class="bubble-tooltip" id="bubble-tooltip"></div>
+      </div>
+    </div>
+    <div>
+      <div class="section-title">Stakeholder Mix</div>
+      <div class="donut-wrap">
+        <div class="donut-canvas-wrap">
+          <canvas id="donut-chart" width="280" height="280"></canvas>
+          <div class="donut-center">
+            <div class="donut-center-label">Distribution</div>
+            <div class="donut-center-title">Stakeholders</div>
+          </div>
+        </div>
+        <div class="custom-legend" id="donut-legend"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 4: Geo Map -->
+  <div class="section">
+    <div class="section-title">Geographic Presence</div>
+    <div class="map-wrap">
+      <div id="geo-map"></div>
+    </div>
+    <div class="city-scroll" id="city-scroll"></div>
+  </div>
+
+</div>
+
+<script>
+(function() {
+  // ── Colour palette ──
+  var TYPE_COLORS = {
+    founder:    '#00f5ff',
+    investor:   '#fbbf24',
+    researcher: '#a78bfa',
+    corporate:  '#f97316',
+    advisor:    '#34d399',
+    operator:   '#e2e8f0',
+    other:      '#64748b'
+  };
+
+  var THEME_FAMILIES = {
+    'AI': 'tech', 'IoT': 'tech', 'Hardware': 'tech', 'Robotics': 'tech',
+    'Quantum': 'tech', 'Infrastructure & Cloud': 'tech', 'Web3': 'tech',
+    'Enterprise SaaS': 'biz', 'Fintech': 'biz', 'Cybersecurity': 'biz',
+    'Venture & Capital': 'biz', 'Growth & GTM': 'biz', 'Marketplace & Commerce': 'biz',
+    'Data & Analytics': 'biz',
+    'Privacy & Regulation': 'soc', 'Education': 'soc', 'Impact & Social': 'soc',
+    'Defence': 'soc',
+    'Climate': 'impact', 'Health': 'impact', 'Media & Entertainment': 'impact',
+    'Food & Agriculture': 'impact', 'Real Estate': 'impact', 'Supply Chain': 'impact',
+    'Space': 'impact', 'Travel & Mobility': 'impact'
+  };
+  var FAMILY_COLORS = {
+    tech:   '#3b82f6',
+    biz:    '#f59e0b',
+    soc:    '#8b5cf6',
+    impact: '#10b981'
+  };
+
+  function typeColor(t) { return TYPE_COLORS[t] || TYPE_COLORS.other; }
+  function themeColor(name) { return FAMILY_COLORS[THEME_FAMILIES[name] || 'tech'] || '#3b82f6'; }
+
+  // ── Auth check ──
+  fetch('/api/auth/me', { credentials: 'include' }).then(function(r) {
+    if (!r.ok) { window.location.href = '/auth.html'; return; }
+    return r.json();
+  }).then(function(user) {
+    if (!user) return;
+    loadData();
+  }).catch(function() {
+    window.location.href = '/auth.html';
+  });
+
+  function loadData() {
+    document.getElementById('loading-state').style.display = '';
+    fetch('/api/network/graph-data', { credentials: 'include' }).then(function(r) {
+      if (!r.ok) throw new Error('Network response ' + r.status);
+      return r.json();
+    }).then(function(data) {
+      document.getElementById('loading-state').style.display = 'none';
+      document.getElementById('main-content').style.display = '';
+      render(data);
+    }).catch(function(err) {
+      document.getElementById('loading-state').style.display = 'none';
+      document.getElementById('error-state').style.display = '';
+      document.getElementById('error-message').textContent = 'Failed to load network data: ' + err.message;
+    });
+  }
+
+  function render(data) {
+    animateCounters(data.stats);
+    renderForceGraph(data.graph);
+    renderBubbles(data.themes);
+    renderDonut(data.stakeholders);
+    renderMap(data.geoNodes);
+  }
+
+  // ── Animated Counters ──
+  function animateCounters(stats) {
+    var keys = [
+      { el: 'stat-canisters', val: stats.canisters },
+      { el: 'stat-events', val: stats.events },
+      { el: 'stat-matches', val: stats.matches },
+      { el: 'stat-meetings', val: stats.meetings }
+    ];
+    keys.forEach(function(k) {
+      var el = document.getElementById(k.el);
+      var target = k.val;
+      if (target === 0) { el.textContent = '0'; return; }
+      var start = performance.now();
+      var duration = 1500;
+      function tick(now) {
+        var t = Math.min((now - start) / duration, 1);
+        var ease = 1 - Math.pow(1 - t, 3);
+        el.textContent = Math.round(ease * target).toLocaleString();
+        if (t < 1) requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    });
+  }
+
+  // ── D3 Force Graph ──
+  function renderForceGraph(graph) {
+    var container = document.getElementById('force-graph');
+    var tooltip = document.getElementById('graph-tooltip');
+
+    if (!graph.nodes.length) {
+      container.innerHTML = '<div class="empty-state"><div class="pulse-node"></div><h3>The network is forming.</h3><p>Be among the first.</p></div>';
+      return;
+    }
+
+    var w = container.clientWidth;
+    var h = container.clientHeight;
+
+    // Compute degree
+    var degreeMap = {};
+    graph.nodes.forEach(function(n) { degreeMap[n.id] = 0; });
+    graph.links.forEach(function(l) {
+      degreeMap[l.source] = (degreeMap[l.source] || 0) + 1;
+      degreeMap[l.target] = (degreeMap[l.target] || 0) + 1;
+    });
+    var maxDeg = Math.max(1, d3.max(Object.values(degreeMap)));
+
+    var svg = d3.select(container).append('svg').attr('viewBox', '0 0 ' + w + ' ' + h);
+
+    // Glow filter
+    var defs = svg.append('defs');
+    var filter = defs.append('filter').attr('id', 'glow');
+    filter.append('feGaussianBlur').attr('stdDeviation', '3').attr('result', 'blur');
+    var merge = filter.append('feMerge');
+    merge.append('feMergeNode').attr('in', 'blur');
+    merge.append('feMergeNode').attr('in', 'SourceGraphic');
+
+    var sim = d3.forceSimulation(graph.nodes)
+      .force('link', d3.forceLink(graph.links).id(function(d) { return d.id; }).distance(60))
+      .force('charge', d3.forceManyBody().strength(-120))
+      .force('center', d3.forceCenter(w / 2, h / 2))
+      .force('collide', d3.forceCollide().radius(function(d) {
+        return nodeRadius(degreeMap[d.id] || 0) + 2;
+      }));
+
+    var link = svg.append('g').selectAll('line').data(graph.links).enter().append('line')
+      .attr('stroke', 'rgba(99,102,241,0.15)')
+      .attr('stroke-width', function(d) { return 0.5 + (d.score || 0) * 2; })
+      .attr('stroke-opacity', function(d) { return 0.15 + (d.score || 0) * 0.5; });
+
+    var node = svg.append('g').selectAll('circle').data(graph.nodes).enter().append('circle')
+      .attr('r', function(d) { return nodeRadius(degreeMap[d.id] || 0); })
+      .attr('fill', function(d) { return typeColor(d.type); })
+      .attr('filter', 'url(#glow)')
+      .attr('opacity', 0.9)
+      .style('cursor', 'pointer')
+      .call(d3.drag()
+        .on('start', function(ev, d) { if (!ev.active) sim.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
+        .on('drag', function(ev, d) { d.fx = ev.x; d.fy = ev.y; })
+        .on('end', function(ev, d) { if (!ev.active) sim.alphaTarget(0); d.fx = null; d.fy = null; })
+      );
+
+    node.on('mouseover', function(ev, d) {
+      var deg = degreeMap[d.id] || 0;
+      var connScores = graph.links.filter(function(l) {
+        return (l.source.id || l.source) === d.id || (l.target.id || l.target) === d.id;
+      }).map(function(l) { return l.score || 0; });
+      var avgScore = connScores.length ? (connScores.reduce(function(a, b) { return a + b; }, 0) / connScores.length).toFixed(2) : 'N/A';
+      tooltip.innerHTML = '<strong>' + (d.type || 'member') + '</strong><br>City: ' + (d.city || '—') + '<br>Connections: ' + deg + '<br>Avg Score: ' + avgScore;
+      tooltip.style.opacity = 1;
+      tooltip.style.left = (ev.offsetX + 14) + 'px';
+      tooltip.style.top = (ev.offsetY - 10) + 'px';
+    }).on('mousemove', function(ev) {
+      tooltip.style.left = (ev.offsetX + 14) + 'px';
+      tooltip.style.top = (ev.offsetY - 10) + 'px';
+    }).on('mouseout', function() {
+      tooltip.style.opacity = 0;
+    });
+
+    // Click to highlight
+    var selectedNode = null;
+    node.on('click', function(ev, d) {
+      if (selectedNode === d.id) {
+        selectedNode = null;
+        node.attr('opacity', 0.9);
+        link.attr('stroke-opacity', function(l) { return 0.15 + (l.score || 0) * 0.5; });
+        return;
+      }
+      selectedNode = d.id;
+      var connIds = {};
+      connIds[d.id] = true;
+      graph.links.forEach(function(l) {
+        var s = l.source.id !== undefined ? l.source.id : l.source;
+        var t = l.target.id !== undefined ? l.target.id : l.target;
+        if (s === d.id) connIds[t] = true;
+        if (t === d.id) connIds[s] = true;
+      });
+      node.attr('opacity', function(n) { return connIds[n.id] ? 1 : 0.08; });
+      link.attr('stroke-opacity', function(l) {
+        var s = l.source.id !== undefined ? l.source.id : l.source;
+        var t = l.target.id !== undefined ? l.target.id : l.target;
+        return (s === d.id || t === d.id) ? 0.7 : 0.02;
+      });
+    });
+
+    sim.on('tick', function() {
+      link.attr('x1', function(d) { return d.source.x; }).attr('y1', function(d) { return d.source.y; })
+          .attr('x2', function(d) { return d.target.x; }).attr('y2', function(d) { return d.target.y; });
+      node.attr('cx', function(d) { return d.x; }).attr('cy', function(d) { return d.y; });
+    });
+
+    function nodeRadius(deg) { return 4 + (deg / maxDeg) * 14; }
+
+    // Legend
+    var legendDiv = document.createElement('div');
+    legendDiv.className = 'graph-legend';
+    Object.keys(TYPE_COLORS).forEach(function(t) {
+      if (t === 'other') return;
+      legendDiv.innerHTML += '<div class="legend-item"><div class="legend-dot" style="background:' + TYPE_COLORS[t] + ';box-shadow:0 0 6px ' + TYPE_COLORS[t] + '"></div>' + t + '</div>';
+    });
+    container.appendChild(legendDiv);
+  }
+
+  // ── Theme Bubbles (D3 pack) ──
+  function renderBubbles(themes) {
+    var container = document.getElementById('bubble-chart');
+    var tooltip = document.getElementById('bubble-tooltip');
+    var w = container.clientWidth;
+    var h = container.clientHeight;
+
+    // Ensure all themes have at least count 1 for display
+    var totalCount = themes.reduce(function(s, t) { return s + t.count; }, 0) || 1;
+    var data = themes.map(function(t) {
+      return { name: t.name, count: t.count, value: Math.max(t.count, 1) };
+    });
+
+    var root = d3.hierarchy({ children: data }).sum(function(d) { return d.value; });
+    d3.pack().size([w, h]).padding(6)(root);
+
+    var svg = d3.select(container).append('svg').attr('viewBox', '0 0 ' + w + ' ' + h);
+
+    var bubbles = svg.selectAll('g').data(root.leaves()).enter().append('g')
+      .attr('transform', function(d) { return 'translate(' + d.x + ',' + d.y + ')'; });
+
+    bubbles.append('circle')
+      .attr('r', function(d) { return d.r; })
+      .attr('fill', function(d) { return themeColor(d.data.name); })
+      .attr('fill-opacity', 0.2)
+      .attr('stroke', function(d) { return themeColor(d.data.name); })
+      .attr('stroke-opacity', 0.5)
+      .attr('stroke-width', 1)
+      .style('cursor', 'pointer')
+      .style('transition', 'all 0.2s');
+
+    // Labels
+    bubbles.append('text')
+      .attr('text-anchor', 'middle')
+      .attr('dy', '-0.2em')
+      .attr('fill', '#e0e6f0')
+      .attr('font-size', function(d) { return Math.max(9, Math.min(13, d.r / 3.5)) + 'px'; })
+      .attr('font-weight', '600')
+      .text(function(d) { return d.r > 25 ? d.data.name : ''; });
+
+    bubbles.append('text')
+      .attr('text-anchor', 'middle')
+      .attr('dy', '1.1em')
+      .attr('fill', 'rgba(224,230,240,0.5)')
+      .attr('font-size', function(d) { return Math.max(8, Math.min(11, d.r / 4)) + 'px'; })
+      .text(function(d) { return d.r > 25 ? d.data.count : ''; });
+
+    bubbles.on('mouseover', function(ev, d) {
+      d3.select(this).select('circle').attr('fill-opacity', 0.35).attr('stroke-opacity', 0.9);
+      var pct = totalCount > 0 ? ((d.data.count / totalCount) * 100).toFixed(1) : '0';
+      tooltip.innerHTML = '<strong>' + d.data.name + '</strong><br>' + d.data.count + ' profiles (' + pct + '%)';
+      tooltip.style.opacity = 1;
+    }).on('mousemove', function(ev) {
+      var rect = container.getBoundingClientRect();
+      tooltip.style.left = (ev.clientX - rect.left + 12) + 'px';
+      tooltip.style.top = (ev.clientY - rect.top - 10) + 'px';
+    }).on('mouseout', function() {
+      d3.select(this).select('circle').attr('fill-opacity', 0.2).attr('stroke-opacity', 0.5);
+      tooltip.style.opacity = 0;
+    });
+  }
+
+  // ── Donut Chart (Chart.js) ──
+  function renderDonut(stakeholders) {
+    if (!stakeholders.length) stakeholders = [{ type: 'none', count: 1 }];
+    var labels = stakeholders.map(function(s) { return s.type; });
+    var values = stakeholders.map(function(s) { return s.count; });
+    var colors = stakeholders.map(function(s) { return typeColor(s.type); });
+    var total = values.reduce(function(a, b) { return a + b; }, 0) || 1;
+
+    var ctx = document.getElementById('donut-chart').getContext('2d');
+    new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: labels,
+        datasets: [{
+          data: values,
+          backgroundColor: colors.map(function(c) { return c + '88'; }),
+          borderColor: colors,
+          borderWidth: 2,
+          hoverOffset: 8
+        }]
+      },
+      options: {
+        cutout: '65%',
+        responsive: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: 'rgba(8,12,20,0.92)',
+            titleColor: '#00f5ff',
+            bodyColor: '#e0e6f0',
+            borderColor: 'rgba(255,255,255,0.1)',
+            borderWidth: 1,
+            callbacks: {
+              label: function(ctx) {
+                var pct = ((ctx.parsed / total) * 100).toFixed(1);
+                return ctx.label + ': ' + ctx.parsed + ' (' + pct + '%)';
+              }
+            }
+          }
+        }
+      }
+    });
+
+    // Custom legend
+    var legendEl = document.getElementById('donut-legend');
+    stakeholders.forEach(function(s) {
+      legendEl.innerHTML += '<div class="custom-legend-item"><div class="custom-legend-dot" style="background:' + typeColor(s.type) + '"></div>' + s.type + ' (' + s.count + ')</div>';
+    });
+  }
+
+  // ── Leaflet Map ──
+  function renderMap(geoNodes) {
+    var map = L.map('geo-map', { scrollWheelZoom: false }).setView([20, 0], 2);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
+      subdomains: 'abcd',
+      maxZoom: 19
+    }).addTo(map);
+
+    geoNodes.forEach(function(g) {
+      if (g.lat == null || g.lng == null) return;
+      var radius = Math.sqrt(g.attendees) * 3 + 6;
+      L.circleMarker([g.lat, g.lng], {
+        radius: radius,
+        color: '#00f5ff',
+        fillColor: '#00f5ff',
+        fillOpacity: 0.35,
+        weight: 1,
+        opacity: 0.7
+      }).addTo(map).bindPopup(
+        '<strong>' + g.city + '</strong>, ' + g.country + '<br>' +
+        g.events + ' events &middot; ' + g.attendees + ' attendees'
+      );
+    });
+
+    // City scroll bar
+    var scrollEl = document.getElementById('city-scroll');
+    var sorted = geoNodes.slice().sort(function(a, b) { return b.attendees - a.attendees; });
+    sorted.forEach(function(g) {
+      if (!g.city) return;
+      scrollEl.innerHTML += '<div class="city-tag"><strong>' + g.city + '</strong> — ' + g.events + ' events</div>';
+    });
+  }
+
+})();
+</script>
+</body>
+</html>

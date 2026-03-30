@@ -1,6 +1,7 @@
 var express = require('express');
 var { dbAll, dbGet } = require('../db');
 var { authenticateToken } = require('../middleware/auth');
+var { getCanonicalThemes } = require('../lib/theme_taxonomy');
 var router = express.Router();
 
 function safeJson(v) {
@@ -14,6 +15,94 @@ function firstCity(geo) {
   if (!geo) return null;
   return geo.split(',')[0].trim();
 }
+
+// ── GET /api/network/graph-data ── aggregated network visualisation data ──────
+router.get('/graph-data', authenticateToken, async function(req, res) {
+  try {
+    var [canisterRow, eventRow, matchRow, meetingRow, geoRows, themeRows, stakeholderRows, edgeRows] = await Promise.all([
+      dbGet('SELECT COUNT(DISTINCT user_id) AS count FROM stakeholder_profiles'),
+      dbGet('SELECT COUNT(*) AS count FROM events'),
+      dbGet("SELECT COUNT(*) AS count FROM event_matches WHERE status = 'accepted'"),
+      dbGet('SELECT COUNT(*) AS count FROM match_feedback WHERE did_meet = true'),
+      dbAll(`SELECT e.city, e.country, COUNT(er.user_id) AS attendees, COUNT(DISTINCT e.id) AS event_count, e.themes
+             FROM events e LEFT JOIN event_registrations er ON er.event_id = e.id
+             GROUP BY e.city, e.country, e.themes ORDER BY attendees DESC`),
+      dbAll('SELECT themes FROM stakeholder_profiles WHERE themes IS NOT NULL'),
+      dbAll('SELECT stakeholder_type, COUNT(*) as count FROM stakeholder_profiles GROUP BY stakeholder_type'),
+      dbAll(`SELECT em.event_id, sp_a.stakeholder_type AS type_a, sp_b.stakeholder_type AS type_b,
+                    em.score_total, em.score_theme, e.city, e.country, em.user_a_id, em.user_b_id
+             FROM event_matches em
+             JOIN stakeholder_profiles sp_a ON sp_a.user_id = em.user_a_id
+             JOIN stakeholder_profiles sp_b ON sp_b.user_id = em.user_b_id
+             JOIN events e ON e.id = em.event_id
+             WHERE em.status IN ('accepted', 'revealed') LIMIT 500`)
+    ]);
+
+    // Stats
+    var stats = {
+      canisters: parseInt(canisterRow.count) || 0,
+      events: parseInt(eventRow.count) || 0,
+      matches: parseInt(matchRow.count) || 0,
+      meetings: parseInt(meetingRow.count) || 0
+    };
+
+    // Theme frequency from JSONB arrays
+    var canonicalThemes = getCanonicalThemes();
+    var themeFreq = {};
+    canonicalThemes.forEach(function(t) { themeFreq[t] = 0; });
+    themeRows.forEach(function(row) {
+      var arr = row.themes;
+      if (typeof arr === 'string') { try { arr = JSON.parse(arr); } catch(e) { arr = []; } }
+      if (!Array.isArray(arr)) return;
+      arr.forEach(function(t) {
+        if (themeFreq.hasOwnProperty(t)) themeFreq[t]++;
+      });
+    });
+    var themes = canonicalThemes.map(function(t) { return { name: t, count: themeFreq[t] }; })
+      .sort(function(a, b) { return b.count - a.count; });
+
+    // Stakeholder breakdown
+    var stakeholders = stakeholderRows.map(function(r) {
+      return { type: r.stakeholder_type || 'other', count: parseInt(r.count) || 0 };
+    });
+
+    // Geo nodes
+    var geoNodes = geoRows.map(function(r) {
+      return {
+        city: r.city || null, country: r.country || null,
+        attendees: parseInt(r.attendees) || 0, events: parseInt(r.event_count) || 0,
+        lat: null, lng: null
+      };
+    }).filter(function(g) { return g.city; });
+
+    // Anonymised graph nodes + links
+    var nodeMap = {};
+    var nodeCounter = 0;
+    function getNodeId(userId, type, eventId, city) {
+      if (!nodeMap[userId]) {
+        nodeCounter++;
+        nodeMap[userId] = { id: nodeCounter, type: type || 'other', event_id: eventId, city: city || null };
+      }
+      return nodeMap[userId].id;
+    }
+
+    var links = edgeRows.map(function(row) {
+      var srcId = getNodeId(row.user_a_id, row.type_a, row.event_id, row.city);
+      var tgtId = getNodeId(row.user_b_id, row.type_b, row.event_id, row.city);
+      return {
+        source: srcId, target: tgtId,
+        score: Math.round((parseFloat(row.score_total) || 0) * 100) / 100,
+        theme_score: Math.round((parseFloat(row.score_theme) || 0) * 100) / 100
+      };
+    });
+    var nodes = Object.values(nodeMap);
+
+    res.json({ stats: stats, themes: themes, stakeholders: stakeholders, geoNodes: geoNodes, graph: { nodes: nodes, links: links } });
+  } catch(err) {
+    console.error('[Network] graph-data error:', err);
+    res.status(500).json({ error: 'Failed to load network data' });
+  }
+});
 
 // ── GET /api/network/graph ────────────────────────────────────────────────────
 router.get('/graph', async function(req, res) {
