@@ -23,18 +23,15 @@ var THEMES = [
   'Data', 'Privacy', 'Sustainability', 'Venture Capital', 'Startup'
 ];
 
-// ── Build queries: theme × city for conferences and summits ──
+// ── Build queries: theme × city × year for conferences and summits ──
 var QS = [];
-THEMES.forEach(function(theme) {
-  CITIES.forEach(function(city) {
-    QS.push(theme + ' conference 2026 ' + city);
-    QS.push(theme + ' summit 2026 ' + city);
+['2026', '2027'].forEach(function(year) {
+  THEMES.forEach(function(theme) {
+    CITIES.forEach(function(city) {
+      QS.push(theme + ' conference ' + year + ' ' + city);
+      QS.push(theme + ' summit ' + year + ' ' + city);
+    });
   });
-});
-// Add 2027 sweep for major cities
-['London', 'Singapore', 'New York', 'San Francisco', 'Berlin', 'Paris', 'Sydney'].forEach(function(city) {
-  QS.push('tech conference 2027 ' + city);
-  QS.push('tech summit 2027 ' + city);
 });
 
 // Block list pages, blog posts, aggregator sites
@@ -46,11 +43,11 @@ var BL = [
   'reddit.com', 'quora.com', 'youtube.com'
 ];
 
-// ── Batching: run N queries per invocation (default 50, pass --limit=N) ──
+// ── Optional limit: pass --limit=N to cap queries (default: run all) ──
 var limitArg = process.argv.find(function(a) { return a.startsWith('--limit='); });
-var BATCH_LIMIT = limitArg ? parseInt(limitArg.split('=')[1]) : 50;
+var BATCH_LIMIT = limitArg ? parseInt(limitArg.split('=')[1]) : QS.length;
 
-// Shuffle queries so each run covers different theme/city combos
+// Shuffle queries so partial runs cover different combos
 function shuffle(arr) {
   for (var i = arr.length - 1; i > 0; i--) {
     var j = Math.floor(Math.random() * (i + 1));
@@ -62,13 +59,13 @@ function shuffle(arr) {
 async function run() {
   var batch = shuffle(QS).slice(0, BATCH_LIMIT);
   var added = 0, dupes = 0, failed = 0, skipped = 0;
-  console.log('=== Discovery Run: ' + batch.length + ' of ' + QS.length + ' queries (limit ' + BATCH_LIMIT + ') ===');
+  console.log('=== Discovery Run: ' + batch.length + ' queries (' + QS.length + ' total pool) ===');
 
   for (var i = 0; i < batch.length; i++) {
     console.log('[' + (i + 1) + '/' + batch.length + '] ' + batch[i]);
     var results = await h.searchEvents(batch[i]);
 
-    for (var j = 0; j < Math.min(results.length, 8); j++) {
+    for (var j = 0; j < results.length; j++) {
       var r = results[j];
       var lo = (r.url + ' ' + r.title).toLowerCase();
       if (BL.some(function(b) { return lo.includes(b); })) { skipped++; continue; }
@@ -79,7 +76,8 @@ async function run() {
       try {
         var ex = await hv.harvestEvent(r.url);
         if (!ex.name || ex.name.length < 5) { skipped++; continue; }
-        if (ex.event_date && new Date(ex.event_date).getFullYear() < 2026) { skipped++; continue; }
+        var exYear = ex.event_date ? new Date(ex.event_date).getFullYear() : null;
+        if (exYear && (exYear < 2026 || exYear > 2027)) { skipped++; continue; }
 
         var dp = await d.findDuplicate(ex.name, ex.event_date, ex.city);
         if (dp) { dupes++; continue; }
