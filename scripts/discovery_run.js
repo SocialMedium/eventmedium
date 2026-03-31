@@ -6,23 +6,36 @@ var d = require('../lib/event_dedup');
 var { normalizeThemes } = require('../lib/theme_taxonomy');
 var { dbRun, dbGet } = require('../db');
 
-// Focus on major conferences and summits in key regions
-var QS = [
-  // Theme × Region queries — conferences and summits only
-  'FinTech conference 2026 Europe', 'FinTech summit 2026 USA',
-  'AI conference 2026 London', 'AI summit 2026 Singapore',
-  'Climate Tech conference 2026', 'CleanTech summit 2026 Europe',
-  'Cybersecurity conference 2026 Europe', 'Cybersecurity summit 2026 USA',
-  'HealthTech conference 2026', 'BioTech summit 2026',
-  'SaaS conference 2026 Europe', 'Enterprise SaaS summit 2026',
-  'Robotics expo 2026', 'SpaceTech conference 2026',
-  'EdTech conference 2026 Europe', 'EdTech summit 2026 USA',
-  'Web3 conference 2026', 'Blockchain summit 2026 Asia',
-  'IoT conference 2026', 'Privacy conference 2026 Europe',
-  'GovTech summit 2026', 'PropTech conference 2026 London',
-  'tech conference 2026 Australia', 'tech summit 2026 Singapore',
-  'tech conference 2026 Dubai', 'startup conference 2026 Europe'
+// ── Target cities ──
+var CITIES = [
+  'London', 'Singapore', 'Sydney', 'Melbourne', 'New York', 'Las Vegas',
+  'Barcelona', 'Madrid', 'Berlin', 'Stockholm', 'Copenhagen', 'Paris',
+  'Amsterdam', 'Dubai', 'San Francisco', 'Austin', 'Toronto', 'Lisbon',
+  'Tel Aviv', 'Seoul', 'Hong Kong', 'Zurich', 'Vienna', 'Dublin',
+  'Helsinki', 'Brussels', 'Milan', 'Munich', 'Boston', 'Miami'
 ];
+
+// ── Themes ──
+var THEMES = [
+  'AI', 'FinTech', 'Cybersecurity', 'SaaS', 'Climate Tech', 'HealthTech',
+  'Web3', 'Blockchain', 'IoT', 'Robotics', 'SpaceTech', 'EdTech',
+  'GovTech', 'PropTech', 'DeepTech', 'BioTech', 'Defence Tech',
+  'Data', 'Privacy', 'Sustainability', 'Venture Capital', 'Startup'
+];
+
+// ── Build queries: theme × city for conferences and summits ──
+var QS = [];
+THEMES.forEach(function(theme) {
+  CITIES.forEach(function(city) {
+    QS.push(theme + ' conference 2026 ' + city);
+    QS.push(theme + ' summit 2026 ' + city);
+  });
+});
+// Add 2027 sweep for major cities
+['London', 'Singapore', 'New York', 'San Francisco', 'Berlin', 'Paris', 'Sydney'].forEach(function(city) {
+  QS.push('tech conference 2027 ' + city);
+  QS.push('tech summit 2027 ' + city);
+});
 
 // Block list pages, blog posts, aggregator sites
 var BL = [
@@ -33,18 +46,35 @@ var BL = [
   'reddit.com', 'quora.com', 'youtube.com'
 ];
 
+// ── Batching: run N queries per invocation (default 50, pass --limit=N) ──
+var limitArg = process.argv.find(function(a) { return a.startsWith('--limit='); });
+var BATCH_LIMIT = limitArg ? parseInt(limitArg.split('=')[1]) : 50;
+
+// Shuffle queries so each run covers different theme/city combos
+function shuffle(arr) {
+  for (var i = arr.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
+  }
+  return arr;
+}
+
 async function run() {
+  var batch = shuffle(QS).slice(0, BATCH_LIMIT);
   var added = 0, dupes = 0, failed = 0, skipped = 0;
-  console.log('=== Discovery Run: ' + QS.length + ' queries ===');
+  console.log('=== Discovery Run: ' + batch.length + ' of ' + QS.length + ' queries (limit ' + BATCH_LIMIT + ') ===');
 
-  for (var i = 0; i < QS.length; i++) {
-    console.log('[' + (i + 1) + '/' + QS.length + '] ' + QS[i]);
-    var results = await h.searchEvents(QS[i]);
+  for (var i = 0; i < batch.length; i++) {
+    console.log('[' + (i + 1) + '/' + batch.length + '] ' + batch[i]);
+    var results = await h.searchEvents(batch[i]);
 
-    for (var j = 0; j < Math.min(results.length, 5); j++) {
+    for (var j = 0; j < Math.min(results.length, 8); j++) {
       var r = results[j];
       var lo = (r.url + ' ' + r.title).toLowerCase();
       if (BL.some(function(b) { return lo.includes(b); })) { skipped++; continue; }
+
+      // Only harvest pages that look like a conference or summit
+      if (!/conference|summit|congress|forum|expo/i.test(r.title + ' ' + r.snippet)) { skipped++; continue; }
 
       try {
         var ex = await hv.harvestEvent(r.url);
