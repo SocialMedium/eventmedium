@@ -1307,7 +1307,7 @@ router.get('/feed.json', async function(req, res) {
         city: e.city || '',
         country: e.country || '',
         themes: Array.isArray(themes) ? themes : [],
-        url: (process.env.APP_URL || 'https://eventmedium.ai') + '/event.html?slug=' + (e.slug || e.id),
+        url: (process.env.APP_URL || 'https://eventmedium.ai') + '/event.html?id=' + e.id,
         rsvp_count: e.rsvp_count || 0,
         expected_attendees: e.expected_attendees || null,
         event_type: e.event_type || null,
@@ -1379,7 +1379,8 @@ router.get('/rss', async function(req, res) {
       if (typeof themes === 'string') { try { themes = JSON.parse(themes); } catch(err) { themes = []; } }
       if (!Array.isArray(themes)) themes = [];
 
-      var link = baseUrl + '/event.html?slug=' + (e.slug || e.id);
+      var link = baseUrl + '/event.html?id=' + e.id;
+      var hubLink = baseUrl + '/events.html';
       var pubDate = e.created_at ? new Date(e.created_at).toUTCString() : now;
       var eventDate = e.event_date ? new Date(e.event_date).toISOString().split('T')[0] : 'TBD';
       var location = [e.city, e.country].filter(Boolean).join(', ') || 'Location TBD';
@@ -1389,7 +1390,9 @@ router.get('/rss', async function(req, res) {
         'Location: ' + location +
         (e.expected_attendees ? '\nExpected Attendees: ' + e.expected_attendees : '') +
         (e.rsvp_count > 0 ? '\nRSVPs: ' + e.rsvp_count : '') +
-        '\nThemes: ' + (themes.length ? themes.join(', ') : 'General');
+        '\nThemes: ' + (themes.length ? themes.join(', ') : 'General') +
+        '\n\nView on EventMedium: ' + link +
+        '\nBrowse all events: ' + hubLink;
 
       var categories = themes.map(function(t) {
         return '      <category>' + escXml(t) + '</category>';
