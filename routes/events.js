@@ -1329,4 +1329,104 @@ router.get('/feed.json', async function(req, res) {
   }
 });
 
+// ── RSS 2.0 Feed ── /api/events/rss ──────────────────────────────────────────
+router.get('/rss', async function(req, res) {
+  try {
+    var themeFilter = req.query.theme || null;
+    var regionFilter = req.query.region || null;
+    var limit = Math.min(parseInt(req.query.limit) || 200, 500);
+
+    var conditions = [
+      '(e.community_id IS NULL OR COALESCE(e.is_public, false) = true)',
+      'e.event_date >= CURRENT_DATE'
+    ];
+    var params = [];
+    var idx = 1;
+
+    if (regionFilter) {
+      conditions.push('e.country ILIKE $' + idx);
+      params.push('%' + regionFilter + '%');
+      idx++;
+    }
+
+    if (themeFilter) {
+      conditions.push('e.themes::text ILIKE $' + idx);
+      params.push('%' + themeFilter + '%');
+      idx++;
+    }
+
+    var where = ' WHERE ' + conditions.join(' AND ');
+
+    var events = await dbAll(
+      'SELECT e.id, e.name, e.slug, e.description, e.event_date, e.city, e.country, ' +
+      'e.themes, e.expected_attendees, e.event_type, e.source_url, e.created_at, ' +
+      '(SELECT COUNT(*)::int FROM event_registrations WHERE event_id = e.id AND status = \'active\') as rsvp_count ' +
+      'FROM events e' + where +
+      ' ORDER BY e.event_date ASC NULLS LAST LIMIT $' + idx,
+      params.concat([limit])
+    );
+
+    var baseUrl = process.env.APP_URL || 'https://eventmedium.ai';
+    var now = new Date().toUTCString();
+
+    function escXml(s) {
+      if (!s) return '';
+      return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    var items = events.map(function(e) {
+      var themes = e.themes;
+      if (typeof themes === 'string') { try { themes = JSON.parse(themes); } catch(err) { themes = []; } }
+      if (!Array.isArray(themes)) themes = [];
+
+      var link = baseUrl + '/event.html?slug=' + (e.slug || e.id);
+      var pubDate = e.created_at ? new Date(e.created_at).toUTCString() : now;
+      var eventDate = e.event_date ? new Date(e.event_date).toISOString().split('T')[0] : 'TBD';
+      var location = [e.city, e.country].filter(Boolean).join(', ') || 'Location TBD';
+
+      var desc = (e.description || e.name) + '\n\n' +
+        'Date: ' + eventDate + '\n' +
+        'Location: ' + location +
+        (e.expected_attendees ? '\nExpected Attendees: ' + e.expected_attendees : '') +
+        (e.rsvp_count > 0 ? '\nRSVPs: ' + e.rsvp_count : '') +
+        '\nThemes: ' + (themes.length ? themes.join(', ') : 'General');
+
+      var categories = themes.map(function(t) {
+        return '      <category>' + escXml(t) + '</category>';
+      }).join('\n');
+
+      return '    <item>\n' +
+        '      <title>' + escXml(e.name) + '</title>\n' +
+        '      <link>' + escXml(link) + '</link>\n' +
+        '      <guid isPermaLink="true">' + escXml(link) + '</guid>\n' +
+        '      <pubDate>' + pubDate + '</pubDate>\n' +
+        '      <description>' + escXml(desc) + '</description>\n' +
+        (categories ? categories + '\n' : '') +
+        '      <source url="' + escXml(baseUrl + '/api/events/rss') + '">EventMedium</source>\n' +
+        '    </item>';
+    }).join('\n');
+
+    var xml = '<?xml version="1.0" encoding="UTF-8"?>\n' +
+      '<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">\n' +
+      '  <channel>\n' +
+      '    <title>EventMedium — Events Intelligence Feed</title>\n' +
+      '    <link>' + escXml(baseUrl + '/events.html') + '</link>\n' +
+      '    <description>Forward-looking signal feed: upcoming conferences, summits, and professional events across AI, FinTech, Climate, Health, and 20+ themes. Curated by EventMedium for market trend detection and network intelligence.</description>\n' +
+      '    <language>en</language>\n' +
+      '    <lastBuildDate>' + now + '</lastBuildDate>\n' +
+      '    <atom:link href="' + escXml(baseUrl + '/api/events/rss') + '" rel="self" type="application/rss+xml" />\n' +
+      '    <ttl>360</ttl>\n' +
+      items + '\n' +
+      '  </channel>\n' +
+      '</rss>';
+
+    res.set('Content-Type', 'application/rss+xml; charset=utf-8');
+    res.set('Cache-Control', 'public, max-age=3600');
+    res.send(xml);
+  } catch (err) {
+    console.error('RSS feed error:', err);
+    res.status(500).set('Content-Type', 'text/plain').send('RSS feed error');
+  }
+});
+
 module.exports = { router };
