@@ -5,12 +5,18 @@
   var nav = document.querySelector('.nav-inner');
   if (!nav) return;
 
-  // ── Add hamburger button ──
-  var burger = document.createElement('button');
-  burger.className = 'nav-burger';
-  burger.setAttribute('aria-label', 'Menu');
-  burger.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>';
-  nav.appendChild(burger);
+  // Pages with their own mobile menu (e.g. the landing page) skip the
+  // injected burger/drawer — they'd render unstyled without nav.css.
+  var hasOwnMobileMenu = !!document.querySelector('.mobile-menu, .nav-hamburger');
+
+  var burger = null;
+  if (!hasOwnMobileMenu) {
+    burger = document.createElement('button');
+    burger.className = 'nav-burger';
+    burger.setAttribute('aria-label', 'Menu');
+    burger.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>';
+    nav.appendChild(burger);
+  }
 
   // ── Determine current page ──
   var path = window.location.pathname;
@@ -54,16 +60,20 @@
       logoutLink.textContent = 'Log out';
       logoutLink.style.cssText = 'color:#999;font-size:13px';
       logoutLink.addEventListener('click', doLogout);
-      nav.insertBefore(logoutLink, burger);
+      if (burger) nav.insertBefore(logoutLink, burger);
+      else nav.appendChild(logoutLink);
     }
   }
 
   // ── Build mobile drawer ──
-  var overlay = document.createElement('div');
+  var overlay = null;
+  var drawer = null;
+  if (!hasOwnMobileMenu) {
+  overlay = document.createElement('div');
   overlay.className = 'nav-mobile-overlay';
   document.body.appendChild(overlay);
 
-  var drawer = document.createElement('div');
+  drawer = document.createElement('div');
   drawer.className = 'nav-mobile-drawer';
 
   // Drawer header
@@ -117,6 +127,7 @@
   if (mobileLogout) {
     mobileLogout.addEventListener('click', doLogout);
   }
+  }
 
   // ── Desktop nav auth state ──
   var navMatches = document.getElementById('nav-matches');
@@ -154,6 +165,7 @@
   }
 
   // ── Toggle handlers ──
+  if (!hasOwnMobileMenu) {
   function openDrawer() {
     overlay.classList.add('open');
     drawer.classList.add('open');
@@ -178,4 +190,5 @@
   document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') closeDrawer();
   });
+  }
 })();
