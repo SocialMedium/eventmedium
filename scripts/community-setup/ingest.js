@@ -29,29 +29,15 @@ async function fetchUrl(url) {
   }
 }
 
+var { callClaude: callClaudeRetry } = require('../../lib/anthropic_client');
+
 async function callClaude(prompt) {
-  var body = JSON.stringify({
+  var data = await callClaudeRetry({
     model: 'claude-sonnet-4-20250514',
     max_tokens: 4096,
     messages: [{ role: 'user', content: prompt }]
   });
 
-  var resp = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': process.env.ANTHROPIC_API_KEY,
-      'anthropic-version': '2023-06-01'
-    },
-    body: body
-  });
-
-  if (!resp.ok) {
-    var err = await resp.text();
-    throw new Error('Claude API error: ' + resp.status + ' ' + err);
-  }
-
-  var data = await resp.json();
   return data.content[0].text;
 }
 

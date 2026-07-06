@@ -419,14 +419,13 @@ ${ctx.feedbackSoFar && ctx.feedbackSoFar.did_meet === false ? 'They said they di
 
 async function getNevResponse(systemPrompt, history) {
   try {
-    var Anthropic = require('@anthropic-ai/sdk');
-    var client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    var { callClaude } = require('../lib/anthropic_client');
 
     var messages = history.map(function(m) {
       return { role: m.role === 'nev' ? 'assistant' : 'user', content: m.content };
     });
 
-    var response = await client.messages.create({
+    var response = await callClaude({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 400,
       system: systemPrompt,
