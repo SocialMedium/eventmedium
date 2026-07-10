@@ -21,6 +21,28 @@ async function safeAll(sql, params, fallback) {
   catch(e) { console.error('Dashboard query error:', e.message); return fallback; }
 }
 
+// ── GET /api/admin/ingestion — event ingestion health (last runs + freshness) ──
+router.get('/ingestion', authenticateToken, adminOnly, async function(req, res) {
+  try {
+    var { getIngestionStatus } = require('../lib/ingestion_scheduler');
+    res.json(await getIngestionStatus());
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── POST /api/admin/ingestion/run — trigger an ingestion cycle now ──
+router.post('/ingestion/run', authenticateToken, adminOnly, function(req, res) {
+  var { runIngestionCycle } = require('../lib/ingestion_scheduler');
+  var kind = (req.body && req.body.kind === 'curated') ? 'curated' : 'manual';
+  runIngestionCycle({ kind: kind }).then(function(result) {
+    console.log('[admin] Manual ingestion finished:', JSON.stringify(result));
+  }).catch(function(e) {
+    console.error('[admin] Manual ingestion error:', e.message);
+  });
+  res.json({ status: 'started', kind: kind });
+});
+
 // ── GET /api/admin/dashboard — full network intelligence ──
 router.get('/dashboard', authenticateToken, adminOnly, async function(req, res) {
   try {

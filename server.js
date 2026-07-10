@@ -514,6 +514,11 @@ function scheduleMatching() {
 }
 scheduleMatching();
 
+// ── Autonomous event ingestion: daily discovery + weekly curated re-check ────
+// Self-schedules inside the server process (no external cron needed) and
+// catches up on boot if the last successful run is stale. See lib/ingestion_scheduler.js.
+require('./lib/ingestion_scheduler').startIngestionScheduler();
+
 // ── Admin: backfill embeddings ──
 app.post('/api/admin/backfill-embeddings', async function(req, res) {
   if (!req.session || req.session.userId !== 2) return res.status(403).json({ error: 'Forbidden' });
