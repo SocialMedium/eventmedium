@@ -268,7 +268,12 @@ async function run() {
   process.exit(0);
 }
 
-run().catch(function(err) {
-  console.error('Fatal:', err);
-  process.exit(1);
-});
+// Only run when invoked directly (node scripts/batch_harvest_2026.js) —
+// this module is also require()d for its URLS export, and auto-running on
+// require executes process.exit(0) inside the importing process.
+if (require.main === module) {
+  run().catch(function(err) {
+    console.error('Fatal:', err);
+    process.exit(1);
+  });
+}

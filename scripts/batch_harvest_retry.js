@@ -126,4 +126,6 @@ async function run() {
   process.exit(0);
 }
 
-run().catch(function(err) { console.error('Fatal:', err); process.exit(1); });
+if (require.main === module) {
+  run().catch(function(err) { console.error('Fatal:', err); process.exit(1); });
+}
