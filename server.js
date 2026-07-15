@@ -19,6 +19,15 @@ app.use(cors({
   credentials: true
 }));
 
+// Embeddable assets must load from third-party sites: allow cross-origin
+// resource reads (widget.js, images in feeds/widgets) and iframing of the
+// embed page. Everything else keeps helmet's same-origin defaults.
+app.use(['/embed.html', '/widget.js', '/images'], function(req, res, next) {
+  res.removeHeader('X-Frame-Options');
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  next();
+});
+
 // ── Rate limiting ──
 app.use('/api/', rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -107,6 +116,7 @@ async function runMigrations() {
     await dbRun("ALTER TABLE communities ADD COLUMN IF NOT EXISTS comm_type TEXT DEFAULT 'open'");
     await dbRun("ALTER TABLE event_matches ADD COLUMN IF NOT EXISTS scope_type TEXT DEFAULT 'event'");
     await dbRun('ALTER TABLE users ADD COLUMN IF NOT EXISTS last_global_match TIMESTAMP');
+    await dbRun('ALTER TABLE events ADD COLUMN IF NOT EXISTS image_url TEXT');
     await dbRun(`CREATE TABLE IF NOT EXISTS nev_messages (
       id SERIAL PRIMARY KEY,
       user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,

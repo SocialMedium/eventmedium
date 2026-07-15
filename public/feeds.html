@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Feeds & Embeds — Event Medium</title>
+<link rel="icon" type="image/png" href="/images/em-logo.png">
+<link rel="alternate" type="application/rss+xml" title="EventMedium — Upcoming Events" href="/api/events/rss">
+<style>
+:root {
+  --accent:#6366f1;--accent2:#4f46e5;--accent-light:rgba(99,102,241,0.08);
+  --bg:#f8f8fa;--bg2:#ffffff;--bg3:#f0f0f4;
+  --txt:#1a1a2e;--txtL:#555;--txtXL:#999;
+  --bdr:rgba(0,0,0,0.06);--bdr2:rgba(0,0,0,0.1);
+  --sans:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--sans);color:var(--txt);background:var(--bg);min-height:100vh;-webkit-font-smoothing:antialiased}
+.nav{background:rgba(255,255,255,0.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--bdr);padding:0 24px}
+.nav-inner{max-width:900px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:60px}
+.nav-brand{display:flex;align-items:center;gap:8px;text-decoration:none;color:var(--txt);font-size:14px;font-weight:700}
+.nav-brand img{width:24px;height:24px;border-radius:5px}
+.nav-links{display:flex;gap:24px;align-items:center}
+.nav-link{font-size:13px;color:var(--txtL);text-decoration:none;font-weight:500}
+.nav-link:hover{color:var(--accent)}
+.container{max-width:760px;margin:0 auto;padding:40px 24px}
+.page-title{font-size:24px;font-weight:700;margin-bottom:4px}
+.page-sub{font-size:14px;color:var(--txtL);margin-bottom:32px;line-height:1.6}
+.card{background:var(--bg2);border:1px solid var(--bdr);border-radius:12px;padding:24px;margin-bottom:16px}
+.card-t{font-size:11px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:var(--txtXL);margin-bottom:12px}
+.card p{font-size:13.5px;color:var(--txtL);line-height:1.65;margin-bottom:12px}
+.card p:last-child{margin-bottom:0}
+pre{background:var(--bg3);border:1px solid var(--bdr);border-radius:8px;padding:14px 16px;font-family:var(--mono);font-size:12px;line-height:1.6;overflow-x:auto;margin-bottom:12px;white-space:pre-wrap;word-break:break-all}
+code{font-family:var(--mono);font-size:12px;background:var(--bg3);padding:2px 5px;border-radius:4px}
+.feed-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--bdr);font-size:13px}
+.feed-row:last-child{border-bottom:none}
+.feed-row a{color:var(--accent);text-decoration:none;font-family:var(--mono);font-size:12px;word-break:break-all}
+.feed-row a:hover{text-decoration:underline}
+.feed-label{color:var(--txtL);white-space:nowrap}
+.cta-band{background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:12px;padding:24px;color:#fff;margin-top:8px}
+.cta-band h3{font-size:16px;margin-bottom:6px}
+.cta-band p{font-size:13px;opacity:0.9;line-height:1.6;margin-bottom:14px}
+.cta-band a{display:inline-block;background:#fff;color:var(--accent2);font-size:13px;font-weight:700;padding:9px 18px;border-radius:8px;text-decoration:none}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-brand"><img src="/images/em-logo.png" alt="">Event <span style="color:var(--accent)">Medium</span></a>
+    <div class="nav-links">
+      <a href="/events.html" class="nav-link">Browse Events</a>
+      <a href="/auth.html" class="nav-link">Get Started</a>
+    </div>
+  </div>
+</nav>
+
+<div class="container">
+  <h1 class="page-title">Feeds &amp; Embeds</h1>
+  <p class="page-sub">Take EventMedium's upcoming-events catalogue anywhere — RSS for readers and automations, JSON for apps, and a drop-in widget for your site or community page. Every item links back to the event on EventMedium.</p>
+
+  <div class="card">
+    <div class="card-t">RSS feeds</div>
+    <p>Standard RSS 2.0, refreshed hourly, upcoming events only. Filter with <code>theme</code>, <code>city</code>, or <code>region</code> query params — combine them freely.</p>
+    <div class="feed-row"><span class="feed-label">All upcoming events</span><a href="/api/events/rss">/api/events/rss</a></div>
+    <div class="feed-row"><span class="feed-label">By theme</span><a href="/api/events/rss?theme=AI">/api/events/rss?theme=AI</a></div>
+    <div class="feed-row"><span class="feed-label">By city</span><a href="/api/events/rss?city=London">/api/events/rss?city=London</a></div>
+    <div class="feed-row"><span class="feed-label">By country</span><a href="/api/events/rss?region=Australia">/api/events/rss?region=Australia</a></div>
+    <div class="feed-row"><span class="feed-label">Combined</span><a href="/api/events/rss?theme=FinTech&city=Singapore">/api/events/rss?theme=FinTech&amp;city=Singapore</a></div>
+  </div>
+
+  <div class="card">
+    <div class="card-t">JSON feed</div>
+    <p>Same catalogue as structured JSON — for apps, newsletters, and automations. Open CORS, so you can fetch it from any site. Supports <code>theme</code>, <code>city</code>, <code>region</code>, <code>status</code> (upcoming | past | all) and <code>limit</code>.</p>
+    <pre>GET https://www.eventmedium.ai/api/events/feed.json?theme=AI&amp;limit=10</pre>
+  </div>
+
+  <div class="card">
+    <div class="card-t">Embeddable widget</div>
+    <p>One script tag renders a live "Upcoming Events" card on any site — isolated styles, event images, and a built-in call-to-action that sends visitors to Nev. Great for community pages, newsletters, and partner sites.</p>
+    <pre>&lt;script src="https://www.eventmedium.ai/widget.js"
+        data-theme="AI" data-city="London" data-limit="5"&gt;&lt;/script&gt;</pre>
+    <p>Prefer an iframe? Same output, fixed frame:</p>
+    <pre>&lt;iframe src="https://www.eventmedium.ai/embed.html?theme=AI&amp;limit=5"
+        width="420" height="480" frameborder="0"&gt;&lt;/iframe&gt;</pre>
+    <p>Attributes: <code>data-theme</code>, <code>data-city</code>, <code>data-region</code>, <code>data-limit</code> (max 20), <code>data-title</code>.</p>
+  </div>
+
+  <div class="cta-band">
+    <h3>Going to one of these events?</h3>
+    <p>Don't just track events — meet the right people at them. Nev, EventMedium's AI concierge, builds your canister in a five-minute chat and matches you with high-signal introductions before you arrive.</p>
+    <a href="/auth.html?utm_source=feeds_page&utm_medium=site&utm_campaign=canister">Build your canister with Nev →</a>
+  </div>
+</div>
+
+<script src="/js/nav.js"></script>
+</body>
+</html>

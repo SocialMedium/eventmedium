@@ -510,7 +510,8 @@ router.get('/community/:communityId', authenticateToken, async function(req, res
 });
 
 // ── GET /api/events/:id ── (single event)
-router.get('/:id', optionalAuth, async function(req, res) {
+// Numeric-only so it can't shadow /rss, /feed.json and other named routes below
+router.get('/:id(\\d+)', optionalAuth, async function(req, res) {
   try {
     var event = await dbGet('SELECT * FROM events WHERE id = $1', [req.params.id]);
     if (!event) return res.status(404).json({ error: 'Event not found' });
@@ -1262,10 +1263,31 @@ router.post('/:id/sidecars', async function(req, res) {
 
 // ── GET /api/events/feed.json — public machine-readable events feed ──
 // No auth required. Designed for external ingestion (Autonodal, RSS readers, etc.)
-router.get('/feed.json', async function(req, res) {
+// Public feeds are meant to be consumed anywhere — widgets, readers, partner
+// sites — so they get open (credential-less) CORS, unlike the rest of the API.
+var openCors = require('cors')();
+
+// Representative image: harvested og:image, else favicon derived from the
+// event's source domain (zero-fetch fallback that always resolves).
+function eventImage(imageUrl, sourceUrl) {
+  if (imageUrl) return imageUrl; // '' means "tried, none found" — fall through
+  if (imageUrl === '' || !imageUrl) {
+    if (sourceUrl) {
+      try {
+        var host = new URL(sourceUrl).hostname;
+        return 'https://www.google.com/s2/favicons?domain=' + encodeURIComponent(host) + '&sz=64';
+      } catch (e) {}
+    }
+  }
+  return null;
+}
+
+router.get('/feed.json', openCors, async function(req, res) {
   try {
     var status = req.query.status || 'upcoming'; // upcoming | past | all
     var regionFilter = req.query.region || null;  // optional country filter
+    var cityFilter = req.query.city || null;
+    var themeFilter = req.query.theme || null;
     var limit = Math.min(parseInt(req.query.limit) || 500, 1000);
 
     var conditions = ['(community_id IS NULL OR is_public = true)'];
@@ -1283,18 +1305,29 @@ router.get('/feed.json', async function(req, res) {
       params.push('%' + regionFilter + '%');
       idx++;
     }
+    if (cityFilter) {
+      conditions.push('city ILIKE $' + idx);
+      params.push('%' + cityFilter + '%');
+      idx++;
+    }
+    if (themeFilter) {
+      conditions.push('themes::text ILIKE $' + idx);
+      params.push('%' + themeFilter + '%');
+      idx++;
+    }
 
     var where = conditions.length ? ' WHERE ' + conditions.join(' AND ') : '';
 
     var events = await dbAll(
       'SELECT e.id, e.name, e.slug, e.description, e.event_date, e.city, e.country, e.themes, ' +
-      'e.expected_attendees, e.event_type, e.is_public, ' +
+      'e.expected_attendees, e.event_type, e.is_public, e.source_url, e.image_url, ' +
       '(SELECT COUNT(*)::int FROM event_registrations WHERE event_id = e.id AND status = \'active\') as rsvp_count ' +
       'FROM events e' + where +
       ' ORDER BY e.event_date ASC LIMIT $' + idx,
       params.concat([limit])
     );
 
+    var baseUrl = process.env.APP_URL || 'https://eventmedium.ai';
     var items = events.map(function(e) {
       var themes = e.themes;
       if (typeof themes === 'string') { try { themes = JSON.parse(themes); } catch(err) { themes = []; } }
@@ -1307,7 +1340,8 @@ router.get('/feed.json', async function(req, res) {
         city: e.city || '',
         country: e.country || '',
         themes: Array.isArray(themes) ? themes : [],
-        url: (process.env.APP_URL || 'https://eventmedium.ai') + '/event.html?id=' + e.id,
+        url: baseUrl + '/event.html?id=' + e.id,
+        image: eventImage(e.image_url, e.source_url),
         rsvp_count: e.rsvp_count || 0,
         expected_attendees: e.expected_attendees || null,
         event_type: e.event_type || null,
@@ -1318,8 +1352,14 @@ router.get('/feed.json', async function(req, res) {
     res.set('Cache-Control', 'public, max-age=3600'); // 1hr cache
     res.json({
       feed: 'EventMedium Events Feed',
-      version: '1.0',
+      version: '1.1',
       generated_at: new Date().toISOString(),
+      site: baseUrl,
+      browse_url: baseUrl + '/events.html',
+      canister_cta: {
+        label: 'Meet the right people at these events — build your canister with Nev',
+        url: baseUrl + '/auth.html?utm_source=feed&utm_medium=json&utm_campaign=canister'
+      },
       count: items.length,
       events: items
     });
@@ -1330,10 +1370,11 @@ router.get('/feed.json', async function(req, res) {
 });
 
 // ── RSS 2.0 Feed ── /api/events/rss ──────────────────────────────────────────
-router.get('/rss', async function(req, res) {
+router.get('/rss', openCors, async function(req, res) {
   try {
     var themeFilter = req.query.theme || null;
     var regionFilter = req.query.region || null;
+    var cityFilter = req.query.city || null;
     var limit = Math.min(parseInt(req.query.limit) || 200, 500);
 
     var conditions = [
@@ -1349,6 +1390,12 @@ router.get('/rss', async function(req, res) {
       idx++;
     }
 
+    if (cityFilter) {
+      conditions.push('e.city ILIKE $' + idx);
+      params.push('%' + cityFilter + '%');
+      idx++;
+    }
+
     if (themeFilter) {
       conditions.push('e.themes::text ILIKE $' + idx);
       params.push('%' + themeFilter + '%');
@@ -1359,7 +1406,7 @@ router.get('/rss', async function(req, res) {
 
     var events = await dbAll(
       'SELECT e.id, e.name, e.slug, e.description, e.event_date, e.city, e.country, ' +
-      'e.themes, e.expected_attendees, e.event_type, e.source_url, e.created_at, ' +
+      'e.themes, e.expected_attendees, e.event_type, e.source_url, e.image_url, e.created_at, ' +
       '(SELECT COUNT(*)::int FROM event_registrations WHERE event_id = e.id AND status = \'active\') as rsvp_count ' +
       'FROM events e' + where +
       ' ORDER BY e.event_date ASC NULLS LAST LIMIT $' + idx,
@@ -1379,11 +1426,13 @@ router.get('/rss', async function(req, res) {
       if (typeof themes === 'string') { try { themes = JSON.parse(themes); } catch(err) { themes = []; } }
       if (!Array.isArray(themes)) themes = [];
 
-      var link = baseUrl + '/event.html?id=' + e.id;
-      var hubLink = baseUrl + '/events.html';
+      var link = baseUrl + '/event.html?id=' + e.id + '&utm_source=rss&utm_medium=feed';
+      var hubLink = baseUrl + '/events.html?utm_source=rss&utm_medium=feed';
+      var nevLink = baseUrl + '/auth.html?utm_source=rss&utm_medium=feed&utm_campaign=canister';
       var pubDate = e.created_at ? new Date(e.created_at).toUTCString() : now;
       var eventDate = e.event_date ? new Date(e.event_date).toISOString().split('T')[0] : 'TBD';
       var location = [e.city, e.country].filter(Boolean).join(', ') || 'Location TBD';
+      var image = eventImage(e.image_url, e.source_url);
 
       var desc = (e.description || e.name) + '\n\n' +
         'Date: ' + eventDate + '\n' +
@@ -1392,7 +1441,9 @@ router.get('/rss', async function(req, res) {
         (e.rsvp_count > 0 ? '\nRSVPs: ' + e.rsvp_count : '') +
         '\nThemes: ' + (themes.length ? themes.join(', ') : 'General') +
         '\n\nView on EventMedium: ' + link +
-        '\nBrowse all events: ' + hubLink;
+        '\nBrowse all events: ' + hubLink +
+        '\n\nGoing? Meet the right people there — build your canister with Nev, ' +
+        'EventMedium\'s AI concierge, and get matched before the event: ' + nevLink;
 
       var categories = themes.map(function(t) {
         return '      <category>' + escXml(t) + '</category>';
@@ -1401,23 +1452,30 @@ router.get('/rss', async function(req, res) {
       return '    <item>\n' +
         '      <title>' + escXml(e.name) + '</title>\n' +
         '      <link>' + escXml(link) + '</link>\n' +
-        '      <guid isPermaLink="true">' + escXml(link) + '</guid>\n' +
+        '      <guid isPermaLink="true">' + escXml(baseUrl + '/event.html?id=' + e.id) + '</guid>\n' +
         '      <pubDate>' + pubDate + '</pubDate>\n' +
         '      <description>' + escXml(desc) + '</description>\n' +
+        (image ? '      <media:thumbnail url="' + escXml(image) + '" />\n' : '') +
         (categories ? categories + '\n' : '') +
         '      <source url="' + escXml(baseUrl + '/api/events/rss') + '">EventMedium</source>\n' +
         '    </item>';
     }).join('\n');
 
     var xml = '<?xml version="1.0" encoding="UTF-8"?>\n' +
-      '<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">\n' +
+      '<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/">\n' +
       '  <channel>\n' +
-      '    <title>EventMedium — Events Intelligence Feed</title>\n' +
+      '    <title>EventMedium — Upcoming Events' +
+      escXml(themeFilter ? ': ' + themeFilter : '') + escXml(cityFilter ? ' in ' + cityFilter : '') + '</title>\n' +
       '    <link>' + escXml(baseUrl + '/events.html') + '</link>\n' +
-      '    <description>Forward-looking signal feed: upcoming conferences, summits, and professional events across AI, FinTech, Climate, Health, and 20+ themes. Curated by EventMedium for market trend detection and network intelligence.</description>\n' +
+      '    <description>Upcoming conferences, summits, and professional events across AI, FinTech, Climate, Health, and 20+ themes. Every event links back to EventMedium, where Nev — our AI concierge — builds your canister and matches you with the right people before you arrive.</description>\n' +
       '    <language>en</language>\n' +
       '    <lastBuildDate>' + now + '</lastBuildDate>\n' +
       '    <atom:link href="' + escXml(baseUrl + '/api/events/rss') + '" rel="self" type="application/rss+xml" />\n' +
+      '    <image>\n' +
+      '      <url>' + escXml(baseUrl + '/images/em-logo.png') + '</url>\n' +
+      '      <title>EventMedium</title>\n' +
+      '      <link>' + escXml(baseUrl + '/events.html') + '</link>\n' +
+      '    </image>\n' +
       '    <ttl>360</ttl>\n' +
       items + '\n' +
       '  </channel>\n' +
