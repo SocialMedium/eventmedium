@@ -1559,6 +1559,17 @@ router.get('/:matchId/debrief', authenticateToken, async function(req, res) {
       [req.user.id, matchId]
     );
 
+    // EMERGENCY GATE 2026-07-30: debrief had no ownership check (audit P0-2).
+    // Without this, the CASE above falls through to ELSE em.user_a_id for a
+    // non-participant, disclosing party A's name/company/score/match_reasons for
+    // any match id. 404 (not 403) so we do not confirm the match exists.
+    if (!match) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+    if (req.user.id !== match.user_a_id && req.user.id !== match.user_b_id) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+
     var otherUser = null;
     if (match) {
       otherUser = await dbGet('SELECT name, company FROM users WHERE id = $1', [match.other_user_id]);
