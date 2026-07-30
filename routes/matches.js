@@ -1600,6 +1600,26 @@ router.post('/:matchId/debrief/chat', authenticateToken, async function(req, res
     var { message } = req.body;
     if (!message || !message.trim()) return res.status(400).json({ error: 'Message required' });
 
+    // EMERGENCY GATE 2026-07-30: this handler had no ownership check (audit P0-2), and its
+    // writes ran BEFORE the match was ever loaded — so an arbitrary matchId created a
+    // match_feedback row, stored messages, injected a third party's name/company into Nev's
+    // prompt, called Anthropic, and minted EC3. The gate must therefore sit above ALL of:
+    //   match_feedback insert (~1612), nev_debrief_messages insert (~1627),
+    //   buildNevDebriefPrompt (~1653), getNevResponse/Anthropic (~1666),
+    //   feedback_insights insert (~1678), emc2.recordTransaction (~1690).
+    // Minimal ownership fetch only — the full match row is still loaded later for context.
+    // 404 (not 403) so we do not confirm the match exists.
+    var ownership = await dbGet(
+      'SELECT user_a_id, user_b_id FROM event_matches WHERE id = $1',
+      [matchId]
+    );
+    if (!ownership) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+    if (req.user.id !== ownership.user_a_id && req.user.id !== ownership.user_b_id) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+
     // Ensure feedback record exists
     var feedback = await dbGet(
       'SELECT * FROM match_feedback WHERE match_id = $1 AND user_id = $2',
