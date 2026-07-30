@@ -132,6 +132,12 @@ router.get('/graph-data', authenticateToken, async function(req, res) {
 
 // ── GET /api/network/graph ────────────────────────────────────────────────────
 router.get('/graph', async function(req, res) {
+  // EMERGENCY GATE 2026-07-30: route returned the full member directory (id, company,
+  // stakeholder_type, geography, themes) with no auth and no LIMIT.
+  // See AUDIT_REPORT.md P0-3. Proper fix (auth + scoping) tracked separately.
+  // Do not remove this gate without restoring auth AND result scoping.
+  return res.status(404).json({ error: 'Not found' });
+
   try {
 
     // Members — users with geography, with event + match counts
