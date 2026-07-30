@@ -199,6 +199,11 @@ router.post('/ingest-batch', async function(req, res) {
 
 // ── GET /api/signals/search ── (search signals by theme/entity)
 router.get('/search', async function(req, res) {
+  // EMERGENCY GATE 2026-07-30: route exposed private signal rows unauthenticated.
+  // See AUDIT_REPORT.md P0-1. Proper fix (auth + visibility filter) tracked separately.
+  // Do not remove this gate without restoring auth AND visibility filtering.
+  return res.status(404).json({ error: 'Not found' });
+
   try {
     var { theme, entity, source_type, limit } = req.query;
     var conditions = [];
