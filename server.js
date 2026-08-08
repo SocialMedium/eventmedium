@@ -115,6 +115,13 @@ async function runMigrations() {
     await dbRun('ALTER TABLE event_matches ADD COLUMN IF NOT EXISTS community_id INTEGER REFERENCES communities(id)');
     await dbRun("ALTER TABLE communities ADD COLUMN IF NOT EXISTS comm_type TEXT DEFAULT 'open'");
     await dbRun("ALTER TABLE event_matches ADD COLUMN IF NOT EXISTS scope_type TEXT DEFAULT 'event'");
+    // event_id was NOT NULL, but community/location/global matching inserts NULL for it
+    // (routes/matches.js sets eventId = null for non-event scopes). Every such insert
+    // therefore threw 23502 into a swallowed catch — which is why scope_type has only
+    // ever contained 'event'. Dropping the constraint unblocks always-on matching.
+    await dbRun('ALTER TABLE event_matches ALTER COLUMN event_id DROP NOT NULL').catch(function(e) {
+      if (!/does not exist|already/i.test(e.message)) console.error('[migrate] event_id DROP NOT NULL:', e.message);
+    });
     await dbRun('ALTER TABLE users ADD COLUMN IF NOT EXISTS last_global_match TIMESTAMP');
     await dbRun('ALTER TABLE events ADD COLUMN IF NOT EXISTS image_url TEXT');
     await dbRun(`CREATE TABLE IF NOT EXISTS nev_messages (

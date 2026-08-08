@@ -801,17 +801,20 @@ async function generateMatchesForUser(userId, context, options) {
   var eventId   = context.type === 'event'     ? context.id : null;
   var commId    = context.type === 'community' ? context.id : null;
   var scopeType = context.type;
+  var createdMatchIds = [];
+  var createdPairs = [];
 
   for (var m = 0; m < matches.length; m++) {
     var mr = matches[m].result;
-    await dbRun(
+    var ins = await dbRun(
       `INSERT INTO event_matches
          (event_id, community_id, scope_type, user_a_id, user_b_id,
           score_total, score_semantic, score_theme, score_intent, score_stakeholder,
           score_capital, score_signal_convergence, score_timing, score_constraint_complementarity,
           score_geography, score_urgency, score_canister_richness, match_mode,
           match_reasons, signal_context, status)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)`,
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)
+       RETURNING id`,
       [
         eventId, commId, scopeType, userId, matches[m].otherId,
         mr.score_total, mr.score_semantic, mr.score_theme, mr.score_intent,
@@ -822,8 +825,88 @@ async function generateMatchesForUser(userId, context, options) {
         'pending'
       ]
     );
+
+    // Log with ids so match creation is diagnosable (audit: lifecycle was unlogged)
+    if (ins && ins.rows && ins.rows[0]) {
+      createdMatchIds.push(ins.rows[0].id);
+      createdPairs.push({ matchId: ins.rows[0].id, a: userId, b: matches[m].otherId });
+      console.log('[Matcher] created match ' + ins.rows[0].id + ' scope=' + scopeType +
+        ' users=' + userId + '/' + matches[m].otherId + ' score=' + mr.score_total);
+    }
   }
+
+  // Tell people they have matches. Without this, a pending match is invisible:
+  // reveal needs BOTH sides to accept, so unnotified matches never complete.
+  // Fire-and-forget — a notification failure must never fail match creation.
+  if (createdPairs.length) {
+    notifyNewMatches(createdPairs).catch(function(e) {
+      console.error('[Matcher] notifyNewMatches error:', e.message);
+    });
+  }
+
   return matches.map(function(m) { return m.result; });
+}
+
+// ── Notify both participants of newly created pending matches ────────────────
+// Double-blind: says only THAT there are matches, never who. Batched to one
+// in-app notification + one email per user per run.
+async function notifyNewMatches(pairs) {
+  var perUser = {};
+  pairs.forEach(function(p) {
+    perUser[p.a] = (perUser[p.a] || 0) + 1;
+    perUser[p.b] = (perUser[p.b] || 0) + 1;
+  });
+
+  var appUrl = process.env.APP_URL || 'https://eventmedium.ai';
+  var userIds = Object.keys(perUser);
+
+  var resend = null;
+  if (process.env.RESEND_API_KEY) {
+    try {
+      var { Resend } = require('resend');
+      resend = new Resend(process.env.RESEND_API_KEY);
+    } catch (e) {
+      console.error('[Matcher] Resend init failed:', e.message);
+    }
+  } else {
+    console.warn('[Matcher] RESEND_API_KEY not set — in-app notification only');
+  }
+
+  for (var i = 0; i < userIds.length; i++) {
+    var uid = parseInt(userIds[i]);
+    var n = perUser[userIds[i]];
+    var label = n === 1 ? '1 new match' : n + ' new matches';
+
+    try {
+      await createNotification(
+        uid, 'match_pending', label + ' to review',
+        'Accept to reveal — identities stay hidden until you both agree.',
+        '/matches.html', { count: n }
+      );
+    } catch (e) {
+      console.error('[Matcher] in-app notification failed for user ' + uid + ':', e.message);
+    }
+
+    if (!resend) continue;
+    try {
+      var u = await dbGet('SELECT name, email FROM users WHERE id = $1', [uid]);
+      if (!u || !u.email) continue;
+      await resend.emails.send({
+        from: process.env.FROM_EMAIL || 'nev@eventmedium.ai',
+        to: u.email,
+        subject: label + ' on EventMedium',
+        html: '<p>Hi ' + (u.name || 'there') + ',</p>' +
+              '<p>You have <strong>' + label + '</strong> waiting to review.</p>' +
+              '<p>Matching is double-blind — you will see who it is once you both accept.</p>' +
+              '<p><a href="' + appUrl + '/matches.html?utm_source=email&utm_medium=match_pending">Review your matches →</a></p>' +
+              '<p>— Nev</p>'
+      });
+    } catch (e) {
+      console.error('[Matcher] match email failed for user ' + uid + ':', e.message);
+    }
+  }
+
+  console.log('[Matcher] notified ' + userIds.length + ' user(s) of ' + pairs.length + ' new match(es)');
 }
 
 // ══════════════════════════════════════════════════════
@@ -2044,7 +2127,7 @@ async function runGlobalMatching() {
 
 module.exports = {
   router, scoreMatch, generateMatchesForUser,
-  createNotification, notifyMatchReveal,
+  createNotification, notifyMatchReveal, notifyNewMatches,
   extractDebriefInsights, getNevResponse,
   scoreGeography, scoreUrgency, computeRichness, hasNegativeHistory,
   runEventMatching, runCommunityMatching, runGlobalMatching
