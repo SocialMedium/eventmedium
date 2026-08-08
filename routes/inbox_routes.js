@@ -235,6 +235,17 @@ router.get('/:matchId/debrief', authenticateToken, async function(req, res) {
       [req.user.id, matchId]
     );
 
+    // EMERGENCY GATE 2026-07-30: duplicate of the matches.js debrief defect (audit P0-2).
+    // Without this the CASE above falls through to ELSE em.user_a_id for a non-participant,
+    // disclosing party A's name/company/score/match_reasons for any match id.
+    // 404 (not 403) so we do not confirm the match exists.
+    if (!match) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+    if (req.user.id !== match.user_a_id && req.user.id !== match.user_b_id) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+
     var otherUser = null;
     if (match) {
       otherUser = await dbGet('SELECT name, company FROM users WHERE id = $1', [match.other_user_id]);
@@ -264,6 +275,22 @@ router.post('/:matchId/debrief/chat', authenticateToken, async function(req, res
     var matchId = parseInt(req.params.matchId);
     var { message } = req.body;
     if (!message || !message.trim()) return res.status(400).json({ error: 'Message required' });
+
+    // EMERGENCY GATE 2026-07-30: duplicate of the matches.js /debrief/chat defect (audit P0-2).
+    // Writes here run BEFORE the match is loaded, so an arbitrary matchId would create a
+    // match_feedback row, store messages, inject a third party's identity into Nev's prompt
+    // and call Anthropic. Gate must sit above ALL of those. Minimal ownership fetch only.
+    // 404 (not 403) so we do not confirm the match exists.
+    var ownership = await dbGet(
+      'SELECT user_a_id, user_b_id FROM event_matches WHERE id = $1',
+      [matchId]
+    );
+    if (!ownership) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+    if (req.user.id !== ownership.user_a_id && req.user.id !== ownership.user_b_id) {
+      return res.status(404).json({ error: 'Not found' });
+    }
 
     // Ensure feedback record exists
     var feedback = await dbGet(
