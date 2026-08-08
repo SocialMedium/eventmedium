@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Chat — Event Medium</title>
 <script src="https://unpkg.com/lucide@latest"></script>
-<script src="/socket.io/socket.io.js"></script>
 <style>
 :root {
   --p: #0066ff;--pL: #e8f0fe;--pD: #0052cc;--s: #6c63ff;--ok: #00d084;
@@ -213,7 +212,6 @@ if (!matchId) window.location.href = '/matches.html';
 
 var currentUserId = null;
 var otherUserId = null;
-var socket = null;
 var typingTimeout = null;
 var lastTypingEmit = 0;
 
@@ -222,41 +220,57 @@ fetch('/api/auth/me', { headers: { 'Authorization': 'Bearer ' + token } })
   .then(function(r) { return r.json(); })
   .then(function(d) { currentUserId = d.user ? d.user.id : null; });
 
-// Init WebSocket
-function initSocket() {
-  socket = io({ auth: { token: token } });
+// ── Live updates via polling ─────────────────────────────────────────────────
+// This page previously used socket.io, but socket.io is not installed and the
+// server never creates an io instance — `io(...)` threw ReferenceError inside
+// loadChat()'s try block, which wiped the rendered conversation and showed
+// "Failed to load conversation." Polling the existing REST endpoint restores
+// messaging without a new dependency. Typing indicators are not available
+// without a socket; read receipts still work via POST /api/messages/read.
+var pollTimer = null;
+var seenMessageIds = {};
 
-  socket.on('connect', function() {
-    socket.emit('join_match', matchId);
+function startPolling() {
+  if (pollTimer) return;
+  pollTimer = setInterval(pollNewMessages, 5000);
+  // Pause polling when the tab is hidden; resume (and refresh at once) on return.
+  document.addEventListener('visibilitychange', function() {
+    if (document.hidden) {
+      clearInterval(pollTimer);
+      pollTimer = null;
+    } else if (!pollTimer) {
+      pollNewMessages();
+      pollTimer = setInterval(pollNewMessages, 5000);
+    }
   });
+}
 
-  socket.on('new_message', function(msg) {
-    if (msg.sender_id !== currentUserId) {
-      appendMessage(msg);
+async function pollNewMessages() {
+  try {
+    var resp = await fetch('/api/messages/' + matchId, { headers: { 'Authorization': 'Bearer ' + token } });
+    if (!resp.ok) return;
+    var data = await resp.json();
+    var incoming = (data.messages || []).filter(function(m) { return !seenMessageIds[m.id]; });
+    if (!incoming.length) return;
+
+    var gotTheirs = false;
+    incoming.forEach(function(m) {
+      seenMessageIds[m.id] = true;
+      if (m.sender_id !== currentUserId) {
+        appendMessage(m);
+        gotTheirs = true;
+      }
+    });
+
+    if (gotTheirs) {
       scrollToBottom();
-      // Send read receipt
-      socket.emit('mark_read', { match_id: matchId });
-      fetch('/api/messages/read/' + matchId, { method: 'POST', headers: { 'Authorization': 'Bearer ' + token } });
+      fetch('/api/messages/read/' + matchId, {
+        method: 'POST', headers: { 'Authorization': 'Bearer ' + token }
+      }).catch(function() {});
     }
-  });
-
-  socket.on('typing', function(data) {
-    if (data.user_id !== currentUserId && data.match_id == matchId) {
-      document.getElementById('typingIndicator').style.display = data.typing ? 'block' : 'none';
-      if (data.typing) scrollToBottom();
-    }
-  });
-
-  socket.on('messages_read', function(data) {
-    if (data.user_id !== currentUserId) {
-      // Update read receipts on our messages
-      document.querySelectorAll('.msg.mine .msg-read').forEach(function(el) {
-        el.style.color = 'var(--ok)';
-        el.setAttribute('data-lucide', 'check-check');
-      });
-      lucide.createIcons();
-    }
-  });
+  } catch (e) {
+    // Transient network failure — keep polling, next tick will catch up.
+  }
 }
 
 async function loadChat() {
@@ -309,6 +323,7 @@ async function loadChat() {
           container.appendChild(divider);
           lastDate = msgDate;
         }
+        seenMessageIds[m.id] = true;
         appendMessage(m);
       });
     }
@@ -319,10 +334,9 @@ async function loadChat() {
 
     // Mark as read
     fetch('/api/messages/read/' + matchId, { method: 'POST', headers: { 'Authorization': 'Bearer ' + token } });
-    if (socket) socket.emit('mark_read', { match_id: matchId });
 
-    // Init WebSocket after first load
-    if (!socket) initSocket();
+    // Start live updates after first load
+    startPolling();
   } catch(err) {
     document.getElementById('messages').innerHTML = '<div class="loading">Failed to load conversation.</div>';
   }
@@ -383,19 +397,6 @@ chatInput.addEventListener('input', function() {
   this.style.height = 'auto';
   this.style.height = Math.min(this.scrollHeight, 120) + 'px';
   sendBtn.disabled = !this.value.trim();
-
-  // Emit typing
-  if (socket && this.value.trim()) {
-    var now = Date.now();
-    if (now - lastTypingEmit > 2000) {
-      socket.emit('typing', { match_id: matchId, typing: true });
-      lastTypingEmit = now;
-    }
-    clearTimeout(typingTimeout);
-    typingTimeout = setTimeout(function() {
-      socket.emit('typing', { match_id: matchId, typing: false });
-    }, 3000);
-  }
 });
 
 chatInput.addEventListener('keydown', function(e) {
@@ -412,7 +413,6 @@ async function sendMessage() {
   if (!text) return;
 
   // Stop typing
-  if (socket) socket.emit('typing', { match_id: matchId, typing: false });
 
   // Optimistic append
   var tempMsg = {
@@ -428,13 +428,42 @@ async function sendMessage() {
   chatInput.style.height = 'auto';
   sendBtn.disabled = true;
 
+  // The bubble was already appended optimistically above, so a failed send used
+  // to look identical to a successful one — silent message loss on the core
+  // surface. Surface the failure and let the user retry.
   try {
-    await fetch('/api/messages', {
+    var resp = await fetch('/api/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
       body: JSON.stringify({ match_id: parseInt(matchId), body: text })
     });
-  } catch(e) {}
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    var saved = await resp.json().catch(function() { return null; });
+    if (saved && saved.message && saved.message.id) seenMessageIds[saved.message.id] = true;
+  } catch (e) {
+    markSendFailed(text);
+  }
+}
+
+// Mark the last optimistic bubble as unsent and offer a retry.
+function markSendFailed(text) {
+  var mine = document.querySelectorAll('.msg.mine');
+  var last = mine[mine.length - 1];
+  if (!last) return;
+  last.style.opacity = '0.55';
+  var footer = last.querySelector('.msg-footer') || last;
+  var warn = document.createElement('span');
+  warn.className = 'msg-time';
+  warn.style.cssText = 'color:#fff;font-weight:600';
+  warn.textContent = 'Not sent — tap to retry';
+  warn.style.cursor = 'pointer';
+  warn.addEventListener('click', function() {
+    last.remove();
+    chatInput.value = text;
+    sendBtn.disabled = false;
+    chatInput.focus();
+  });
+  footer.appendChild(warn);
 }
 
 // Schedule

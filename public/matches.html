@@ -349,7 +349,34 @@ function getNullStateMessage() {
   var scope = contextual && contextual.scopes.find(function(s) { return s.type === activeScope; });
   var isThin = !scope || scope.thin;
 
+  var diag = (contextual && contextual.diagnostics) || {};
+
   if (currentTab === 'pending') {
+    // Explain the ACTUAL cause before falling back to "improve your canister".
+    // Registrations only for events that have already happened is by far the most
+    // common reason a scope is empty, and it is not a canister problem.
+    if (diag.total_registrations > 0 && diag.upcoming_registrations === 0) {
+      return {
+        h: "Your events have already happened",
+        p: 'Matching runs on upcoming events. Register for one and Nev will start introducing you. <a href="/events.html">Browse events →</a>'
+      };
+    }
+    if (diag.total_registrations === 0) {
+      return {
+        h: "Register for an event to get matched",
+        p: 'Your canister is ready — pick an event you are attending. <a href="/events.html">Browse events →</a>'
+      };
+    }
+    // Matches exist, but they belong to events that have already passed, so no
+    // current scope can show them. Say that rather than implying the user is at fault.
+    if (diag.pending_matches_any_scope > 0) {
+      return {
+        h: "Your matches are from past events",
+        p: 'You have ' + diag.pending_matches_any_scope + ' earlier ' +
+           (diag.pending_matches_any_scope === 1 ? 'match' : 'matches') +
+           ' that are no longer in scope. New introductions appear as others register for your upcoming events. <a href="/events.html">Browse events →</a>'
+      };
+    }
     if (isThin) {
       if (activeScope === 'global') return { h: "Your canister needs more signal", p: 'Talk to Nev to sharpen your matches. <a href="/onboard.html">Open Nev →</a>' };
       var nextTypes = ['event','community','location','global'];

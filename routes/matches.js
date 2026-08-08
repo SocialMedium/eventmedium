@@ -1192,7 +1192,33 @@ router.get('/contextual', authenticateToken, async function(req, res) {
       } catch(e) {}
     }
 
-    res.json({ active_scope: activeScope, scopes: scopes, recommended: recommended });
+    // Diagnostics so the UI can explain WHY a scope is empty instead of blaming
+    // the user's canister. The common real cause is "your registrations are all
+    // for events that already happened", which is not a canister problem.
+    var regDiag = await dbGet(
+      `SELECT
+         COUNT(*) FILTER (WHERE e.event_date >= CURRENT_DATE)::int AS upcoming,
+         COUNT(*)::int AS total
+       FROM event_registrations er JOIN events e ON e.id = er.event_id
+       WHERE er.user_id = $1 AND er.status = 'active'`,
+      [userId]
+    );
+    var pendingAnywhere = await dbGet(
+      `SELECT COUNT(*)::int AS c FROM event_matches
+       WHERE (user_a_id = $1 OR user_b_id = $1) AND status = 'pending'`,
+      [userId]
+    );
+
+    res.json({
+      active_scope: activeScope,
+      scopes: scopes,
+      recommended: recommended,
+      diagnostics: {
+        upcoming_registrations: (regDiag && regDiag.upcoming) || 0,
+        total_registrations: (regDiag && regDiag.total) || 0,
+        pending_matches_any_scope: (pendingAnywhere && pendingAnywhere.c) || 0
+      }
+    });
   } catch(err) {
     console.error('[contextual] error:', err);
     res.status(500).json({ error: 'Failed to load contextual matches' });
