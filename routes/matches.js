@@ -688,6 +688,13 @@ async function generateMatchesForUser(userId, context, options) {
   var threshold = options.threshold || 0.45;
   var candidateLimit = options.candidateLimit || 50;
 
+  // Don't generate matches FOR non-real accounts either — otherwise the test
+  // harness keeps producing fake<->fake pairs (49 of the last 51 matches).
+  var subject = await dbGet('SELECT auth_provider FROM users WHERE id = $1', [userId]);
+  if (subject && (subject.auth_provider === 'test' || subject.auth_provider === 'seed')) {
+    return [];
+  }
+
   // ── Resolve candidate pool by scope type ──
   var candidateIds = [];
 
@@ -732,6 +739,24 @@ async function generateMatchesForUser(userId, context, options) {
       "SELECT user_id FROM stakeholder_profiles WHERE stakeholder_type IS NOT NULL AND themes IS NOT NULL"
     );
     candidateIds = allProfiled.map(function(u) { return u.user_id; }).filter(function(id) { return !excluded.has(id); });
+  }
+
+  // ── Exclude non-real accounts from every candidate pool ─────────────────────
+  // 111 of 150 accounts are test-harness or seeded demo personas. None has ever
+  // had a session, so they can never accept a match: pairing a real user with one
+  // produces a dead-end introduction, and notifying them mails addresses that
+  // hard-bounce (test.eventmedium.ai has no MX record). Blocklist rather than
+  // allowlist so a future real auth provider is included automatically.
+  var realRows = await dbAll(
+    "SELECT id FROM users WHERE id = ANY($1) AND auth_provider NOT IN ('test','seed')",
+    [candidateIds]
+  );
+  var realIds = new Set(realRows.map(function(r) { return r.id; }));
+  var droppedCount = candidateIds.length - realIds.size;
+  candidateIds = candidateIds.filter(function(id) { return realIds.has(id); });
+  if (droppedCount > 0) {
+    console.log('[Matcher] excluded ' + droppedCount + ' non-real account(s) from ' +
+      context.type + ' pool; ' + candidateIds.length + ' real candidate(s) remain');
   }
 
   if (!candidateIds.length) return [];
@@ -889,8 +914,12 @@ async function notifyNewMatches(pairs) {
 
     if (!resend) continue;
     try {
-      var u = await dbGet('SELECT name, email FROM users WHERE id = $1', [uid]);
+      var u = await dbGet('SELECT name, email, auth_provider FROM users WHERE id = $1', [uid]);
       if (!u || !u.email) continue;
+      // Never mail test/seed accounts — test.eventmedium.ai has no MX record, so
+      // every send hard-bounces and erodes the domain's sending reputation, which
+      // would eventually break magic-link sign-in (same sender).
+      if (u.auth_provider === 'test' || u.auth_provider === 'seed') continue;
       await resend.emails.send({
         from: process.env.FROM_EMAIL || 'nev@eventmedium.ai',
         to: u.email,
